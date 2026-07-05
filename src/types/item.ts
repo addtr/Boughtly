@@ -26,12 +26,15 @@ export interface AppSettings {
   returnReminderDays: number;
   /** Days before warranty expiration to remind the user */
   warrantyReminderDays: number;
+  /** Anthropic API key for receipt auto-reading (optional) */
+  claudeApiKey: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: true,
   returnReminderDays: 3,
   warrantyReminderDays: 7,
+  claudeApiKey: '',
 };
 
 export const WARRANTY_PRESETS = [

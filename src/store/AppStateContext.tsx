@@ -127,11 +127,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const updateSettings = useCallback(
     async (patch: Partial<AppSettings>) => {
-      const next = { ...settingsRef.current, ...patch };
+      const prev = settingsRef.current;
+      const next = { ...prev, ...patch };
       setSettings(next);
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
 
-      // Reschedule all reminders so they reflect the new preferences
+      // Reschedule reminders only when a notification preference changed
+      const affectsReminders =
+        next.notificationsEnabled !== prev.notificationsEnabled ||
+        next.returnReminderDays !== prev.returnReminderDays ||
+        next.warrantyReminderDays !== prev.warrantyReminderDays;
+      if (!affectsReminders) return;
+
       const rescheduled: TrackedItem[] = [];
       for (const item of itemsRef.current) {
         await cancelItemReminders(item.notificationIds);

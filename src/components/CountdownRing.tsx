@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { colors, fonts, URGENT_DAYS_THRESHOLD } from '../theme/theme';
 
@@ -17,7 +17,9 @@ interface CountdownRingProps {
 
 /**
  * Boughtly's signature element: a circular ring that depletes as a deadline
- * approaches. Blue while there's plenty of time, coral when urgent.
+ * approaches. Blue while there's plenty of time, coral when urgent (≤3 days).
+ * The fill animates in on mount and eases to new values on update; the color
+ * cross-fades rather than snapping when an item crosses the urgency line.
  */
 export function CountdownRing({
   daysLeft,
@@ -30,28 +32,42 @@ export function CountdownRing({
   const clampedDays = Math.max(daysLeft, 0);
   const fraction =
     totalDays > 0 ? Math.min(Math.max(clampedDays / totalDays, 0), 1) : 0;
-  const urgent = daysLeft <= URGENT_DAYS_THRESHOLD;
-  const ringColor = expired ? colors.muted : urgent ? colors.coral : colors.primary;
+  const urgent = !expired && daysLeft <= URGENT_DAYS_THRESHOLD;
 
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  // Animate the ring filling in from empty to its current fraction on mount,
-  // and smoothly to new values on update.
+  // Ring fill: animates from empty on mount, eases to new values on update
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(progress, {
       toValue: fraction,
-      duration: 800,
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
   }, [fraction, progress]);
+
+  // Urgency color: cross-fades blue → coral instead of snapping
+  const urgency = useRef(new Animated.Value(urgent ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(urgency, {
+      toValue: urgent ? 1 : 0,
+      duration: 400,
+      useNativeDriver: false,
+    }).start();
+  }, [urgent, urgency]);
 
   const strokeDashoffset = progress.interpolate({
     inputRange: [0, 1],
     outputRange: [circumference, 0],
   });
+  const animatedColor = urgency.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.primary, colors.coral],
+  });
 
+  const staticColor = expired ? colors.muted : urgent ? colors.coral : colors.primary;
   const numberSize = size * (String(clampedDays).length > 2 ? 0.26 : 0.32);
 
   return (
@@ -69,7 +85,7 @@ export function CountdownRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={ringColor}
+          stroke={expired ? colors.muted : (animatedColor as unknown as string)}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           fill="none"
@@ -84,7 +100,7 @@ export function CountdownRing({
           <Text style={[styles.expiredText, { fontSize: size * 0.18 }]}>Done</Text>
         ) : (
           <>
-            <Text style={[styles.number, { fontSize: numberSize, color: ringColor }]}>
+            <Text style={[styles.number, { fontSize: numberSize, color: staticColor }]}>
               {clampedDays}
             </Text>
             <Text style={[styles.label, { fontSize: size * 0.13 }]}>{label}</Text>
@@ -107,7 +123,6 @@ const styles = StyleSheet.create({
   },
   number: {
     fontFamily: fonts.displayBold,
-    lineHeight: undefined,
   },
   label: {
     fontFamily: fonts.bodyMedium,

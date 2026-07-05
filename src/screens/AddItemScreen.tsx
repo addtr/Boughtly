@@ -1,12 +1,15 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { File, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,10 +17,11 @@ import {
 } from 'react-native';
 import { Button, Card, ChipRow, Field } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { extractReceiptDetails } from '../services/receiptOcr';
 import { NewItemInput, useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { RETURN_PRESETS, WARRANTY_PRESETS } from '../types/item';
-import { toISODate } from '../utils/dates';
+import { formatDate, parseISODate, toISODate } from '../utils/dates';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddItem'>;
 
@@ -47,7 +51,7 @@ function isValidISODate(raw: string): boolean {
 }
 
 export function AddItemScreen({ navigation, route }: Props) {
-  const { items, addItem, updateItem } = useAppState();
+  const { items, settings, addItem, updateItem } = useAppState();
   const editingId = route.params?.itemId;
   const editing = useMemo(
     () => items.find((i) => i.id === editingId),
@@ -76,6 +80,35 @@ export function AddItemScreen({ navigation, route }: Props) {
     editing ? !RETURN_PRESET_DAYS.includes(editing.returnWindowDays) : false
   );
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  /** Reads the receipt with Claude and fills in any fields the user hasn't typed yet. */
+  async function runOcr(imageUri: string) {
+    if (!settings.claudeApiKey) return;
+    setScanning(true);
+    try {
+      const extracted = await extractReceiptDetails(imageUri, settings.claudeApiKey);
+      // Only fill fields that are still empty/default so we never clobber user input
+      if (extracted.itemName && !itemName.trim()) setItemName(extracted.itemName);
+      if (extracted.storeName && !storeName.trim()) setStoreName(extracted.storeName);
+      if (extracted.price !== null && !priceText.trim()) setPriceText(String(extracted.price));
+      if (extracted.purchaseDate) setPurchaseDate(extracted.purchaseDate);
+      if (!extracted.itemName && !extracted.storeName && extracted.price === null) {
+        Alert.alert(
+          'Couldn’t read that receipt',
+          'The photo is saved — fill in the details below and you’re set.'
+        );
+      }
+    } catch (e) {
+      Alert.alert(
+        'Auto-read didn’t work',
+        'The photo is saved. Check your connection and API key in Settings, or fill in the details below.'
+      );
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function pickImage(fromCamera: boolean) {
     try {
@@ -90,7 +123,9 @@ export function AddItemScreen({ navigation, route }: Props) {
         ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
         : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
       if (!result.canceled && result.assets[0]) {
-        setReceiptImageUri(result.assets[0].uri);
+        const uri = result.assets[0].uri;
+        setReceiptImageUri(uri);
+        void runOcr(uri);
       }
     } catch (e) {
       Alert.alert('Something went wrong', 'We couldn’t open that. Try again.');
@@ -181,9 +216,18 @@ export function AddItemScreen({ navigation, route }: Props) {
               style={styles.flex}
             />
           </View>
-          <Text style={styles.ocrNote}>
-            Auto-reading receipt details is coming soon — for now, fill in the details below.
-          </Text>
+          {scanning ? (
+            <View style={styles.scanningRow}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.scanningText}>Reading your receipt…</Text>
+            </View>
+          ) : (
+            <Text style={styles.ocrNote}>
+              {settings.claudeApiKey
+                ? 'Snap or pick a photo and the details below fill in automatically.'
+                : 'Tip: add a Claude API key in Settings and receipts fill themselves in.'}
+            </Text>
+          )}
         </Card>
 
         {/* Details */}
@@ -206,13 +250,36 @@ export function AddItemScreen({ navigation, route }: Props) {
           placeholder="129.99"
           keyboardType="decimal-pad"
         />
-        <Field
-          label="Purchase date (YYYY-MM-DD)"
-          value={purchaseDate}
-          onChangeText={setPurchaseDate}
-          placeholder="2026-07-05"
-          autoCapitalize="none"
-        />
+        {Platform.OS === 'web' ? (
+          <Field
+            label="Purchase date (YYYY-MM-DD)"
+            value={purchaseDate}
+            onChangeText={setPurchaseDate}
+            placeholder="2026-07-05"
+            autoCapitalize="none"
+          />
+        ) : (
+          <View style={styles.dateFieldWrap}>
+            <Text style={styles.dateFieldLabel}>When did you buy it?</Text>
+            <Pressable style={styles.dateField} onPress={() => setShowDatePicker(true)}>
+              <Text style={styles.dateFieldValue}>{formatDate(purchaseDate)}</Text>
+            </Pressable>
+            {showDatePicker && (
+              <DateTimePicker
+                value={parseISODate(purchaseDate)}
+                mode="date"
+                maximumDate={new Date()}
+                onChange={(event, date) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (event.type !== 'dismissed' && date) {
+                    setPurchaseDate(toISODate(date));
+                  }
+                  if (Platform.OS === 'ios') setShowDatePicker(false);
+                }}
+              />
+            )}
+          </View>
+        )}
 
         {/* Return window */}
         <Text style={styles.sectionTitle}>Return window</Text>
@@ -319,6 +386,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.muted,
     marginTop: spacing.sm,
+  },
+  scanningRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  scanningText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.primary,
+  },
+  dateFieldWrap: {
+    marginBottom: spacing.md,
+  },
+  dateFieldLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: 6,
+  },
+  dateField: {
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+  },
+  dateFieldValue: {
+    fontFamily: fonts.body,
+    fontSize: 16,
+    color: colors.text,
   },
   sectionTitle: {
     fontFamily: fonts.display,

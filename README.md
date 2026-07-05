@@ -6,7 +6,7 @@ Boughtly helps everyday people protect the money they spend. Add anything you bu
 by snapping the receipt or entering it manually — and Boughtly tracks the return-window
 deadline and warranty expiration for that item, reminding you before either runs out.
 
-## Status: Pass 1 (working skeleton) ✅
+## Status: Pass 2 (OCR + polish) ✅
 
 The full user flow works end to end:
 
@@ -25,8 +25,15 @@ The full user flow works end to end:
 - **Storage** — everything is stored locally on-device (AsyncStorage); receipt photos
   are copied into the app's documents directory.
 
-**Not yet built (Pass 2):** receipt OCR (scan currently captures the photo; details are
-entered manually), a native date picker for purchase date, ring polish/edge cases.
+- **Receipt auto-reading (OCR)** — with a Claude API key set in Settings, scanning or
+  picking a receipt photo sends it to Claude vision, which returns the item name, store,
+  price, and purchase date as structured JSON and prefills the form (never overwriting
+  anything the user already typed). Without a key, scanning still saves the photo and
+  entry stays manual.
+- **Native date picker** on iOS/Android for the purchase date (text input on web).
+- **Countdown Ring polish** — eased fill animation and a smooth blue→coral color
+  cross-fade when an item becomes urgent.
+
 Price tracking, paperwork automation, accounts, and cloud sync are future phases and
 intentionally out of scope.
 
