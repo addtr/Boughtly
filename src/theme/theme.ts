@@ -1,0 +1,66 @@
+/**
+ * Boughtly design tokens.
+ * These values are the single source of truth for color, type, spacing,
+ * and radii across the app — do not hardcode hex values in screens.
+ */
+
+export const colors = {
+  /** Headers, primary buttons, calm/plenty-of-time states */
+  primary: '#4C7EF3',
+  /** Text/contrast on light backgrounds */
+  deepBlue: '#1F2A44',
+  /** Urgent deadlines, CTAs, key alerts */
+  coral: '#FF6B54',
+  /** Warm off-white app background */
+  background: '#FAF7F2',
+  /** Card surface */
+  card: '#FFFFFF',
+  /** Body text */
+  text: '#2B2E33',
+  /** Secondary info */
+  muted: '#7A7F8A',
+
+  // Derived tints (kept few and purposeful)
+  primarySoft: '#E4ECFD',
+  coralSoft: '#FFE7E2',
+  ringTrack: '#ECEAE4',
+  danger: '#E04E36',
+  divider: '#F0EDE6',
+} as const;
+
+export const fonts = {
+  /** Display face — screen titles, day-count numerals */
+  display: 'Sora_600SemiBold',
+  displayBold: 'Sora_700Bold',
+  /** Body/UI face */
+  body: 'Inter_400Regular',
+  bodyMedium: 'Inter_500Medium',
+  bodySemiBold: 'Inter_600SemiBold',
+} as const;
+
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+} as const;
+
+export const radii = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+} as const;
+
+/** Soft shadow used on all cards — no hard borders. */
+export const cardShadow = {
+  shadowColor: '#1F2A44',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.08,
+  shadowRadius: 12,
+  elevation: 3,
+} as const;
+
+/** Days-remaining threshold at which UI shifts from calm blue to urgent coral. */
+export const URGENT_DAYS_THRESHOLD = 3;

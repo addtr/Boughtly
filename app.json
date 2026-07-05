@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Boughtly",
+    "slug": "boughtly",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FAF7F2",
+    "splash": {
+      "backgroundColor": "#FAF7F2",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Boughtly uses the camera to snap photos of your receipts."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FAF7F2",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Boughtly uses the camera to snap photos of your receipts.",
+          "photosPermission": "Boughtly needs photo access so you can attach an existing receipt photo."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#4C7EF3"
+        }
+      ]
+    ]
+  }
+}
