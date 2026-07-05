@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { Button, Card, ChipRow, Field } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
-import { extractReceiptDetails } from '../services/receiptOcr';
+import { scanReceipt } from '../services/receiptScanner';
 import { NewItemInput, useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { RETURN_PRESETS, WARRANTY_PRESETS } from '../types/item';
@@ -83,12 +83,12 @@ export function AddItemScreen({ navigation, route }: Props) {
   const [scanning, setScanning] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  /** Reads the receipt with Claude and fills in any fields the user hasn't typed yet. */
+  /** Reads the receipt on-device and fills in any fields the user hasn't typed yet. */
   async function runOcr(imageUri: string) {
-    if (!settings.claudeApiKey) return;
     setScanning(true);
     try {
-      const extracted = await extractReceiptDetails(imageUri, settings.claudeApiKey);
+      const extracted = await scanReceipt(imageUri, settings);
+      if (!extracted) return; // no OCR engine here (web/Expo Go) — manual entry
       // Only fill fields that are still empty/default so we never clobber user input
       if (extracted.itemName && !itemName.trim()) setItemName(extracted.itemName);
       if (extracted.storeName && !storeName.trim()) setStoreName(extracted.storeName);
@@ -100,11 +100,8 @@ export function AddItemScreen({ navigation, route }: Props) {
           'The photo is saved — fill in the details below and you’re set.'
         );
       }
-    } catch (e) {
-      Alert.alert(
-        'Auto-read didn’t work',
-        'The photo is saved. Check your connection and API key in Settings, or fill in the details below.'
-      );
+    } catch {
+      // Reading failed; the photo is kept and the form stays manual
     } finally {
       setScanning(false);
     }
@@ -223,9 +220,9 @@ export function AddItemScreen({ navigation, route }: Props) {
             </View>
           ) : (
             <Text style={styles.ocrNote}>
-              {settings.claudeApiKey
-                ? 'Snap or pick a photo and the details below fill in automatically.'
-                : 'Tip: add a Claude API key in Settings and receipts fill themselves in.'}
+              {Platform.OS === 'web'
+                ? 'On the phone, Boughtly reads receipt details automatically.'
+                : 'Snap or pick a photo and Boughtly reads the details for you — right on your phone.'}
             </Text>
           )}
         </Card>

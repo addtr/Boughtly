@@ -25,11 +25,13 @@ The full user flow works end to end:
 - **Storage** — everything is stored locally on-device (AsyncStorage); receipt photos
   are copied into the app's documents directory.
 
-- **Receipt auto-reading (OCR)** — with a Claude API key set in Settings, scanning or
-  picking a receipt photo sends it to Claude vision, which returns the item name, store,
-  price, and purchase date as structured JSON and prefills the form (never overwriting
-  anything the user already typed). Without a key, scanning still saves the photo and
-  entry stays manual.
+- **Receipt auto-reading (OCR)** — free and on-device by default: ML Kit text
+  recognition reads the receipt photo on the phone (no account, no network, no cost)
+  and a heuristic parser extracts item, store, total, and date to prefill the form —
+  never overwriting anything the user already typed. Requires a development build
+  (native module; in Expo Go scanning just saves the photo and entry stays manual).
+  A Claude-vision extraction path exists in the code (`src/services/receiptOcr.ts`)
+  but is dormant — reserved for a future premium bundle; no UI exposes it.
 - **Native date picker** on iOS/Android for the purchase date (text input on web).
 - **Countdown Ring polish** — eased fill animation and a smooth blue→coral color
   cross-fade when an item becomes urgent.

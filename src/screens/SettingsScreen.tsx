@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Alert,
   Pressable,
@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Card } from '../components/ui';
@@ -24,7 +23,6 @@ const WARRANTY_REMINDER_OPTIONS = [3, 7, 14];
 
 export function SettingsScreen({ navigation }: Props) {
   const { items, settings, updateSettings, deleteItem } = useAppState();
-  const [apiKeyDraft, setApiKeyDraft] = useState(settings.claudeApiKey);
 
   function confirmDelete(id: string, name: string) {
     Alert.alert('Stop tracking this item?', `${name} and its reminders will be removed.`, [
@@ -86,31 +84,6 @@ export function SettingsScreen({ navigation }: Props) {
             );
           })}
         </View>
-      </Card>
-
-      {/* Receipt auto-reading */}
-      <Text style={styles.sectionTitle}>Receipt auto-reading</Text>
-      <Card>
-        <Text style={styles.helpText}>
-          Add a Claude API key and Boughtly will read the item, store, price, and date
-          straight off your receipt photos. Get one at console.anthropic.com.
-        </Text>
-        <TextInput
-          value={apiKeyDraft}
-          onChangeText={setApiKeyDraft}
-          onBlur={() => updateSettings({ claudeApiKey: apiKeyDraft.trim() })}
-          placeholder="sk-ant-…"
-          placeholderTextColor={colors.muted}
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry
-          style={styles.apiKeyInput}
-        />
-        <Text style={styles.helpTextSmall}>
-          {settings.claudeApiKey
-            ? 'Key saved. Receipt photos are sent to Anthropic for reading only when you scan.'
-            : 'No key yet — scanned receipts are saved as photos and you fill in details yourself.'}
-        </Text>
       </Card>
 
       {/* Manage items */}
@@ -227,29 +200,6 @@ const styles = StyleSheet.create({
   },
   optionTextActive: {
     color: '#FFFFFF',
-  },
-  helpText: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.text,
-    lineHeight: 19,
-    marginBottom: spacing.sm,
-  },
-  helpTextSmall: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.muted,
-    lineHeight: 17,
-    marginTop: spacing.sm,
-  },
-  apiKeyInput: {
-    backgroundColor: colors.background,
-    borderRadius: 10,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.text,
   },
   itemInfo: {
     flex: 1,

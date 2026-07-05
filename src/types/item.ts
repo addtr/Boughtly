@@ -26,7 +26,10 @@ export interface AppSettings {
   returnReminderDays: number;
   /** Days before warranty expiration to remind the user */
   warrantyReminderDays: number;
-  /** Anthropic API key for receipt auto-reading (optional) */
+  /**
+   * Reserved for the future premium bundle (Claude-powered extraction).
+   * No UI sets this today — free on-device OCR is the default for everyone.
+   */
   claudeApiKey: string;
 }
 
