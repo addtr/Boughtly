@@ -6,16 +6,20 @@ import { parseISODate } from '../utils/dates';
 /** Hour of day (local) reminders fire at. */
 const REMINDER_HOUR = 9;
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// expo-notifications doesn't support web; all entry points below no-op there.
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export async function ensureNotificationSetup(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('deadlines', {
       name: 'Deadline reminders',
@@ -79,6 +83,7 @@ export async function scheduleItemReminders(
 }
 
 export async function cancelItemReminders(notificationIds: string[]): Promise<void> {
+  if (Platform.OS === 'web') return;
   await Promise.all(
     notificationIds.map((id) =>
       Notifications.cancelScheduledNotificationAsync(id).catch(() => {})
