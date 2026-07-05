@@ -13,11 +13,13 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.addtr.boughtly",
       "infoPlist": {
         "NSCameraUsageDescription": "Boughtly uses the camera to snap photos of your receipts."
       }
     },
     "android": {
+      "package": "com.addtr.boughtly",
       "adaptiveIcon": {
         "backgroundColor": "#FAF7F2",
         "foregroundImage": "./assets/android-icon-foreground.png",
