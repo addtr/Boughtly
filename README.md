@@ -59,6 +59,25 @@ npx expo start
 Then press `i` / `a` for a simulator, or scan the QR code with Expo Go on a device.
 (Notifications and camera need a real device or dev build to fully test.)
 
+### iOS device build (the chosen path for receipt scanning)
+
+Receipt auto-reading uses a native module, so it doesn't run in Expo Go. The plan
+for this project: build locally on a Mac with a **free** Apple ID (no $99 account
+until App Store launch).
+
+One-time: install Xcode (App Store), sign into Xcode → Settings → Accounts with an
+Apple ID, `brew install cocoapods`. Then, with the iPhone plugged in:
+
+```bash
+npx expo run:ios --device
+```
+
+If signing errors: open `ios/Boughtly.xcworkspace`, Signing & Capabilities →
+"Automatically manage signing" → select the Personal Team, re-run. On the phone,
+trust the developer profile (Settings → General → VPN & Device Management) and
+enable Developer Mode. Free-account installs expire after 7 days — re-run the
+command to refresh. Day-to-day dev is still just `npx expo start`.
+
 ## Project structure
 
 ```
