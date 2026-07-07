@@ -14,7 +14,7 @@ export type RootStackParamList = {
   AddChooser: undefined;
   AddItem: { mode?: 'scan' | 'manual'; itemId?: string } | undefined;
   ItemDetail: { itemId: string };
-  AddWatch: undefined;
+  AddWatch: { prefillName?: string } | undefined;
   WatchDetail: { watchId: string };
   ReturnDetail: { returnId: string };
 };

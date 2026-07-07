@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Sparkline } from '../components/Sparkline';
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
@@ -16,6 +16,14 @@ import { openPriceScan } from '../utils/priceScan';
 export function WatchListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { watches } = useAppState();
+  const [quickQuery, setQuickQuery] = useState('');
+
+  function scanNow() {
+    const q = quickQuery.trim();
+    if (!q) return;
+    tapFeedback();
+    void openPriceScan(q);
+  }
 
   return (
     <View style={styles.container}>
@@ -23,12 +31,59 @@ export function WatchListScreen() {
         data={watches}
         keyExtractor={(w) => w.id}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
-          watches.length > 0 ? (
-            <Text style={styles.hint}>
-              Log prices when you see them — Boughtly tells you when a “sale” is real.
-            </Text>
-          ) : null
+          <View>
+            {/* Instant scan — no watch required */}
+            <View style={styles.scanCard}>
+              <Text style={styles.scanCardTitle}>Scan stores right now</Text>
+              <View style={styles.scanRow}>
+                <TextInput
+                  value={quickQuery}
+                  onChangeText={setQuickQuery}
+                  placeholder="What are you looking for?"
+                  placeholderTextColor={colors.muted}
+                  style={styles.scanInput}
+                  returnKeyType="search"
+                  onSubmitEditing={scanNow}
+                />
+                <Pressable
+                  onPress={scanNow}
+                  disabled={!quickQuery.trim()}
+                  accessibilityLabel="Scan now"
+                  style={({ pressed }) => [
+                    styles.scanNowBtn,
+                    !quickQuery.trim() && { opacity: 0.4 },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                >
+                  <Ionicons name="search" size={17} color="#FFFFFF" />
+                  <Text style={styles.scanNowText}>Scan now</Text>
+                </Pressable>
+              </View>
+              <Text style={styles.scanCardSub}>
+                Live shopping search across retailers, lowest prices first.
+              </Text>
+              {quickQuery.trim().length > 1 && (
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate('AddWatch', { prefillName: quickQuery.trim() })
+                  }
+                  style={styles.watchItLink}
+                  hitSlop={6}
+                >
+                  <Text style={styles.watchItText}>
+                    + Watch “{quickQuery.trim()}” to track its price over time
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+            {watches.length > 0 && (
+              <Text style={styles.hint}>
+                Log prices when you see them — Boughtly tells you when a “sale” is real.
+              </Text>
+            )}
+          </View>
         }
         renderItem={({ item: watch }) => {
           const latest = watch.priceLog[watch.priceLog.length - 1];
@@ -90,12 +145,12 @@ export function WatchListScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="pricetags" size={44} color={colors.primary} />
+              <Ionicons name="pricetags" size={40} color={colors.primary} />
             </View>
             <Text style={styles.emptyTitle}>Watching nothing yet</Text>
             <Text style={styles.emptyBody}>
-              Eyeing something? Add it here, log the price when you see it, and
-              Boughtly will tell you when a sale is actually a deal.
+              Scan above for an instant price check, or watch an item to build its
+              price history — Boughtly will tell you when a sale is actually a deal.
             </Text>
             <Button
               title="Watch your first price"
@@ -134,6 +189,62 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginBottom: spacing.md,
     lineHeight: 18,
+  },
+  scanCard: {
+    backgroundColor: colors.primary,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    ...cardShadow,
+  },
+  scanCardTitle: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginBottom: spacing.sm,
+  },
+  scanRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  scanInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.text,
+  },
+  scanNowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.coral,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    justifyContent: 'center',
+  },
+  scanNowText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  scanCardSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: spacing.sm,
+  },
+  watchItLink: {
+    marginTop: spacing.sm,
+  },
+  watchItText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: '#FFFFFF',
+    textDecorationLine: 'underline',
   },
   card: {
     flexDirection: 'row',

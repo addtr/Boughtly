@@ -23,9 +23,9 @@ function parsePrice(raw: string): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-export function AddWatchScreen({ navigation }: Props) {
+export function AddWatchScreen({ navigation, route }: Props) {
   const { addWatch } = useAppState();
-  const [name, setName] = useState('');
+  const [name, setName] = useState(route.params?.prefillName ?? '');
   const [store, setStore] = useState('');
   const [url, setUrl] = useState('');
   const [priceText, setPriceText] = useState('');
