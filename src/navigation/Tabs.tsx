@@ -5,7 +5,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { DashboardScreen } from '../screens/DashboardScreen';
+import { ReturnsScreen } from '../screens/ReturnsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { WatchListScreen } from '../screens/WatchListScreen';
 import { cardShadow, colors, fonts } from '../theme/theme';
 import { tapFeedback } from '../utils/haptics';
 import { RootStackParamList, TabParamList } from './types';
@@ -72,11 +74,41 @@ export function Tabs() {
         }}
       />
       <Tab.Screen
+        name="WatchTab"
+        component={WatchListScreen}
+        options={{
+          title: 'Price watch',
+          tabBarLabel: 'Prices',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'pricetags' : 'pricetags-outline'}
+              size={23}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="AddTab"
         component={NullScreen}
         options={{
           tabBarLabel: '',
           tabBarButton: () => <AddButton />,
+        }}
+      />
+      <Tab.Screen
+        name="ReturnsTab"
+        component={ReturnsScreen}
+        options={{
+          title: 'Returns',
+          tabBarLabel: 'Returns',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'arrow-undo' : 'arrow-undo-outline'}
+              size={23}
+              color={color}
+            />
+          ),
         }}
       />
       <Tab.Screen

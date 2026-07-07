@@ -11,12 +11,21 @@ import React, {
 import {
   cancelItemReminders,
   scheduleItemReminders,
+  scheduleRefundFollowUp,
 } from '../notifications/notifications';
 import { AppSettings, DEFAULT_SETTINGS, TrackedItem } from '../types/item';
-import { addDays } from '../utils/dates';
+import {
+  PricePoint,
+  RETURN_STEPS,
+  ReturnCase,
+  WatchedProduct,
+} from '../types/tracking';
+import { addDays, toISODate } from '../utils/dates';
 
 const ITEMS_KEY = 'boughtly.items.v1';
 const SETTINGS_KEY = 'boughtly.settings.v1';
+const WATCHES_KEY = 'boughtly.watches.v1';
+const RETURNS_KEY = 'boughtly.returns.v1';
 
 export interface NewItemInput {
   itemName: string;
@@ -29,8 +38,18 @@ export interface NewItemInput {
   notes?: string;
 }
 
+export interface NewWatchInput {
+  name: string;
+  store: string;
+  url?: string;
+  targetPrice?: number;
+  firstPrice: number;
+}
+
 interface AppState {
   items: TrackedItem[];
+  watches: WatchedProduct[];
+  returns: ReturnCase[];
   settings: AppSettings;
   isLoaded: boolean;
   addItem: (input: NewItemInput) => Promise<TrackedItem>;
@@ -38,6 +57,22 @@ interface AppState {
   deleteItem: (id: string) => Promise<void>;
   deleteAllItems: () => Promise<void>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
+  // Price watching
+  addWatch: (input: NewWatchInput) => Promise<WatchedProduct>;
+  logWatchPrice: (id: string, point: PricePoint) => Promise<void>;
+  updateWatch: (
+    id: string,
+    patch: Partial<Pick<WatchedProduct, 'name' | 'store' | 'url' | 'targetPrice'>>
+  ) => Promise<void>;
+  deleteWatch: (id: string) => Promise<void>;
+  // Returns
+  startReturn: (item: TrackedItem) => Promise<ReturnCase>;
+  updateReturn: (
+    id: string,
+    patch: Partial<Pick<ReturnCase, 'method' | 'trackingNumber' | 'notes' | 'refundAmount'>>
+  ) => Promise<void>;
+  setReturnStatus: (id: string, status: ReturnCase['status']) => Promise<void>;
+  deleteReturn: (id: string) => Promise<void>;
 }
 
 const AppStateContext = createContext<AppState | null>(null);
@@ -56,23 +91,33 @@ function withCalculatedDates(input: NewItemInput) {
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<TrackedItem[]>([]);
+  const [watches, setWatches] = useState<WatchedProduct[]>([]);
+  const [returns, setReturns] = useState<ReturnCase[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isLoaded, setIsLoaded] = useState(false);
   // Always-current snapshots for async callbacks
   const itemsRef = useRef(items);
   itemsRef.current = items;
+  const watchesRef = useRef(watches);
+  watchesRef.current = watches;
+  const returnsRef = useRef(returns);
+  returnsRef.current = returns;
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
   useEffect(() => {
     (async () => {
       try {
-        const [rawItems, rawSettings] = await Promise.all([
+        const [rawItems, rawSettings, rawWatches, rawReturns] = await Promise.all([
           AsyncStorage.getItem(ITEMS_KEY),
           AsyncStorage.getItem(SETTINGS_KEY),
+          AsyncStorage.getItem(WATCHES_KEY),
+          AsyncStorage.getItem(RETURNS_KEY),
         ]);
         if (rawItems) setItems(JSON.parse(rawItems));
         if (rawSettings) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(rawSettings) });
+        if (rawWatches) setWatches(JSON.parse(rawWatches));
+        if (rawReturns) setReturns(JSON.parse(rawReturns));
       } catch (e) {
         console.warn('Failed to load saved data', e);
       } finally {
@@ -84,6 +129,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const persistItems = useCallback(async (next: TrackedItem[]) => {
     setItems(next);
     await AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(next));
+  }, []);
+
+  const persistWatches = useCallback(async (next: WatchedProduct[]) => {
+    setWatches(next);
+    await AsyncStorage.setItem(WATCHES_KEY, JSON.stringify(next));
+  }, []);
+
+  const persistReturns = useCallback(async (next: ReturnCase[]) => {
+    setReturns(next);
+    await AsyncStorage.setItem(RETURNS_KEY, JSON.stringify(next));
   }, []);
 
   const addItem = useCallback(
@@ -133,6 +188,133 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     await persistItems([]);
   }, [persistItems]);
 
+  /* ---------- Price watching ---------- */
+
+  const addWatch = useCallback(
+    async (input: NewWatchInput) => {
+      const watch: WatchedProduct = {
+        id: makeId(),
+        name: input.name,
+        store: input.store,
+        url: input.url,
+        targetPrice: input.targetPrice,
+        priceLog: [{ date: toISODate(new Date()), price: input.firstPrice }],
+        createdAt: new Date().toISOString(),
+      };
+      await persistWatches([watch, ...watchesRef.current]);
+      return watch;
+    },
+    [persistWatches]
+  );
+
+  const logWatchPrice = useCallback(
+    async (id: string, point: PricePoint) => {
+      await persistWatches(
+        watchesRef.current.map((w) =>
+          w.id === id ? { ...w, priceLog: [...w.priceLog, point] } : w
+        )
+      );
+    },
+    [persistWatches]
+  );
+
+  const updateWatch = useCallback(
+    async (
+      id: string,
+      patch: Partial<Pick<WatchedProduct, 'name' | 'store' | 'url' | 'targetPrice'>>
+    ) => {
+      await persistWatches(
+        watchesRef.current.map((w) => (w.id === id ? { ...w, ...patch } : w))
+      );
+    },
+    [persistWatches]
+  );
+
+  const deleteWatch = useCallback(
+    async (id: string) => {
+      await persistWatches(watchesRef.current.filter((w) => w.id !== id));
+    },
+    [persistWatches]
+  );
+
+  /* ---------- Returns ---------- */
+
+  const startReturn = useCallback(
+    async (item: TrackedItem) => {
+      const existing = returnsRef.current.find(
+        (r) => r.itemId === item.id && r.status !== 'refunded'
+      );
+      if (existing) return existing;
+      const now = new Date().toISOString();
+      const ret: ReturnCase = {
+        id: makeId(),
+        itemId: item.id,
+        itemName: item.itemName,
+        storeName: item.storeName,
+        refundAmount: item.price,
+        method: null,
+        status: 'started',
+        startedAt: now,
+        updatedAt: now,
+        notificationIds: [],
+      };
+      await persistReturns([ret, ...returnsRef.current]);
+      return ret;
+    },
+    [persistReturns]
+  );
+
+  const updateReturn = useCallback(
+    async (
+      id: string,
+      patch: Partial<Pick<ReturnCase, 'method' | 'trackingNumber' | 'notes' | 'refundAmount'>>
+    ) => {
+      await persistReturns(
+        returnsRef.current.map((r) =>
+          r.id === id ? { ...r, ...patch, updatedAt: new Date().toISOString() } : r
+        )
+      );
+    },
+    [persistReturns]
+  );
+
+  const setReturnStatus = useCallback(
+    async (id: string, status: ReturnCase['status']) => {
+      const existing = returnsRef.current.find((r) => r.id === id);
+      if (!existing || existing.status === status) return;
+
+      // Reminder lifecycle: nudge in 7 days once we're waiting on money;
+      // clear the nudge once refunded (or when stepping back).
+      await cancelItemReminders(existing.notificationIds);
+      let notificationIds: string[] = [];
+      if (status === 'refund_pending' || status === 'sent') {
+        notificationIds = await scheduleRefundFollowUp(
+          id,
+          existing.itemName,
+          existing.storeName,
+          settingsRef.current.notificationsEnabled
+        );
+      }
+      await persistReturns(
+        returnsRef.current.map((r) =>
+          r.id === id
+            ? { ...r, status, notificationIds, updatedAt: new Date().toISOString() }
+            : r
+        )
+      );
+    },
+    [persistReturns]
+  );
+
+  const deleteReturn = useCallback(
+    async (id: string) => {
+      const existing = returnsRef.current.find((r) => r.id === id);
+      if (existing) await cancelItemReminders(existing.notificationIds);
+      await persistReturns(returnsRef.current.filter((r) => r.id !== id));
+    },
+    [persistReturns]
+  );
+
   const updateSettings = useCallback(
     async (patch: Partial<AppSettings>) => {
       const prev = settingsRef.current;
@@ -161,6 +343,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       items,
+      watches,
+      returns,
       settings,
       isLoaded,
       addItem,
@@ -168,8 +352,35 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       deleteItem,
       deleteAllItems,
       updateSettings,
+      addWatch,
+      logWatchPrice,
+      updateWatch,
+      deleteWatch,
+      startReturn,
+      updateReturn,
+      setReturnStatus,
+      deleteReturn,
     }),
-    [items, settings, isLoaded, addItem, updateItem, deleteItem, deleteAllItems, updateSettings]
+    [
+      items,
+      watches,
+      returns,
+      settings,
+      isLoaded,
+      addItem,
+      updateItem,
+      deleteItem,
+      deleteAllItems,
+      updateSettings,
+      addWatch,
+      logWatchPrice,
+      updateWatch,
+      deleteWatch,
+      startReturn,
+      updateReturn,
+      setReturnStatus,
+      deleteReturn,
+    ]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

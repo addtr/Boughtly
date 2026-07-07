@@ -89,6 +89,38 @@ export async function scheduleItemReminders(
   return ids;
 }
 
+/**
+ * Follow-up nudge for a return that's waiting on a refund: fires 7 days out
+ * so unrefunded money never quietly slips through the cracks.
+ */
+export async function scheduleRefundFollowUp(
+  returnId: string,
+  itemName: string,
+  storeName: string,
+  enabled: boolean
+): Promise<string[]> {
+  if (!enabled || Platform.OS === 'web') return [];
+  const granted = await ensureNotificationSetup();
+  if (!granted) return [];
+  const fireAt = new Date();
+  fireAt.setDate(fireAt.getDate() + 7);
+  fireAt.setHours(REMINDER_HOUR, 0, 0, 0);
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Refund still pending?',
+      body: `It's been a week since ${itemName} went back to ${storeName}. Check that the money landed.`,
+      sound: true,
+      data: { returnId },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: fireAt,
+      channelId: 'deadlines',
+    },
+  });
+  return [id];
+}
+
 export async function cancelItemReminders(notificationIds: string[]): Promise<void> {
   if (Platform.OS === 'web') return;
   await Promise.all(

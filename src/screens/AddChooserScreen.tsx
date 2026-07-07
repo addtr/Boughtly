@@ -53,6 +53,22 @@ export function AddChooserScreen({ navigation }: Props) {
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />
       </Pressable>
 
+      <Pressable
+        style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+        onPress={() => navigation.replace('AddWatch')}
+      >
+        <View style={[styles.optionIcon, { backgroundColor: '#DFF3E9' }]}>
+          <Ionicons name="pricetags" size={24} color="#20744E" />
+        </View>
+        <View style={styles.optionText}>
+          <Text style={styles.optionTitle}>Watch a price</Text>
+          <Text style={styles.optionBody}>
+            Not buying yet? Track the price and catch the real deal.
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+      </Pressable>
+
       <Pressable style={styles.cancel} onPress={() => navigation.goBack()} hitSlop={8}>
         <Text style={styles.cancelText}>Cancel</Text>
       </Pressable>

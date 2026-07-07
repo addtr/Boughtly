@@ -19,8 +19,11 @@ import { Tabs } from './src/navigation/Tabs';
 import { RootStackParamList } from './src/navigation/types';
 import { AddChooserScreen } from './src/screens/AddChooserScreen';
 import { AddItemScreen } from './src/screens/AddItemScreen';
+import { AddWatchScreen } from './src/screens/AddWatchScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
+import { ReturnDetailScreen } from './src/screens/ReturnDetailScreen';
+import { WatchDetailScreen } from './src/screens/WatchDetailScreen';
 import { AppStateProvider, useAppState } from './src/store/AppStateContext';
 import { colors, fonts } from './src/theme/theme';
 
@@ -43,9 +46,16 @@ const navTheme = {
 let pendingNotificationNav: (() => void) | null = null;
 
 function openItemFromNotification(response: Notifications.NotificationResponse) {
-  const itemId = response.notification.request.content.data?.itemId;
-  if (typeof itemId !== 'string') return;
-  const go = () => navigationRef.navigate('ItemDetail', { itemId });
+  const data = response.notification.request.content.data ?? {};
+  let go: (() => void) | null = null;
+  if (typeof data.returnId === 'string') {
+    const returnId = data.returnId;
+    go = () => navigationRef.navigate('ReturnDetail', { returnId });
+  } else if (typeof data.itemId === 'string') {
+    const itemId = data.itemId;
+    go = () => navigationRef.navigate('ItemDetail', { itemId });
+  }
+  if (!go) return;
   if (navigationRef.isReady()) {
     go();
   } else {
@@ -137,6 +147,21 @@ function Root() {
           })}
         />
         <Stack.Screen name="ItemDetail" component={ItemDetailScreen} options={{ title: '' }} />
+        <Stack.Screen
+          name="AddWatch"
+          component={AddWatchScreen}
+          options={{ title: 'Watch a price' }}
+        />
+        <Stack.Screen
+          name="WatchDetail"
+          component={WatchDetailScreen}
+          options={{ title: '' }}
+        />
+        <Stack.Screen
+          name="ReturnDetail"
+          component={ReturnDetailScreen}
+          options={{ title: 'Return' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

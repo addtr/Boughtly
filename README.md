@@ -6,7 +6,24 @@ Boughtly helps everyday people protect the money they spend. Add anything you bu
 by snapping the receipt or entering it manually — and Boughtly tracks the return-window
 deadline and warranty expiration for that item, reminding you before either runs out.
 
-## Status: Phase 1 complete ✅
+## Status: Phases 1–2 complete ✅
+
+Three pillars, all local-first:
+
+1. **Receipt & warranty tracker** — scan/track purchases, countdown rings,
+   deadline reminders (details below).
+2. **Price watch with an honest deal check** — track products you're eyeing,
+   log prices as you see them (sparkline history, target price, product link),
+   and get a straight verdict on any "sale": lowest-you've-seen / real discount /
+   usual price / **inflated-original-price warning** when the claimed discount
+   doesn't match logged history. Analysis runs on-device from the user's own
+   logged prices — no scraping backend (that's a future premium play).
+3. **Return/exchange assistant** — start a return from any item still in its
+   window; 4-step status tracker (started → given back → refund pending →
+   refunded) with method/tracking-number/notes, a prefilled return-request
+   message via the share sheet, a 7-day "refund still pending?" follow-up
+   notification (tap opens the case), and a Returns tab totaling money on its
+   way back.
 
 The full user flow works end to end:
 

@@ -21,7 +21,7 @@ import { warningFeedback } from '../utils/haptics';
 type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
 export function ItemDetailScreen({ navigation, route }: Props) {
-  const { items, deleteItem } = useAppState();
+  const { items, returns, deleteItem, startReturn } = useAppState();
   const [receiptOpen, setReceiptOpen] = useState(false);
   const item = useMemo(
     () => items.find((i) => i.id === route.params.itemId),
@@ -159,6 +159,35 @@ export function ItemDetailScreen({ navigation, route }: Props) {
       ) : null}
 
       <View style={styles.actions}>
+        {(() => {
+          const activeReturn = returns.find(
+            (r) => r.itemId === item.id && r.status !== 'refunded'
+          );
+          if (activeReturn) {
+            return (
+              <Button
+                title="View return in progress"
+                variant="coral"
+                onPress={() =>
+                  navigation.navigate('ReturnDetail', { returnId: activeReturn.id })
+                }
+              />
+            );
+          }
+          if (returnDaysLeft >= 0) {
+            return (
+              <Button
+                title="Start a return"
+                variant="coral"
+                onPress={async () => {
+                  const ret = await startReturn(item!);
+                  navigation.navigate('ReturnDetail', { returnId: ret.id });
+                }}
+              />
+            );
+          }
+          return null;
+        })()}
         <Button
           title="Edit details"
           onPress={() => navigation.navigate('AddItem', { itemId: item.id })}
