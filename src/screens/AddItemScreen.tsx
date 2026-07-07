@@ -16,8 +16,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { OcrWebView } from '../components/OcrWebView';
 import { Button, Card, ChipRow, Field } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { ExtractedReceipt } from '../services/receiptOcr';
+import { parseReceiptText } from '../services/receiptParser';
 import { scanReceipt } from '../services/receiptScanner';
 import { NewItemInput, useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
@@ -84,6 +88,9 @@ export function AddItemScreen({ navigation, route }: Props) {
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  // Expo Go fallback: OCR runs in a hidden WebView (see OcrWebView)
+  const [webOcrImage, setWebOcrImage] = useState<string | null>(null);
+  const [ocrProgress, setOcrProgress] = useState<number | null>(null);
 
   // "Scan the receipt" path: open the camera right away
   const autoScanned = useRef(false);
@@ -95,28 +102,56 @@ export function AddItemScreen({ navigation, route }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Reads the receipt on-device and fills in any fields the user hasn't typed yet. */
+  /** Fills in whatever was read — never clobbers anything the user typed. */
+  function applyExtracted(extracted: ExtractedReceipt) {
+    if (extracted.itemName && !itemName.trim()) setItemName(extracted.itemName);
+    if (extracted.storeName && !storeName.trim()) setStoreName(extracted.storeName);
+    if (extracted.price !== null && !priceText.trim()) setPriceText(String(extracted.price));
+    if (extracted.purchaseDate) setPurchaseDate(extracted.purchaseDate);
+    if (!extracted.itemName && !extracted.storeName && extracted.price === null) {
+      Alert.alert(
+        'Couldn’t read that receipt',
+        'The photo is saved — fill in the details below and you’re set.'
+      );
+    }
+  }
+
+  /** Reads the receipt and auto-fills the form. Engine order: premium API →
+   * native ML Kit (dev build) → hidden-WebView reader (works in Expo Go). */
   async function runOcr(imageUri: string) {
     setScanning(true);
     try {
       const extracted = await scanReceipt(imageUri, settings);
-      if (!extracted) return; // no OCR engine here (web/Expo Go) — manual entry
-      // Only fill fields that are still empty/default so we never clobber user input
-      if (extracted.itemName && !itemName.trim()) setItemName(extracted.itemName);
-      if (extracted.storeName && !storeName.trim()) setStoreName(extracted.storeName);
-      if (extracted.price !== null && !priceText.trim()) setPriceText(String(extracted.price));
-      if (extracted.purchaseDate) setPurchaseDate(extracted.purchaseDate);
-      if (!extracted.itemName && !extracted.storeName && extracted.price === null) {
-        Alert.alert(
-          'Couldn’t read that receipt',
-          'The photo is saved — fill in the details below and you’re set.'
-        );
+      if (extracted) {
+        applyExtracted(extracted);
+        setScanning(false);
+        return;
       }
+      if (Platform.OS === 'web') {
+        setScanning(false);
+        return; // manual entry on web
+      }
+      // Expo Go path: downscale the photo and hand it to the WebView reader.
+      // scanning stays true until its callbacks fire.
+      const resized = await manipulateAsync(imageUri, [{ resize: { width: 1200 } }], {
+        compress: 0.8,
+        format: SaveFormat.JPEG,
+        base64: true,
+      });
+      if (!resized.base64) throw new Error('no base64');
+      setOcrProgress(0);
+      setWebOcrImage(`data:image/jpeg;base64,${resized.base64}`);
     } catch {
       // Reading failed; the photo is kept and the form stays manual
-    } finally {
       setScanning(false);
     }
+  }
+
+  function finishWebOcr(text: string | null) {
+    setWebOcrImage(null);
+    setOcrProgress(null);
+    setScanning(false);
+    if (text !== null) applyExtracted(parseReceiptText(text));
   }
 
   async function pickImage(fromCamera: boolean) {
@@ -236,7 +271,13 @@ export function AddItemScreen({ navigation, route }: Props) {
           {scanning ? (
             <View style={styles.scanningRow}>
               <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={styles.scanningText}>Reading your receipt…</Text>
+              <Text style={styles.scanningText}>
+                {ocrProgress !== null && ocrProgress > 0
+                  ? `Reading your receipt… ${Math.round(ocrProgress * 100)}%`
+                  : webOcrImage
+                  ? 'Warming up the reader… (first scan downloads it)'
+                  : 'Reading your receipt…'}
+              </Text>
             </View>
           ) : (
             <Text style={styles.ocrNote}>
@@ -369,6 +410,15 @@ export function AddItemScreen({ navigation, route }: Props) {
           style={styles.saveButton}
         />
       </ScrollView>
+
+      {webOcrImage && (
+        <OcrWebView
+          imageDataUrl={webOcrImage}
+          onProgress={setOcrProgress}
+          onResult={(text) => finishWebOcr(text)}
+          onError={() => finishWebOcr(null)}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }
