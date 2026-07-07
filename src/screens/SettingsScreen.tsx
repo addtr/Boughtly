@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
@@ -19,6 +20,7 @@ import { ensureNotificationSetup } from '../notifications/notifications';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, spacing } from '../theme/theme';
 import { formatPrice, nearestDeadline } from '../utils/dates';
+import { warningFeedback } from '../utils/haptics';
 
 const RETURN_REMINDER_OPTIONS = [1, 3, 7];
 const WARRANTY_REMINDER_OPTIONS = [3, 7, 14];
@@ -28,6 +30,7 @@ export function SettingsScreen() {
   const { items, settings, updateSettings, deleteItem, deleteAllItems } = useAppState();
 
   function confirmDelete(id: string, name: string) {
+    warningFeedback();
     Alert.alert('Stop tracking this item?', `${name} and its reminders will be removed.`, [
       { text: 'Keep it', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => deleteItem(id) },
@@ -67,6 +70,7 @@ export function SettingsScreen() {
   }
 
   function confirmDeleteAll() {
+    warningFeedback();
     Alert.alert(
       'Delete all items?',
       `All ${items.length} tracked item${items.length === 1 ? '' : 's'} and their reminders will be removed. This can’t be undone.`,
@@ -174,6 +178,9 @@ export function SettingsScreen() {
       <Text style={styles.sectionTitle}>Your data</Text>
       <Card>
         <Pressable style={styles.row} onPress={exportData} disabled={items.length === 0}>
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="share-outline" size={19} color={colors.primary} />
+          </View>
           <View style={styles.itemInfo}>
             <Text style={[styles.rowLabel, items.length === 0 && styles.rowDisabled]}>
               Export my data
@@ -182,9 +189,13 @@ export function SettingsScreen() {
               Share a copy of your items as text — email it to yourself as a backup.
             </Text>
           </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
         </Pressable>
         <View style={styles.divider} />
         <Pressable style={styles.row} onPress={confirmDeleteAll} disabled={items.length === 0}>
+          <View style={[styles.rowIcon, { backgroundColor: colors.coralSoft }]}>
+            <Ionicons name="trash-outline" size={19} color={colors.danger} />
+          </View>
           <View style={styles.itemInfo}>
             <Text style={[styles.deleteText, items.length === 0 && styles.rowDisabled]}>
               Delete all items
@@ -289,6 +300,13 @@ const styles = StyleSheet.create({
   },
   rowDisabled: {
     opacity: 0.4,
+  },
+  rowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     fontFamily: fonts.body,

@@ -15,7 +15,8 @@ import { Button, Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
-import { daysUntil, formatDate, formatPrice } from '../utils/dates';
+import { daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
+import { warningFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
@@ -39,8 +40,17 @@ export function ItemDetailScreen({ navigation, route }: Props) {
 
   const returnDaysLeft = daysUntil(item.returnDeadlineDate);
   const warrantyDaysLeft = daysUntil(item.warrantyExpirationDate);
+  const deadline = nearestDeadline(item);
+  const statusExpired = deadline.daysLeft < 0;
+  const statusUrgent = !statusExpired && deadline.daysLeft <= 3;
+  const statusText = statusExpired
+    ? 'Protection ended'
+    : deadline.kind === 'return'
+    ? `Returnable — ${deadline.daysLeft === 0 ? 'last day' : `${deadline.daysLeft} days left`}`
+    : `Under warranty — ${deadline.daysLeft} days left`;
 
   function confirmDelete() {
+    warningFeedback();
     Alert.alert(
       'Stop tracking this item?',
       'Its reminders will be cancelled too. This can’t be undone.',
@@ -64,6 +74,33 @@ export function ItemDetailScreen({ navigation, route }: Props) {
       <Text style={styles.subtitle}>
         {item.storeName} · {formatPrice(item.price)} · bought {formatDate(item.purchaseDate)}
       </Text>
+      <View
+        style={[
+          styles.statusPill,
+          {
+            backgroundColor: statusExpired
+              ? colors.divider
+              : statusUrgent
+              ? colors.coralSoft
+              : colors.primarySoft,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.statusPillText,
+            {
+              color: statusExpired
+                ? colors.muted
+                : statusUrgent
+                ? colors.coral
+                : colors.primary,
+            },
+          ]}
+        >
+          {statusText}
+        </Text>
+      </View>
 
       {/* Deadlines */}
       <View style={styles.ringsRow}>
@@ -185,7 +222,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.muted,
     marginTop: 4,
+  },
+  statusPill: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 100,
+    marginTop: spacing.sm,
     marginBottom: spacing.lg,
+  },
+  statusPillText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
   },
   ringsRow: {
     flexDirection: 'row',

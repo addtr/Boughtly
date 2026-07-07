@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { TrackedItem } from '../types/item';
 import { formatPrice, nearestDeadline } from '../utils/dates';
@@ -8,9 +8,22 @@ import { CountdownRing } from './CountdownRing';
 interface ItemCardProps {
   item: TrackedItem;
   onPress: () => void;
+  /** Position in the list — staggers the entrance animation */
+  index?: number;
 }
 
-export function ItemCard({ item, onPress }: ItemCardProps) {
+export function ItemCard({ item, onPress, index = 0 }: ItemCardProps) {
+  // Gentle fade-and-rise entrance, staggered down the list
+  const entrance = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(entrance, {
+      toValue: 1,
+      duration: 380,
+      delay: Math.min(index, 6) * 70,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [entrance, index]);
   const deadline = nearestDeadline(item);
   const deadlineCopy =
     deadline.daysLeft < 0
@@ -24,9 +37,22 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
       : `Warranty ends in ${deadline.daysLeft} day${deadline.daysLeft === 1 ? '' : 's'}`;
 
   return (
+    <Animated.View
+      style={{
+        opacity: entrance,
+        transform: [
+          {
+            translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }),
+          },
+        ],
+      }}
+    >
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
+      style={({ pressed }) => [
+        styles.card,
+        pressed && { transform: [{ scale: 0.98 }], opacity: 0.92 },
+      ]}
     >
       <CountdownRing
         daysLeft={deadline.daysLeft}
@@ -53,6 +79,7 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
         </View>
       )}
     </Pressable>
+    </Animated.View>
   );
 }
 

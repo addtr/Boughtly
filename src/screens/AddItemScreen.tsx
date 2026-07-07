@@ -13,6 +13,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { Button, Card, ChipRow, Field } from '../components/ui';
@@ -22,6 +23,7 @@ import { NewItemInput, useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { RETURN_PRESETS, WARRANTY_PRESETS } from '../types/item';
 import { formatDate, parseISODate, toISODate } from '../utils/dates';
+import { successFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddItem'>;
 
@@ -118,6 +120,8 @@ export function AddItemScreen({ navigation, route }: Props) {
   }
 
   async function pickImage(fromCamera: boolean) {
+    // Browsers don't expose a camera this way — fall back to the file picker
+    if (Platform.OS === 'web') fromCamera = false;
     try {
       if (fromCamera) {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -185,9 +189,11 @@ export function AddItemScreen({ navigation, route }: Props) {
       };
       if (editing) {
         await updateItem(editing.id, input);
+        successFeedback();
         navigation.goBack();
       } else {
         await addItem(input);
+        successFeedback();
         navigation.popToTop();
       }
     } finally {
@@ -254,13 +260,20 @@ export function AddItemScreen({ navigation, route }: Props) {
           onChangeText={setStoreName}
           placeholder="Best Buy"
         />
-        <Field
-          label="What did it cost?"
-          value={priceText}
-          onChangeText={setPriceText}
-          placeholder="129.99"
-          keyboardType="decimal-pad"
-        />
+        <View style={styles.priceWrap}>
+          <Text style={styles.priceLabel}>What did it cost?</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceCurrency}>$</Text>
+            <TextInput
+              value={priceText}
+              onChangeText={setPriceText}
+              placeholder="129.99"
+              placeholderTextColor={colors.muted}
+              keyboardType="decimal-pad"
+              style={styles.priceInput}
+            />
+          </View>
+        </View>
         {Platform.OS === 'web' ? (
           <Field
             label="Purchase date (YYYY-MM-DD)"
@@ -352,7 +365,7 @@ export function AddItemScreen({ navigation, route }: Props) {
           title={saving ? 'Saving…' : editing ? 'Save changes' : 'Start protecting this'}
           variant="coral"
           onPress={handleSave}
-          disabled={saving}
+          disabled={saving || !itemName.trim() || !priceText.trim()}
           style={styles.saveButton}
         />
       </ScrollView>
@@ -408,6 +421,35 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
     color: colors.primary,
+  },
+  priceWrap: {
+    marginBottom: spacing.md,
+  },
+  priceLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: 6,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+  },
+  priceCurrency: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 16,
+    color: colors.muted,
+    marginRight: 6,
+  },
+  priceInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontFamily: fonts.body,
+    fontSize: 16,
+    color: colors.text,
   },
   dateFieldWrap: {
     marginBottom: spacing.md,

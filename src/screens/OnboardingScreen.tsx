@@ -15,6 +15,7 @@ import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, spacing } from '../theme/theme';
+import { successFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
@@ -76,6 +77,7 @@ export function OnboardingScreen({ navigation }: Props) {
   const isLast = page === SLIDES.length - 1;
 
   async function finish() {
+    successFeedback();
     await updateSettings({ hasOnboarded: true });
     navigation.replace('Tabs');
   }

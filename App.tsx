@@ -38,11 +38,24 @@ const navTheme = {
   },
 };
 
+// If a notification is tapped before navigation is mounted (cold start),
+// hold the jump until the container reports ready.
+let pendingNotificationNav: (() => void) | null = null;
+
 function openItemFromNotification(response: Notifications.NotificationResponse) {
   const itemId = response.notification.request.content.data?.itemId;
-  if (typeof itemId === 'string' && navigationRef.isReady()) {
-    navigationRef.navigate('ItemDetail', { itemId });
+  if (typeof itemId !== 'string') return;
+  const go = () => navigationRef.navigate('ItemDetail', { itemId });
+  if (navigationRef.isReady()) {
+    go();
+  } else {
+    pendingNotificationNav = go;
   }
+}
+
+function flushPendingNotificationNav() {
+  pendingNotificationNav?.();
+  pendingNotificationNav = null;
 }
 
 /** Tapping a reminder lands on that item's detail screen. */
@@ -78,7 +91,11 @@ function Root() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navTheme}
+      onReady={flushPendingNotificationNav}
+    >
       <StatusBar style="dark" />
       <Stack.Navigator
         initialRouteName={settings.hasOnboarded ? 'Tabs' : 'Onboarding'}

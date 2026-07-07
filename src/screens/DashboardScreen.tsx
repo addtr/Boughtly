@@ -1,8 +1,17 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useMemo, useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { ItemCard } from '../components/ItemCard';
+import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
@@ -12,6 +21,17 @@ export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { items } = useAppState();
   const [query, setQuery] = useState('');
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Pull-to-refresh recomputes every countdown and replays the ring animations
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshTick((t) => t + 1);
+      setRefreshing(false);
+    }, 500);
+  }, []);
 
   // Soonest active deadline first; fully-expired items sink to the bottom.
   const sorted = useMemo(() => {
@@ -47,10 +67,14 @@ export function DashboardScreen() {
   return (
     <View style={styles.container}>
       <FlatList
+        key={refreshTick}
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
         ListHeaderComponent={
           items.length > 0 ? (
             <View>
@@ -80,6 +104,7 @@ export function DashboardScreen() {
             )}
             <ItemCard
               item={item}
+              index={index}
               onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
             />
           </View>
@@ -104,6 +129,12 @@ export function DashboardScreen() {
                 Add your first receipt and Boughtly will watch the return window and
                 warranty for you.
               </Text>
+              <Button
+                title="Add your first receipt"
+                variant="coral"
+                onPress={() => navigation.navigate('AddChooser')}
+                style={styles.emptyCta}
+              />
             </View>
           )
         }
@@ -174,5 +205,9 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  emptyCta: {
+    marginTop: spacing.lg,
+    alignSelf: 'stretch',
   },
 });

@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { cardShadow, colors, fonts } from '../theme/theme';
+import { tapFeedback } from '../utils/haptics';
 import { RootStackParamList, TabParamList } from './types';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -21,7 +22,10 @@ function AddButton() {
   return (
     <View style={styles.addWrap} pointerEvents="box-none">
       <Pressable
-        onPress={() => navigation.navigate('AddChooser')}
+        onPress={() => {
+          tapFeedback();
+          navigation.navigate('AddChooser');
+        }}
         accessibilityLabel="Add an item"
         style={({ pressed }) => [styles.addButton, pressed && { transform: [{ scale: 0.94 }] }]}
       >
