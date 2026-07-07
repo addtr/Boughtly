@@ -1,16 +1,25 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useMemo } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { ItemCard } from '../components/ItemCard';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
-import { cardShadow, colors, fonts, spacing } from '../theme/theme';
+import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { formatPrice, nearestDeadline } from '../utils/dates';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
 export function DashboardScreen({ navigation }: Props) {
   const { items } = useAppState();
+  const [query, setQuery] = useState('');
 
   // Soonest active deadline first; fully-expired items sink to the bottom.
   const sorted = useMemo(() => {
@@ -24,6 +33,20 @@ export function DashboardScreen({ navigation }: Props) {
     });
   }, [items]);
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return sorted;
+    return sorted.filter(
+      (item) =>
+        item.itemName.toLowerCase().includes(q) || item.storeName.toLowerCase().includes(q)
+    );
+  }, [sorted, query]);
+
+  const firstExpiredIndex = useMemo(
+    () => filtered.findIndex((item) => nearestDeadline(item).daysLeft < 0),
+    [filtered]
+  );
+
   const totalCovered = useMemo(
     () => items.reduce((sum, item) => sum + item.price, 0),
     [items]
@@ -32,32 +55,65 @@ export function DashboardScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <FlatList
-        data={sorted}
+        data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           items.length > 0 ? (
-            <Text style={styles.summary}>
-              {items.length} item{items.length === 1 ? '' : 's'} protected ·{' '}
-              {formatPrice(totalCovered)} covered
-            </Text>
+            <View>
+              <Text style={styles.summary}>
+                {items.length} item{items.length === 1 ? '' : 's'} protected ·{' '}
+                {formatPrice(totalCovered)} covered
+              </Text>
+              {items.length >= 4 && (
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search your items"
+                  placeholderTextColor={colors.muted}
+                  style={styles.search}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  clearButtonMode="while-editing"
+                />
+              )}
+            </View>
           ) : null
         }
-        renderItem={({ item }) => (
-          <ItemCard
-            item={item}
-            onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
-          />
+        renderItem={({ item, index }) => (
+          <View>
+            {index === firstExpiredIndex && (
+              <Text style={styles.expiredLabel}>Protection ended</Text>
+            )}
+            <ItemCard
+              item={item}
+              onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+            />
+          </View>
         )}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🧾</Text>
-            <Text style={styles.emptyTitle}>Nothing tracked yet</Text>
-            <Text style={styles.emptyBody}>
-              Add your first receipt and Boughtly will watch the return window and
-              warranty for you.
-            </Text>
-          </View>
+          items.length > 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>No matches</Text>
+              <Text style={styles.emptyBody}>
+                Nothing named “{query.trim()}” yet — try a different search.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Image
+                source={require('../../assets/splash-icon.png')}
+                style={styles.emptyArt}
+                resizeMode="contain"
+              />
+              <Text style={styles.emptyTitle}>Nothing tracked yet</Text>
+              <Text style={styles.emptyBody}>
+                Add your first receipt and Boughtly will watch the return window and
+                warranty for you.
+              </Text>
+            </View>
+          )
         }
       />
       <Pressable
@@ -88,14 +144,37 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     marginLeft: 2,
   },
+  search: {
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: spacing.md,
+    ...cardShadow,
+    shadowOpacity: 0.05,
+    elevation: 1,
+  },
+  expiredLabel: {
+    fontFamily: fonts.display,
+    fontSize: 14,
+    color: colors.muted,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    marginLeft: 2,
+  },
   empty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
   },
-  emptyEmoji: {
-    fontSize: 44,
+  emptyArt: {
+    width: 150,
+    height: 150,
     marginBottom: spacing.md,
   },
   emptyTitle: {

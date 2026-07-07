@@ -143,6 +143,10 @@ export function AddItemScreen({ navigation, route }: Props) {
       Alert.alert('Check the date', 'Use the format YYYY-MM-DD, like 2026-07-05.');
       return;
     }
+    if (parseISODate(purchaseDate).getTime() > Date.now()) {
+      Alert.alert('Check the date', 'The purchase date can’t be in the future.');
+      return;
+    }
     if (warrantyDays <= 0 || returnDays <= 0) {
       Alert.alert('Check the windows', 'Warranty and return lengths need to be at least 1 day.');
       return;

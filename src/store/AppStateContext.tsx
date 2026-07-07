@@ -36,6 +36,7 @@ interface AppState {
   addItem: (input: NewItemInput) => Promise<TrackedItem>;
   updateItem: (id: string, input: NewItemInput) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
+  deleteAllItems: () => Promise<void>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
 }
 
@@ -125,6 +126,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [persistItems]
   );
 
+  const deleteAllItems = useCallback(async () => {
+    for (const item of itemsRef.current) {
+      await cancelItemReminders(item.notificationIds);
+    }
+    await persistItems([]);
+  }, [persistItems]);
+
   const updateSettings = useCallback(
     async (patch: Partial<AppSettings>) => {
       const prev = settingsRef.current;
@@ -151,8 +159,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ items, settings, isLoaded, addItem, updateItem, deleteItem, updateSettings }),
-    [items, settings, isLoaded, addItem, updateItem, deleteItem, updateSettings]
+    () => ({
+      items,
+      settings,
+      isLoaded,
+      addItem,
+      updateItem,
+      deleteItem,
+      deleteAllItems,
+      updateSettings,
+    }),
+    [items, settings, isLoaded, addItem, updateItem, deleteItem, deleteAllItems, updateSettings]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

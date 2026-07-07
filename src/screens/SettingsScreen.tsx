@@ -3,8 +3,10 @@ import Constants from 'expo-constants';
 import React from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -12,6 +14,7 @@ import {
 } from 'react-native';
 import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { ensureNotificationSetup } from '../notifications/notifications';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, spacing } from '../theme/theme';
 import { formatPrice, nearestDeadline } from '../utils/dates';
@@ -22,13 +25,56 @@ const RETURN_REMINDER_OPTIONS = [1, 3, 7];
 const WARRANTY_REMINDER_OPTIONS = [3, 7, 14];
 
 export function SettingsScreen({ navigation }: Props) {
-  const { items, settings, updateSettings, deleteItem } = useAppState();
+  const { items, settings, updateSettings, deleteItem, deleteAllItems } = useAppState();
 
   function confirmDelete(id: string, name: string) {
     Alert.alert('Stop tracking this item?', `${name} and its reminders will be removed.`, [
       { text: 'Keep it', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => deleteItem(id) },
     ]);
+  }
+
+  async function toggleNotifications(enabled: boolean) {
+    if (enabled && Platform.OS !== 'web') {
+      const granted = await ensureNotificationSetup();
+      if (!granted) {
+        Alert.alert(
+          'Notifications are blocked',
+          'Boughtly can’t send reminders until you allow notifications in your phone’s Settings app (Settings → Boughtly → Notifications).'
+        );
+      }
+    }
+    updateSettings({ notificationsEnabled: enabled });
+  }
+
+  async function exportData() {
+    const backup = {
+      app: 'Boughtly',
+      exportedAt: new Date().toISOString(),
+      items: items.map(({ notificationIds, ...rest }) => rest),
+    };
+    try {
+      await Share.share(
+        {
+          title: 'Boughtly backup',
+          message: JSON.stringify(backup, null, 2),
+        },
+        { dialogTitle: 'Export Boughtly data' }
+      );
+    } catch {
+      // user closed the share sheet — nothing to do
+    }
+  }
+
+  function confirmDeleteAll() {
+    Alert.alert(
+      'Delete all items?',
+      `All ${items.length} tracked item${items.length === 1 ? '' : 's'} and their reminders will be removed. This can’t be undone.`,
+      [
+        { text: 'Keep everything', style: 'cancel' },
+        { text: 'Delete all', style: 'destructive', onPress: () => deleteAllItems() },
+      ]
+    );
   }
 
   return (
@@ -40,7 +86,7 @@ export function SettingsScreen({ navigation }: Props) {
           <Text style={styles.rowLabel}>Send me reminders</Text>
           <Switch
             value={settings.notificationsEnabled}
-            onValueChange={(v) => updateSettings({ notificationsEnabled: v })}
+            onValueChange={toggleNotifications}
             trackColor={{ true: colors.primary, false: colors.divider }}
             thumbColor="#FFFFFF"
           />
@@ -123,6 +169,32 @@ export function SettingsScreen({ navigation }: Props) {
           })}
         </Card>
       )}
+
+      {/* Your data */}
+      <Text style={styles.sectionTitle}>Your data</Text>
+      <Card>
+        <Pressable style={styles.row} onPress={exportData} disabled={items.length === 0}>
+          <View style={styles.itemInfo}>
+            <Text style={[styles.rowLabel, items.length === 0 && styles.rowDisabled]}>
+              Export my data
+            </Text>
+            <Text style={styles.itemMeta}>
+              Share a copy of your items as text — email it to yourself as a backup.
+            </Text>
+          </View>
+        </Pressable>
+        <View style={styles.divider} />
+        <Pressable style={styles.row} onPress={confirmDeleteAll} disabled={items.length === 0}>
+          <View style={styles.itemInfo}>
+            <Text style={[styles.deleteText, items.length === 0 && styles.rowDisabled]}>
+              Delete all items
+            </Text>
+            <Text style={styles.itemMeta}>
+              Removes everything Boughtly is tracking, including reminders.
+            </Text>
+          </View>
+        </Pressable>
+      </Card>
 
       {/* About */}
       <Text style={styles.sectionTitle}>About</Text>
@@ -214,6 +286,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
     color: colors.danger,
+  },
+  rowDisabled: {
+    opacity: 0.4,
   },
   emptyText: {
     fontFamily: fonts.body,

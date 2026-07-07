@@ -6,7 +6,7 @@ Boughtly helps everyday people protect the money they spend. Add anything you bu
 by snapping the receipt or entering it manually — and Boughtly tracks the return-window
 deadline and warranty expiration for that item, reminding you before either runs out.
 
-## Status: Pass 2 (OCR + polish) ✅
+## Status: Phase 1 complete ✅
 
 The full user flow works end to end:
 
@@ -35,6 +35,15 @@ The full user flow works end to end:
 - **Native date picker** on iOS/Android for the purchase date (text input on web).
 - **Countdown Ring polish** — eased fill animation and a smooth blue→coral color
   cross-fade when an item becomes urgent.
+
+- **Brand identity** — custom app icon (bag/receipt/shield mark), Android adaptive
+  icons, splash screen, favicon, and notification icon, all generated as vector art
+  (`scratchpad` script recreatable; palette from the design tokens).
+- **Finishing touches** — tap a reminder to open that item; full-screen zoomable
+  receipt viewer; dashboard search (appears at 4+ items) and a "Protection ended"
+  section for fully-expired items; "N items protected · $X covered" summary;
+  notification-permission feedback; export-data (share as JSON text) and
+  delete-all-items in Settings; future purchase dates rejected.
 
 Price tracking, paperwork automation, accounts, and cloud sync are future phases and
 intentionally out of scope.
