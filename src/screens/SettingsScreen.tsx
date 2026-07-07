@@ -1,4 +1,5 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
 import React from 'react';
 import {
@@ -19,12 +20,11 @@ import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, spacing } from '../theme/theme';
 import { formatPrice, nearestDeadline } from '../utils/dates';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
-
 const RETURN_REMINDER_OPTIONS = [1, 3, 7];
 const WARRANTY_REMINDER_OPTIONS = [3, 7, 14];
 
-export function SettingsScreen({ navigation }: Props) {
+export function SettingsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { items, settings, updateSettings, deleteItem, deleteAllItems } = useAppState();
 
   function confirmDelete(id: string, name: string) {

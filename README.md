@@ -39,6 +39,7 @@ The full user flow works end to end:
 - **Brand identity** — custom app icon (bag/receipt/shield mark), Android adaptive
   icons, splash screen, favicon, and notification icon, all generated as vector art
   (`scratchpad` script recreatable; palette from the design tokens).
+- **Real app structure** — 3-slide welcome onboarding on first launch, bottom tab bar (Home · raised add button · Settings), and an add-flow chooser modal (scan the receipt vs enter manually; scan mode opens the camera immediately).
 - **Finishing touches** — tap a reminder to open that item; full-screen zoomable
   receipt viewer; dashboard search (appears at 4+ items) and a "Protection ended"
   section for fully-expired items; "N items protected · $X covered" summary;

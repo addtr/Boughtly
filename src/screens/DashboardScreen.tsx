@@ -1,23 +1,15 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { FlatList, Image, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ItemCard } from '../components/ItemCard';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { formatPrice, nearestDeadline } from '../utils/dates';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
-
-export function DashboardScreen({ navigation }: Props) {
+export function DashboardScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { items } = useAppState();
   const [query, setQuery] = useState('');
 
@@ -116,13 +108,6 @@ export function DashboardScreen({ navigation }: Props) {
           )
         }
       />
-      <Pressable
-        onPress={() => navigation.navigate('AddItem')}
-        style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.96 }] }]}
-        accessibilityLabel="Add an item"
-      >
-        <Text style={styles.fabPlus}>+</Text>
-      </Pressable>
     </View>
   );
 }
@@ -189,25 +174,5 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
     lineHeight: 22,
-  },
-  fab: {
-    position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.xl,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...cardShadow,
-    shadowOpacity: 0.25,
-    elevation: 6,
-  },
-  fabPlus: {
-    color: '#FFFFFF',
-    fontSize: 32,
-    lineHeight: 36,
-    fontFamily: fonts.display,
   },
 });

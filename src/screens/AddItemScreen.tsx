@@ -2,7 +2,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { File, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -82,6 +82,16 @@ export function AddItemScreen({ navigation, route }: Props) {
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // "Scan the receipt" path: open the camera right away
+  const autoScanned = useRef(false);
+  useEffect(() => {
+    if (route.params?.mode === 'scan' && !editing && !autoScanned.current) {
+      autoScanned.current = true;
+      void pickImage(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /** Reads the receipt on-device and fills in any fields the user hasn't typed yet. */
   async function runOcr(imageUri: string) {

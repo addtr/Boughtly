@@ -1,6 +1,15 @@
+import { NavigatorScreenParams } from '@react-navigation/native';
+
+export type TabParamList = {
+  Home: undefined;
+  AddTab: undefined; // never actually visited — its tab button opens AddChooser
+  SettingsTab: undefined;
+};
+
 export type RootStackParamList = {
-  Dashboard: undefined;
-  AddItem: { itemId?: string } | undefined; // itemId present = editing
+  Onboarding: undefined;
+  Tabs: NavigatorScreenParams<TabParamList> | undefined;
+  AddChooser: undefined;
+  AddItem: { mode?: 'scan' | 'manual'; itemId?: string } | undefined;
   ItemDetail: { itemId: string };
-  Settings: undefined;
 };

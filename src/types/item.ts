@@ -21,6 +21,8 @@ export interface TrackedItem {
 }
 
 export interface AppSettings {
+  /** True once the user has finished the welcome screens */
+  hasOnboarded: boolean;
   notificationsEnabled: boolean;
   /** Days before the return deadline to remind the user */
   returnReminderDays: number;
@@ -34,6 +36,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  hasOnboarded: false,
   notificationsEnabled: true,
   returnReminderDays: 3,
   warrantyReminderDays: 7,

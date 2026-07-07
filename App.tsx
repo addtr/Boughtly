@@ -14,24 +14,29 @@ import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import React, { useEffect } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import { Tabs } from './src/navigation/Tabs';
 import { RootStackParamList } from './src/navigation/types';
+import { AddChooserScreen } from './src/screens/AddChooserScreen';
 import { AddItemScreen } from './src/screens/AddItemScreen';
-import { DashboardScreen } from './src/screens/DashboardScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
-import { SettingsScreen } from './src/screens/SettingsScreen';
-import { AppStateProvider } from './src/store/AppStateContext';
+import { OnboardingScreen } from './src/screens/OnboardingScreen';
+import { AppStateProvider, useAppState } from './src/store/AppStateContext';
 import { colors, fonts } from './src/theme/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+const navTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: colors.background,
+    card: colors.background,
+    text: colors.deepBlue,
+    primary: colors.primary,
+  },
+};
 
 function openItemFromNotification(response: Notifications.NotificationResponse) {
   const itemId = response.notification.request.content.data?.itemId;
@@ -53,19 +58,9 @@ function useNotificationTaps() {
   }, []);
 }
 
-const navTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: colors.background,
-    card: colors.background,
-    text: colors.deepBlue,
-    primary: colors.primary,
-  },
-};
-
-export default function App() {
+function Root() {
   useNotificationTaps();
+  const { isLoaded, settings } = useAppState();
   const [fontsLoaded] = useFonts({
     Sora_600SemiBold,
     Sora_700Bold,
@@ -74,7 +69,7 @@ export default function App() {
     Inter_600SemiBold,
   });
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !isLoaded) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={colors.primary} size="large" />
@@ -83,58 +78,57 @@ export default function App() {
   }
 
   return (
-    <AppStateProvider>
-      <NavigationContainer ref={navigationRef} theme={navTheme}>
-        <StatusBar style="dark" />
-        <Stack.Navigator
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.background },
-            headerShadowVisible: false,
-            headerTintColor: colors.deepBlue,
-            headerTitleStyle: {
-              fontFamily: fonts.display,
-              fontSize: 18,
-              color: colors.deepBlue,
-            },
-            headerBackButtonDisplayMode: 'minimal',
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
+      <StatusBar style="dark" />
+      <Stack.Navigator
+        initialRouteName={settings.hasOnboarded ? 'Tabs' : 'Onboarding'}
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+          headerTintColor: colors.deepBlue,
+          headerTitleStyle: {
+            fontFamily: fonts.display,
+            fontSize: 18,
+            color: colors.deepBlue,
+          },
+          headerBackButtonDisplayMode: 'minimal',
+        }}
+      >
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="AddChooser"
+          component={AddChooserScreen}
+          options={{
+            presentation: 'modal',
+            headerShown: false,
           }}
-        >
-          <Stack.Screen
-            name="Dashboard"
-            component={DashboardScreen}
-            options={({ navigation }) => ({
-              title: 'Boughtly',
-              headerTitleStyle: {
-                fontFamily: fonts.displayBold,
-                fontSize: 22,
-                color: colors.deepBlue,
-              },
-              headerRight: () => (
-                <Pressable
-                  onPress={() => navigation.navigate('Settings')}
-                  hitSlop={12}
-                  accessibilityLabel="Settings"
-                >
-                  <Text style={styles.gear}>⚙️</Text>
-                </Pressable>
-              ),
-            })}
-          />
-          <Stack.Screen
-            name="AddItem"
-            component={AddItemScreen}
-            options={({ route }) => ({
-              title: route.params?.itemId ? 'Edit item' : 'Add an item',
-            })}
-          />
-          <Stack.Screen
-            name="ItemDetail"
-            component={ItemDetailScreen}
-            options={{ title: '' }}
-          />
-          <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
-        </Stack.Navigator>
-      </NavigationContainer>
+        />
+        <Stack.Screen
+          name="AddItem"
+          component={AddItemScreen}
+          options={({ route }) => ({
+            title: route.params?.itemId
+              ? 'Edit item'
+              : route.params?.mode === 'scan'
+              ? 'Scan a receipt'
+              : 'Add an item',
+          })}
+        />
+        <Stack.Screen name="ItemDetail" component={ItemDetailScreen} options={{ title: '' }} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <AppStateProvider>
+      <Root />
     </AppStateProvider>
   );
 }
@@ -145,8 +139,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  gear: {
-    fontSize: 20,
   },
 });
