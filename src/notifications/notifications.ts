@@ -1,7 +1,10 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { AppSettings, TrackedItem } from '../types/item';
+import { AppSettings, PRICE_CHECK_OPTIONS, TrackedItem } from '../types/item';
 import { parseISODate } from '../utils/dates';
+
+const PRICE_CHECK_NOTIF_KEY = 'boughtly.priceCheckNotif.v1';
 
 /** Hour of day (local) reminders fire at. */
 const REMINDER_HOUR = 9;
@@ -119,6 +122,54 @@ export async function scheduleRefundFollowUp(
     },
   });
   return [id];
+}
+
+/**
+ * Repeating "price-check day" reminder. Called whenever the cadence setting,
+ * the notifications toggle, or the watchlist changes — cancels the previous
+ * schedule and sets up the new one, so exactly one reminder ever exists.
+ */
+export async function syncPriceCheckReminder(
+  settings: AppSettings,
+  watchCount: number
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  // Clear whatever was scheduled before
+  const prevId = await AsyncStorage.getItem(PRICE_CHECK_NOTIF_KEY);
+  if (prevId) {
+    await Notifications.cancelScheduledNotificationAsync(prevId).catch(() => {});
+    await AsyncStorage.removeItem(PRICE_CHECK_NOTIF_KEY);
+  }
+
+  const option = PRICE_CHECK_OPTIONS.find((o) => o.key === settings.priceCheckCadence);
+  if (
+    !settings.notificationsEnabled ||
+    !option ||
+    option.days === 0 ||
+    watchCount === 0
+  ) {
+    return;
+  }
+  const granted = await ensureNotificationSetup();
+  if (!granted) return;
+
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Price-check day',
+      body: `Time to check prices on the ${watchCount} item${
+        watchCount === 1 ? '' : 's'
+      } you're watching — tap to scan for deals.`,
+      sound: true,
+      data: { openTab: 'watch' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: option.days * 24 * 60 * 60,
+      repeats: true,
+      channelId: 'deadlines',
+    },
+  });
+  await AsyncStorage.setItem(PRICE_CHECK_NOTIF_KEY, id);
 }
 
 export async function cancelItemReminders(notificationIds: string[]): Promise<void> {

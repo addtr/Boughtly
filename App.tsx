@@ -54,6 +54,8 @@ function openItemFromNotification(response: Notifications.NotificationResponse) 
   } else if (typeof data.itemId === 'string') {
     const itemId = data.itemId;
     go = () => navigationRef.navigate('ItemDetail', { itemId });
+  } else if (data.openTab === 'watch') {
+    go = () => navigationRef.navigate('Tabs', { screen: 'WatchTab' });
   }
   if (!go) return;
   if (navigationRef.isReady()) {

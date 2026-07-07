@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,7 +20,8 @@ import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { formatDate, formatPrice, toISODate } from '../utils/dates';
 import { analyzeDeal, DealVerdict } from '../utils/deals';
-import { successFeedback, warningFeedback } from '../utils/haptics';
+import { successFeedback, tapFeedback, warningFeedback } from '../utils/haptics';
+import { openPriceScan } from '../utils/priceScan';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WatchDetail'>;
 
@@ -64,6 +66,21 @@ export function WatchDetailScreen({ navigation, route }: Props) {
   const low = Math.min(...prices);
   const high = Math.max(...prices);
   const targetHit = watch.targetPrice !== undefined && latest.price <= watch.targetPrice;
+
+  /** One tap: search every retailer for this item, cheapest first. */
+  async function scanForCheaper() {
+    if (!watch) return;
+    tapFeedback();
+    await openPriceScan(watch.name);
+    // Browser sheet closed (native) — nudge toward logging what they found
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Find a better price?',
+        'Log it below and the deal-checker keeps getting smarter.',
+        [{ text: 'OK' }]
+      );
+    }
+  }
 
   async function handleLog() {
     if (!watch) return;
@@ -115,6 +132,21 @@ export function WatchDetailScreen({ navigation, route }: Props) {
           </Pressable>
         ) : null}
       </View>
+
+      {/* One-tap cross-retailer scan */}
+      <Pressable
+        onPress={scanForCheaper}
+        style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.88 }]}
+      >
+        <Ionicons name="search" size={19} color="#FFFFFF" />
+        <View style={styles.scanText}>
+          <Text style={styles.scanTitle}>Scan for it cheaper</Text>
+          <Text style={styles.scanSub}>
+            Live shopping search across retailers, lowest prices first
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
+      </Pressable>
 
       {/* Current price + history chart */}
       <Card style={styles.chartCard}>
@@ -243,6 +275,29 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
     color: colors.primary,
+  },
+  scanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  scanText: {
+    flex: 1,
+  },
+  scanTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  scanSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
   },
   chartCard: {
     marginBottom: spacing.md,

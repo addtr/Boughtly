@@ -12,6 +12,7 @@ import {
   cancelItemReminders,
   scheduleItemReminders,
   scheduleRefundFollowUp,
+  syncPriceCheckReminder,
 } from '../notifications/notifications';
 import { AppSettings, DEFAULT_SETTINGS, TrackedItem } from '../types/item';
 import {
@@ -201,7 +202,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         priceLog: [{ date: toISODate(new Date()), price: input.firstPrice }],
         createdAt: new Date().toISOString(),
       };
-      await persistWatches([watch, ...watchesRef.current]);
+      const nextWatches = [watch, ...watchesRef.current];
+      await persistWatches(nextWatches);
+      await syncPriceCheckReminder(settingsRef.current, nextWatches.length);
       return watch;
     },
     [persistWatches]
@@ -232,7 +235,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const deleteWatch = useCallback(
     async (id: string) => {
-      await persistWatches(watchesRef.current.filter((w) => w.id !== id));
+      const nextWatches = watchesRef.current.filter((w) => w.id !== id);
+      await persistWatches(nextWatches);
+      await syncPriceCheckReminder(settingsRef.current, nextWatches.length);
     },
     [persistWatches]
   );
@@ -322,7 +327,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setSettings(next);
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
 
-      // Reschedule reminders only when a notification preference changed
+      // Keep the repeating price-check reminder in sync with its settings
+      if (
+        next.priceCheckCadence !== prev.priceCheckCadence ||
+        next.notificationsEnabled !== prev.notificationsEnabled
+      ) {
+        await syncPriceCheckReminder(next, watchesRef.current.length);
+      }
+
+      // Reschedule item reminders only when a notification preference changed
       const affectsReminders =
         next.notificationsEnabled !== prev.notificationsEnabled ||
         next.returnReminderDays !== prev.returnReminderDays ||

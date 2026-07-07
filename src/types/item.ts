@@ -33,7 +33,20 @@ export interface AppSettings {
    * No UI sets this today — free on-device OCR is the default for everyone.
    */
   claudeApiKey: string;
+  /** How often to nudge the user to price-check their watchlist */
+  priceCheckCadence: PriceCheckCadence;
 }
+
+export type PriceCheckCadence = 'off' | 'daily' | 'every2d' | 'weekly' | 'biweekly' | 'monthly';
+
+export const PRICE_CHECK_OPTIONS: { key: PriceCheckCadence; label: string; days: number }[] = [
+  { key: 'daily', label: 'Daily', days: 1 },
+  { key: 'every2d', label: 'Every 2 days', days: 2 },
+  { key: 'weekly', label: 'Weekly', days: 7 },
+  { key: 'biweekly', label: 'Every 2 weeks', days: 14 },
+  { key: 'monthly', label: 'Monthly', days: 30 },
+  { key: 'off', label: 'Off', days: 0 },
+];
 
 export const DEFAULT_SETTINGS: AppSettings = {
   hasOnboarded: false,
@@ -41,6 +54,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   returnReminderDays: 3,
   warrantyReminderDays: 7,
   claudeApiKey: '',
+  priceCheckCadence: 'weekly',
 };
 
 export const WARRANTY_PRESETS = [

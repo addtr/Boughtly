@@ -19,6 +19,7 @@ import { RootStackParamList } from '../navigation/types';
 import { ensureNotificationSetup } from '../notifications/notifications';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, spacing } from '../theme/theme';
+import { PRICE_CHECK_OPTIONS } from '../types/item';
 import { formatPrice, nearestDeadline } from '../utils/dates';
 import { warningFeedback } from '../utils/haptics';
 
@@ -134,6 +135,30 @@ export function SettingsScreen() {
             );
           })}
         </View>
+
+        <View style={styles.divider} />
+        <Text style={styles.optionLabel}>Remind me to price-check my watchlist</Text>
+        <View style={[styles.optionRow, styles.optionRowWrap]}>
+          {PRICE_CHECK_OPTIONS.map((o) => {
+            const active = settings.priceCheckCadence === o.key;
+            return (
+              <Pressable
+                key={o.key}
+                onPress={() => updateSettings({ priceCheckCadence: o.key })}
+                style={[styles.option, active && styles.optionActive]}
+                disabled={!settings.notificationsEnabled}
+              >
+                <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                  {o.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.optionHint}>
+          Fires only while you're actually watching something; tapping it opens your
+          watchlist ready to scan.
+        </Text>
       </Card>
 
       {/* Manage items */}
@@ -266,6 +291,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     marginBottom: spacing.xs,
+  },
+  optionRowWrap: {
+    flexWrap: 'wrap',
+  },
+  optionHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    lineHeight: 17,
+    marginTop: 4,
   },
   option: {
     paddingVertical: 6,

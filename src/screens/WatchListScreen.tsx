@@ -10,6 +10,8 @@ import { useAppState } from '../store/AppStateContext';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { formatPrice } from '../utils/dates';
 import { trendVsTypical } from '../utils/deals';
+import { tapFeedback } from '../utils/haptics';
+import { openPriceScan } from '../utils/priceScan';
 
 export function WatchListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -68,9 +70,20 @@ export function WatchListScreen() {
               </View>
               <Sparkline
                 values={watch.priceLog.map((p) => p.price)}
-                width={92}
+                width={80}
                 height={44}
               />
+              <Pressable
+                hitSlop={8}
+                onPress={() => {
+                  tapFeedback();
+                  void openPriceScan(watch.name);
+                }}
+                accessibilityLabel={`Scan for ${watch.name} cheaper`}
+                style={({ pressed }) => [styles.scanIcon, pressed && { opacity: 0.7 }]}
+              >
+                <Ionicons name="search" size={18} color={colors.primary} />
+              </Pressable>
             </Pressable>
           );
         }}
@@ -170,6 +183,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
     color: '#2E9E6B',
+  },
+  scanIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   empty: {
     flex: 1,
