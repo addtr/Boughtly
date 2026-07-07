@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { AppSettings } from '../types/item';
+import { getOwnerApiKey } from './ownerKey';
 import { ExtractedReceipt, extractReceiptDetails } from './receiptOcr';
 import { parseReceiptText } from './receiptParser';
 
@@ -19,9 +20,10 @@ export async function scanReceipt(
   imageUri: string,
   settings: AppSettings
 ): Promise<ExtractedReceipt | null> {
-  // Dormant premium path — no UI sets this key today
-  if (settings.claudeApiKey) {
-    return extractReceiptDetails(imageUri, settings.claudeApiKey);
+  // Premium path — owner key set via app.json extra (no user-facing UI)
+  const ownerKey = getOwnerApiKey(settings);
+  if (ownerKey) {
+    return extractReceiptDetails(imageUri, ownerKey);
   }
 
   if (Platform.OS === 'web') return null;

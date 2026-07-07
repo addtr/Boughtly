@@ -20,6 +20,9 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { OcrWebView } from '../components/OcrWebView';
 import { Button, Card, ChipRow, Field } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { getOwnerApiKey } from '../services/ownerKey';
+import { lookupPoliciesLive } from '../services/policyLive';
+import { PolicySuggestion, suggestPolicies } from '../services/policyLookup';
 import { ExtractedReceipt } from '../services/receiptOcr';
 import { parseReceiptText } from '../services/receiptParser';
 import { scanReceipt } from '../services/receiptScanner';
@@ -91,6 +94,64 @@ export function AddItemScreen({ navigation, route }: Props) {
   // Expo Go fallback: OCR runs in a hidden WebView (see OcrWebView)
   const [webOcrImage, setWebOcrImage] = useState<string | null>(null);
   const [ocrProgress, setOcrProgress] = useState<number | null>(null);
+  // Auto-filled policy note (store return window / category warranty)
+  const [policyNotes, setPolicyNotes] = useState<string[]>([]);
+  const [policyChecking, setPolicyChecking] = useState(false);
+  const [policyVerified, setPolicyVerified] = useState(false);
+  // Once the user picks a window themselves, auto-fill keeps its hands off
+  const returnTouched = useRef(!!editing);
+  const warrantyTouched = useRef(!!editing);
+  const lastLookupRef = useRef('');
+
+  function applySuggestion(suggestion: PolicySuggestion, verified: boolean) {
+    const notes: string[] = [];
+    if (suggestion.returnDays !== undefined && !returnTouched.current) {
+      setReturnDays(suggestion.returnDays);
+      setReturnCustom(!RETURN_PRESET_DAYS.includes(suggestion.returnDays));
+      if (suggestion.returnNote) notes.push(suggestion.returnNote);
+    }
+    if (suggestion.warrantyDays !== undefined && !warrantyTouched.current) {
+      setWarrantyDays(suggestion.warrantyDays);
+      setWarrantyCustom(!WARRANTY_PRESET_DAYS.includes(suggestion.warrantyDays));
+      if (suggestion.warrantyNote) notes.push(suggestion.warrantyNote);
+    }
+    if (notes.length > 0) {
+      setPolicyNotes(notes);
+      setPolicyVerified(verified);
+    }
+  }
+
+  /**
+   * Receipts never print warranties or return windows. Engine order:
+   * live web lookup for this exact item+store (owner key), falling back to
+   * the built-in store-policy + product-category knowledge base.
+   */
+  async function applyPolicySuggestions(forItemName: string, forStoreName: string) {
+    const item = forItemName.trim();
+    const store = forStoreName.trim();
+    if (!item && !store) return;
+    // Don't re-run the expensive lookup for the same inputs
+    const lookupKey = `${item}|${store}`.toLowerCase();
+    if (lookupKey === lastLookupRef.current) return;
+    lastLookupRef.current = lookupKey;
+
+    const ownerKey = getOwnerApiKey(settings);
+    if (ownerKey && item && store && (!returnTouched.current || !warrantyTouched.current)) {
+      setPolicyChecking(true);
+      try {
+        const live = await lookupPoliciesLive(item, store, ownerKey);
+        if (live.returnDays !== undefined || live.warrantyDays !== undefined) {
+          applySuggestion(live, true);
+          return;
+        }
+      } catch {
+        // fall through to the knowledge base
+      } finally {
+        setPolicyChecking(false);
+      }
+    }
+    applySuggestion(suggestPolicies(item, store), false);
+  }
 
   // "Scan the receipt" path: open the camera right away
   const autoScanned = useRef(false);
@@ -108,6 +169,11 @@ export function AddItemScreen({ navigation, route }: Props) {
     if (extracted.storeName && !storeName.trim()) setStoreName(extracted.storeName);
     if (extracted.price !== null && !priceText.trim()) setPriceText(String(extracted.price));
     if (extracted.purchaseDate) setPurchaseDate(extracted.purchaseDate);
+    // Look up the store's return policy + the item's typical warranty
+    applyPolicySuggestions(
+      extracted.itemName ?? itemName,
+      extracted.storeName ?? storeName
+    );
     if (!extracted.itemName && !extracted.storeName && extracted.price === null) {
       Alert.alert(
         'Couldn’t read that receipt',
@@ -293,12 +359,14 @@ export function AddItemScreen({ navigation, route }: Props) {
           label="What did you buy?"
           value={itemName}
           onChangeText={setItemName}
+          onBlur={() => void applyPolicySuggestions(itemName, storeName)}
           placeholder="Noise-cancelling headphones"
         />
         <Field
           label="Where from?"
           value={storeName}
           onChangeText={setStoreName}
+          onBlur={() => void applyPolicySuggestions(itemName, storeName)}
           placeholder="Best Buy"
         />
         <View style={styles.priceWrap}>
@@ -346,16 +414,49 @@ export function AddItemScreen({ navigation, route }: Props) {
           </View>
         )}
 
+        {/* Auto-filled policy note */}
+        {policyChecking && (
+          <View style={styles.policyCard}>
+            <View style={styles.policyCheckingRow}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.policyTitle}>
+                Looking up this item’s warranty & return policy…
+              </Text>
+            </View>
+          </View>
+        )}
+        {!policyChecking && policyNotes.length > 0 && (
+          <View style={styles.policyCard}>
+            <Text style={styles.policyTitle}>
+              {policyVerified ? 'Looked up for this item' : 'Filled in for you'}
+            </Text>
+            {policyNotes.map((note, i) => (
+              <Text key={i} style={styles.policyNote}>
+                • {note}
+              </Text>
+            ))}
+            <Text style={styles.policyCaveat}>
+              {policyVerified
+                ? 'Checked online just now — still worth a glance below.'
+                : 'Typical policy — tweak below if your receipt or product says otherwise.'}
+            </Text>
+          </View>
+        )}
+
         {/* Return window */}
         <Text style={styles.sectionTitle}>Return window</Text>
         <ChipRow
           options={RETURN_PRESETS}
           selectedDays={returnDays}
           onSelect={(d) => {
+            returnTouched.current = true;
             setReturnDays(d);
             setReturnCustom(false);
           }}
-          onCustom={() => setReturnCustom(true)}
+          onCustom={() => {
+            returnTouched.current = true;
+            setReturnCustom(true);
+          }}
           customActive={returnCustom}
         />
         {returnCustom && (
@@ -376,10 +477,14 @@ export function AddItemScreen({ navigation, route }: Props) {
           options={WARRANTY_PRESETS}
           selectedDays={warrantyDays}
           onSelect={(d) => {
+            warrantyTouched.current = true;
             setWarrantyDays(d);
             setWarrantyCustom(false);
           }}
-          onCustom={() => setWarrantyCustom(true)}
+          onCustom={() => {
+            warrantyTouched.current = true;
+            setWarrantyCustom(true);
+          }}
           customActive={warrantyCustom}
         />
         {warrantyCustom && (
@@ -527,6 +632,36 @@ const styles = StyleSheet.create({
     color: colors.deepBlue,
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
+  },
+  policyCard: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  policyCheckingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  policyTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  policyNote: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.deepBlue,
+    lineHeight: 19,
+  },
+  policyCaveat: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 6,
   },
   customField: {
     marginTop: spacing.sm,
