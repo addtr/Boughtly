@@ -39,10 +39,15 @@ function reminderDate(deadlineISO: string, daysBefore: number): Date {
   return date;
 }
 
-async function scheduleAt(title: string, body: string, date: Date): Promise<string | null> {
+async function scheduleAt(
+  title: string,
+  body: string,
+  date: Date,
+  itemId: string
+): Promise<string | null> {
   if (date.getTime() <= Date.now()) return null; // never schedule in the past
   return Notifications.scheduleNotificationAsync({
-    content: { title, body, sound: true },
+    content: { title, body, sound: true, data: { itemId } },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date,
@@ -68,14 +73,16 @@ export async function scheduleItemReminders(
   const returnId = await scheduleAt(
     `${settings.returnReminderDays} days left to return this`,
     `Your return window for ${item.itemName} from ${item.storeName} closes soon.`,
-    reminderDate(item.returnDeadlineDate, settings.returnReminderDays)
+    reminderDate(item.returnDeadlineDate, settings.returnReminderDays),
+    item.id
   );
   if (returnId) ids.push(returnId);
 
   const warrantyId = await scheduleAt(
     `Warranty ending soon`,
     `The warranty on ${item.itemName} from ${item.storeName} expires in ${settings.warrantyReminderDays} days.`,
-    reminderDate(item.warrantyExpirationDate, settings.warrantyReminderDays)
+    reminderDate(item.warrantyExpirationDate, settings.warrantyReminderDays),
+    item.id
   );
   if (warrantyId) ids.push(warrantyId);
 

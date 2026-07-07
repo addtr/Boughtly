@@ -1,6 +1,15 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useMemo } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { CountdownRing } from '../components/CountdownRing';
 import { Button, Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
@@ -12,6 +21,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
 export function ItemDetailScreen({ navigation, route }: Props) {
   const { items, deleteItem } = useAppState();
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const item = useMemo(
     () => items.find((i) => i.id === route.params.itemId),
     [items, route.params.itemId]
@@ -89,7 +99,10 @@ export function ItemDetailScreen({ navigation, route }: Props) {
       <Text style={styles.sectionTitle}>Receipt</Text>
       {item.receiptImageUri ? (
         <Card style={styles.receiptCard}>
-          <Image source={{ uri: item.receiptImageUri }} style={styles.receiptImage} />
+          <Pressable onPress={() => setReceiptOpen(true)}>
+            <Image source={{ uri: item.receiptImageUri }} style={styles.receiptImage} />
+            <Text style={styles.receiptHint}>Tap to view full screen</Text>
+          </Pressable>
         </Card>
       ) : (
         <Card style={styles.receiptCard}>
@@ -115,6 +128,40 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         />
         <Button title="Stop tracking" variant="danger" onPress={confirmDelete} />
       </View>
+
+      {/* Full-screen zoomable receipt */}
+      <Modal
+        visible={receiptOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setReceiptOpen(false)}
+      >
+        <View style={styles.viewerBackdrop}>
+          <ScrollView
+            style={styles.viewerScroll}
+            contentContainerStyle={styles.viewerContent}
+            maximumZoomScale={4}
+            minimumZoomScale={1}
+            bouncesZoom
+          >
+            {item.receiptImageUri && (
+              <Image
+                source={{ uri: item.receiptImageUri }}
+                style={styles.viewerImage}
+                resizeMode="contain"
+              />
+            )}
+          </ScrollView>
+          <Pressable
+            style={styles.viewerClose}
+            onPress={() => setReceiptOpen(false)}
+            hitSlop={12}
+            accessibilityLabel="Close receipt"
+          >
+            <Text style={styles.viewerCloseText}>✕</Text>
+          </Pressable>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -178,6 +225,45 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     resizeMode: 'contain',
     backgroundColor: colors.divider,
+  },
+  receiptHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  viewerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 18, 28, 0.96)',
+  },
+  viewerScroll: {
+    flex: 1,
+  },
+  viewerContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  viewerImage: {
+    width: '100%',
+    height: '100%',
+    minHeight: 400,
+  },
+  viewerClose: {
+    position: 'absolute',
+    top: 56,
+    right: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewerCloseText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontFamily: fonts.bodySemiBold,
   },
   noReceipt: {
     fontFamily: fonts.body,

@@ -8,6 +8,8 @@
     "userInterfaceStyle": "light",
     "backgroundColor": "#FAF7F2",
     "splash": {
+      "image": "./assets/splash-icon.png",
+      "imageWidth": 180,
       "backgroundColor": "#FAF7F2",
       "resizeMode": "contain"
     },
@@ -42,6 +44,7 @@
       [
         "expo-notifications",
         {
+          "icon": "./assets/notification-icon.png",
           "color": "#4C7EF3"
         }
       ]

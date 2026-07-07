@@ -5,7 +5,7 @@ import { ItemCard } from '../components/ItemCard';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { cardShadow, colors, fonts, spacing } from '../theme/theme';
-import { nearestDeadline } from '../utils/dates';
+import { formatPrice, nearestDeadline } from '../utils/dates';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
@@ -24,12 +24,25 @@ export function DashboardScreen({ navigation }: Props) {
     });
   }, [items]);
 
+  const totalCovered = useMemo(
+    () => items.reduce((sum, item) => sum + item.price, 0),
+    [items]
+  );
+
   return (
     <View style={styles.container}>
       <FlatList
         data={sorted}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          items.length > 0 ? (
+            <Text style={styles.summary}>
+              {items.length} item{items.length === 1 ? '' : 's'} protected ·{' '}
+              {formatPrice(totalCovered)} covered
+            </Text>
+          ) : null
+        }
         renderItem={({ item }) => (
           <ItemCard
             item={item}
@@ -67,6 +80,13 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     paddingBottom: 120,
     flexGrow: 1,
+  },
+  summary: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: spacing.md,
+    marginLeft: 2,
   },
   empty: {
     flex: 1,
