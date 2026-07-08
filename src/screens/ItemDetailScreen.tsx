@@ -27,6 +27,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 export function ItemDetailScreen({ navigation, route }: Props) {
   const { items, returns, deleteItem, startReturn } = useAppState();
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [returnPickerOpen, setReturnPickerOpen] = useState(false);
+  const [selectedReturn, setSelectedReturn] = useState<Set<number>>(new Set());
   const item = useMemo(
     () => items.find((i) => i.id === route.params.itemId),
     [items, route.params.itemId]
@@ -79,6 +81,44 @@ export function ItemDetailScreen({ navigation, route }: Props) {
       );
     }
   }
+
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
+  /** Start a return. Multi-item purchases open a picker; single ones go direct. */
+  async function beginReturn() {
+    if (item!.lineItems && item!.lineItems.length >= 2) {
+      setSelectedReturn(new Set(item!.lineItems.map((_, i) => i)));
+      setReturnPickerOpen(true);
+      return;
+    }
+    const ret = await startReturn(item!);
+    navigation.navigate('ReturnDetail', { returnId: ret.id });
+  }
+
+  function toggleReturnItem(idx: number) {
+    setSelectedReturn((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }
+
+  async function confirmPartialReturn() {
+    const li = item!.lineItems ?? [];
+    const chosen = li.filter((_, i) => selectedReturn.has(i));
+    if (chosen.length === 0) return;
+    const refund = round2(chosen.reduce((a, b) => a + b.price, 0));
+    setReturnPickerOpen(false);
+    const ret = await startReturn(item!, { items: chosen, refundAmount: refund });
+    navigation.navigate('ReturnDetail', { returnId: ret.id });
+  }
+
+  const selectedRefund = round2(
+    (item.lineItems ?? [])
+      .filter((_, i) => selectedReturn.has(i))
+      .reduce((a, b) => a + b.price, 0)
+  );
 
   function confirmDelete() {
     warningFeedback();
@@ -285,12 +325,13 @@ export function ItemDetailScreen({ navigation, route }: Props) {
           if (returnDaysLeft >= 0) {
             return (
               <Button
-                title="Start a return"
+                title={
+                  item.lineItems && item.lineItems.length >= 2
+                    ? 'Return some or all of this'
+                    : 'Start a return'
+                }
                 variant="coral"
-                onPress={async () => {
-                  const ret = await startReturn(item!);
-                  navigation.navigate('ReturnDetail', { returnId: ret.id });
-                }}
+                onPress={beginReturn}
               />
             );
           }
@@ -302,6 +343,64 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         />
         <Button title="Stop tracking" variant="danger" onPress={confirmDelete} />
       </View>
+
+      {/* Pick which items to return (partial returns) */}
+      <Modal
+        visible={returnPickerOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setReturnPickerOpen(false)}
+      >
+        <View style={styles.sheetBackdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>What are you returning?</Text>
+            <Text style={styles.sheetSub}>
+              Pick the items going back — we’ll track the refund for just those.
+            </Text>
+            <ScrollView style={styles.sheetList}>
+              {(item.lineItems ?? []).map((li, i) => {
+                const on = selectedReturn.has(i);
+                return (
+                  <Pressable
+                    key={i}
+                    onPress={() => toggleReturnItem(i)}
+                    style={[styles.pickRow, i > 0 && styles.lineItemDivider]}
+                  >
+                    <Ionicons
+                      name={on ? 'checkbox' : 'square-outline'}
+                      size={22}
+                      color={on ? colors.primary : colors.muted}
+                    />
+                    <Text style={styles.pickName} numberOfLines={2}>
+                      {li.name}
+                    </Text>
+                    <Text style={styles.pickPrice}>{formatPrice(li.price)}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.pickTotalRow}>
+              <Text style={styles.pickTotalLabel}>
+                Refund for {selectedReturn.size} item{selectedReturn.size === 1 ? '' : 's'}
+              </Text>
+              <Text style={styles.pickTotalValue}>{formatPrice(selectedRefund)}</Text>
+            </View>
+            <Button
+              title="Start this return"
+              variant="coral"
+              onPress={confirmPartialReturn}
+              disabled={selectedReturn.size === 0}
+            />
+            <Pressable
+              style={styles.sheetCancel}
+              onPress={() => setReturnPickerOpen(false)}
+              hitSlop={8}
+            >
+              <Text style={styles.sheetCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Full-screen zoomable receipt */}
       <Modal
@@ -542,6 +641,82 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
     marginTop: spacing.sm,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 18, 28, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+    maxHeight: '80%',
+  },
+  sheetTitle: {
+    fontFamily: fonts.displayBold,
+    fontSize: 20,
+    color: colors.deepBlue,
+  },
+  sheetSub: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.muted,
+    marginTop: 4,
+    marginBottom: spacing.md,
+    lineHeight: 19,
+  },
+  sheetList: {
+    flexGrow: 0,
+    marginBottom: spacing.sm,
+  },
+  pickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 12,
+  },
+  pickName: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.text,
+  },
+  pickPrice: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    color: colors.deepBlue,
+  },
+  pickTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1.5,
+    borderTopColor: colors.deepBlue,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  pickTotalLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.deepBlue,
+  },
+  pickTotalValue: {
+    fontFamily: fonts.displayBold,
+    fontSize: 18,
+    color: colors.deepBlue,
+  },
+  sheetCancel: {
+    alignSelf: 'center',
+    marginTop: spacing.md,
+    padding: spacing.sm,
+  },
+  sheetCancelText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    color: colors.muted,
   },
   viewerBackdrop: {
     flex: 1,

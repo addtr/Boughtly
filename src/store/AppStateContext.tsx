@@ -70,7 +70,10 @@ interface AppState {
   ) => Promise<void>;
   deleteWatch: (id: string) => Promise<void>;
   // Returns
-  startReturn: (item: TrackedItem) => Promise<ReturnCase>;
+  startReturn: (
+    item: TrackedItem,
+    selection?: { items: { name: string; price: number }[]; refundAmount: number }
+  ) => Promise<ReturnCase>;
   updateReturn: (
     id: string,
     patch: Partial<Pick<ReturnCase, 'method' | 'trackingNumber' | 'notes' | 'refundAmount' | 'storeName'>>
@@ -291,18 +294,32 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   /* ---------- Returns ---------- */
 
   const startReturn = useCallback(
-    async (item: TrackedItem) => {
+    async (
+      item: TrackedItem,
+      selection?: { items: { name: string; price: number }[]; refundAmount: number }
+    ) => {
       const existing = returnsRef.current.find(
         (r) => r.itemId === item.id && r.status !== 'refunded'
       );
       if (existing) return existing;
       const now = new Date().toISOString();
+      // A partial return names the selected items; a whole-purchase return
+      // keeps the item name and full price.
+      const isPartial =
+        !!selection &&
+        selection.items.length > 0 &&
+        selection.items.length < (item.lineItems?.length ?? 1);
       const ret: ReturnCase = {
         id: makeId(),
         itemId: item.id,
-        itemName: item.itemName,
+        itemName:
+          isPartial && selection!.items.length === 1
+            ? selection!.items[0].name
+            : item.itemName,
         storeName: item.storeName,
-        refundAmount: item.price,
+        // Partial → sum of chosen items; whole purchase → the real total paid.
+        refundAmount: isPartial ? selection!.refundAmount : item.price,
+        returnedItems: isPartial ? selection!.items : undefined,
         method: null,
         status: 'started',
         startedAt: now,

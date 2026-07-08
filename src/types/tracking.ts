@@ -1,5 +1,7 @@
 /** Phase 2 models: price watching and return cases. Dates are ISO strings. */
 
+import { ReceiptLineItem } from './item';
+
 export interface PricePoint {
   /** ISO date "YYYY-MM-DD" */
   date: string;
@@ -38,6 +40,11 @@ export interface ReturnCase {
   itemName: string;
   storeName: string;
   refundAmount: number;
+  /**
+   * The specific line items being returned (partial return). Absent means the
+   * whole purchase is going back.
+   */
+  returnedItems?: ReceiptLineItem[];
   method: 'in_store' | 'mail' | null;
   trackingNumber?: string;
   notes?: string;

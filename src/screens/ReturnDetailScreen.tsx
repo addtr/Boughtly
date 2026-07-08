@@ -95,13 +95,17 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
   /** Prefilled return request — share to email/messages, ready to send. */
   async function shareRequest() {
     if (!ret) return;
+    const itemLines =
+      ret.returnedItems && ret.returnedItems.length > 0
+        ? ret.returnedItems.map((li) => `• ${li.name}: ${formatPrice(li.price)}`)
+        : [`• Item: ${ret.itemName}`];
     const lines = [
       `Hi ${ret.storeName} team,`,
       '',
-      `I'd like to return the following purchase:`,
-      `• Item: ${ret.itemName}`,
+      `I'd like to return the following:`,
+      ...itemLines,
       item ? `• Purchased: ${formatDate(item.purchaseDate)}` : null,
-      `• Amount: ${formatPrice(ret.refundAmount)}`,
+      `• Total refund: ${formatPrice(ret.refundAmount)}`,
       ret.trackingNumber ? `• Tracking number: ${ret.trackingNumber}` : null,
       '',
       'I have the receipt available. Could you send me return instructions',
@@ -173,6 +177,23 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
             : 'Press go and we’ll take you to this store’s return page online.'}
         </Text>
       </Card>
+
+      {/* Which items are going back (partial returns) */}
+      {ret.returnedItems && ret.returnedItems.length > 0 && (
+        <Card style={styles.returnedCard}>
+          <Text style={styles.returnedTitle}>
+            Returning {ret.returnedItems.length} of this purchase’s items
+          </Text>
+          {ret.returnedItems.map((li, i) => (
+            <View key={i} style={styles.returnedRow}>
+              <Text style={styles.returnedName} numberOfLines={2}>
+                {li.name}
+              </Text>
+              <Text style={styles.returnedPrice}>{formatPrice(li.price)}</Text>
+            </View>
+          ))}
+        </Card>
+      )}
 
       {/* Progress stepper */}
       <Card style={styles.stepsCard}>
@@ -358,6 +379,33 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: spacing.sm,
     lineHeight: 17,
+  },
+  returnedCard: {
+    marginBottom: spacing.md,
+  },
+  returnedTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: spacing.sm,
+  },
+  returnedRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: 5,
+  },
+  returnedName: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.text,
+  },
+  returnedPrice: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.deepBlue,
   },
   stepsCard: {
     marginBottom: spacing.sm,
