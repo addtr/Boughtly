@@ -1,3 +1,9 @@
+/** One product line within a purchase. */
+export interface ReceiptLineItem {
+  name: string;
+  price: number;
+}
+
 /** A purchase the user is protecting. Dates are ISO 8601 strings (date-only semantics). */
 export interface TrackedItem {
   id: string;
@@ -15,6 +21,8 @@ export interface TrackedItem {
   /** Calculated: purchaseDate + returnWindowDays (ISO date string) */
   returnDeadlineDate: string;
   notes?: string;
+  /** The individual products on this receipt (empty for a single-item purchase) */
+  lineItems?: ReceiptLineItem[];
   /** Scheduled local notification ids, so they can be cancelled on edit/delete */
   notificationIds: string[];
   createdAt: string;

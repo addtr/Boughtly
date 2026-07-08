@@ -16,10 +16,11 @@ import { Button, Card, ChipRow } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { suggestPolicies } from '../services/policyLookup';
 import {
-  buildScanItems,
+  buildPurchaseItem,
+  defaultPurchaseName,
+  lineItemsSum,
   parsePrice,
-  ReviewRow as Row,
-  warrantyForItem,
+  ReviewRow,
 } from '../services/reviewBuild';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
@@ -36,9 +37,12 @@ export function ScanReviewScreen({ navigation, route }: Props) {
   const params = route.params;
 
   const [storeName, setStoreName] = useState(params.storeName);
+  const [purchaseName, setPurchaseName] = useState(defaultPurchaseName(params.storeName));
   const [purchaseDate, setPurchaseDate] = useState(params.purchaseDate);
+  const [totalText, setTotalText] = useState(
+    params.total !== null ? String(params.total) : ''
+  );
 
-  // Shared return window: from the receipt if it printed one, else store policy
   const initialReturn = useMemo(() => {
     if (params.returnDays) return params.returnDays;
     const pol = suggestPolicies('', params.storeName);
@@ -49,55 +53,52 @@ export function ScanReviewScreen({ navigation, route }: Props) {
     !RETURN_PRESET_DAYS.includes(initialReturn)
   );
 
-  // Pre-select the priciest item; leave the rest for the user to opt in.
-  const maxPrice = Math.max(...params.items.map((i) => i.price), 0);
-  const [rows, setRows] = useState<Row[]>(
-    params.items.map((i) => ({
-      name: i.name,
-      priceText: String(i.price),
-      selected: i.price === maxPrice,
-    }))
+  const [rows, setRows] = useState<ReviewRow[]>(
+    params.items.map((i) => ({ name: i.name, priceText: String(i.price) }))
   );
   const [saving, setSaving] = useState(false);
 
-  const selectedCount = rows.filter((r) => r.selected).length;
-
-  function toggle(idx: number) {
-    tapFeedback();
-    setRows((rs) => rs.map((r, i) => (i === idx ? { ...r, selected: !r.selected } : r)));
-  }
-  function setName(idx: number, name: string) {
+  function setRowName(idx: number, name: string) {
     setRows((rs) => rs.map((r, i) => (i === idx ? { ...r, name } : r)));
   }
-  function setPrice(idx: number, priceText: string) {
+  function setRowPrice(idx: number, priceText: string) {
     setRows((rs) => rs.map((r, i) => (i === idx ? { ...r, priceText } : r)));
   }
+  function removeRow(idx: number) {
+    tapFeedback();
+    setRows((rs) => rs.filter((_, i) => i !== idx));
+  }
+  function addRow() {
+    tapFeedback();
+    setRows((rs) => [...rs, { name: '', priceText: '' }]);
+  }
 
-  const warrantyFor = (name: string) => warrantyForItem(name, storeName, returnDays);
+  const itemsSum = lineItemsSum(rows);
+  const totalNum = parsePrice(totalText);
+  // Flag a likely mis-scan: total and the sum of items disagree by > 5%.
+  const mismatch =
+    totalNum !== null && itemsSum > 0 && Math.abs(totalNum - itemsSum) / totalNum > 0.05;
 
-  async function saveSelected() {
-    const chosen = rows.filter((r) => r.selected);
-    if (chosen.length === 0) {
-      Alert.alert('Pick at least one', 'Tap the items you want Boughtly to protect.');
+  async function save() {
+    if (!purchaseName.trim()) {
+      Alert.alert('Name this purchase', 'Give it a name so you can find it later.');
       return;
     }
-    for (const r of chosen) {
-      if (!r.name.trim() || parsePrice(r.priceText) === null) {
-        Alert.alert('Check the items', 'Each selected item needs a name and a price.');
-        return;
-      }
+    if (parsePrice(totalText) === null && itemsSum === 0) {
+      Alert.alert('Add a total', 'Enter what you paid, or add at least one item with a price.');
+      return;
     }
     setSaving(true);
     try {
-      const inputs = buildScanItems(rows, {
+      const input = buildPurchaseItem(rows, {
         storeName,
         purchaseDate,
         returnDays,
         receiptImageUri: params.receiptImageUri,
+        purchaseName,
+        totalText,
       });
-      for (const input of inputs) {
-        await addItem(input);
-      }
+      await addItem(input);
       successFeedback();
       navigation.popToTop();
     } finally {
@@ -116,30 +117,57 @@ export function ScanReviewScreen({ navigation, route }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.intro}>
-          Found {params.items.length} item{params.items.length === 1 ? '' : 's'} on your
-          receipt. Tap the ones worth protecting, fix anything the scan misread, then save.
+          Here’s what Boughtly read off your receipt. Fix anything that looks off, then
+          save it as one protected purchase.
         </Text>
 
-        {/* Shared details */}
-        <Card style={styles.sharedCard}>
-          <Text style={styles.sharedLabel}>Store</Text>
+        {/* Purchase-level details */}
+        <Card style={styles.card}>
+          <Text style={styles.label}>Purchase name</Text>
+          <TextInput
+            value={purchaseName}
+            onChangeText={setPurchaseName}
+            placeholder="CVS Pharmacy purchase"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+          />
+          <Text style={styles.label}>Store</Text>
           <TextInput
             value={storeName}
             onChangeText={setStoreName}
             placeholder="Where from?"
             placeholderTextColor={colors.muted}
-            style={styles.sharedInput}
+            style={styles.input}
           />
-          <Text style={styles.sharedLabel}>Purchase date (YYYY-MM-DD)</Text>
+          <Text style={styles.label}>Purchase date (YYYY-MM-DD)</Text>
           <TextInput
             value={purchaseDate}
             onChangeText={setPurchaseDate}
             placeholder="2026-07-05"
             placeholderTextColor={colors.muted}
             autoCapitalize="none"
-            style={styles.sharedInput}
+            style={styles.input}
           />
-          <Text style={styles.sharedLabel}>Return window (applies to all)</Text>
+          <Text style={styles.label}>Total paid</Text>
+          <View style={styles.totalRow}>
+            <Text style={styles.currency}>$</Text>
+            <TextInput
+              value={totalText}
+              onChangeText={setTotalText}
+              placeholder="0.00"
+              placeholderTextColor={colors.muted}
+              keyboardType="decimal-pad"
+              style={styles.totalInput}
+            />
+          </View>
+          {mismatch && (
+            <Text style={styles.mismatch}>
+              Heads up: your items add up to {formatPrice(itemsSum)}, but the total says{' '}
+              {formatPrice(totalNum!)}. Double-check both.
+            </Text>
+          )}
+
+          <Text style={styles.label}>Return window (for the whole purchase)</Text>
           <ChipRow
             options={RETURN_PRESETS}
             selectedDays={returnDays}
@@ -157,77 +185,65 @@ export function ScanReviewScreen({ navigation, route }: Props) {
               keyboardType="number-pad"
               placeholder="Return window (days)"
               placeholderTextColor={colors.muted}
-              style={styles.sharedInput}
+              style={styles.input}
             />
           )}
           {params.returnDays ? (
-            <Text style={styles.sharedHint}>
+            <Text style={styles.receiptHint}>
               Read {params.returnDays} days off your receipt — change it if that's wrong.
             </Text>
           ) : null}
         </Card>
 
-        {/* Item rows */}
-        <Text style={styles.sectionTitle}>Items</Text>
-        {rows.map((r, idx) => {
-          const w = warrantyFor(r.name);
-          return (
-            <Card key={idx} style={[styles.itemCard, r.selected && styles.itemCardOn]}>
-              <Pressable onPress={() => toggle(idx)} style={styles.itemHeader}>
-                <View style={[styles.check, r.selected && styles.checkOn]}>
-                  {r.selected && <Ionicons name="checkmark" size={15} color="#FFFFFF" />}
-                </View>
-                <Text style={styles.itemHeaderText}>
-                  {r.selected ? 'Protecting this' : 'Tap to protect'}
-                </Text>
-                {r.selected && (
-                  <Text style={styles.warrantyTag}>
-                    {w >= 365 ? `${Math.round(w / 365)} yr warranty` : `${w}-day cover`}
-                  </Text>
-                )}
+        {/* Item breakdown */}
+        <View style={styles.itemsHeader}>
+          <Text style={styles.sectionTitle}>
+            Items on this receipt ({rows.length})
+          </Text>
+          <Text style={styles.sumText}>{formatPrice(itemsSum)}</Text>
+        </View>
+        <Card style={styles.card}>
+          {rows.length === 0 && (
+            <Text style={styles.noItems}>
+              No items detected. Add them below or just save with the total.
+            </Text>
+          )}
+          {rows.map((r, idx) => (
+            <View key={idx} style={styles.itemRow}>
+              <TextInput
+                value={r.name}
+                onChangeText={(t) => setRowName(idx, t)}
+                placeholder="Item name"
+                placeholderTextColor={colors.muted}
+                style={styles.itemName}
+              />
+              <View style={styles.itemPriceBox}>
+                <Text style={styles.currencySmall}>$</Text>
+                <TextInput
+                  value={r.priceText}
+                  onChangeText={(t) => setRowPrice(idx, t)}
+                  placeholder="0.00"
+                  placeholderTextColor={colors.muted}
+                  keyboardType="decimal-pad"
+                  style={styles.itemPrice}
+                />
+              </View>
+              <Pressable onPress={() => removeRow(idx)} hitSlop={8} style={styles.removeBtn}>
+                <Ionicons name="close-circle" size={22} color={colors.muted} />
               </Pressable>
-              {r.selected && (
-                <View style={styles.itemFields}>
-                  <TextInput
-                    value={r.name}
-                    onChangeText={(t) => setName(idx, t)}
-                    placeholder="Item name"
-                    placeholderTextColor={colors.muted}
-                    style={styles.itemInput}
-                  />
-                  <View style={styles.priceRow}>
-                    <Text style={styles.currency}>$</Text>
-                    <TextInput
-                      value={r.priceText}
-                      onChangeText={(t) => setPrice(idx, t)}
-                      keyboardType="decimal-pad"
-                      placeholder="0.00"
-                      placeholderTextColor={colors.muted}
-                      style={styles.priceInput}
-                    />
-                  </View>
-                </View>
-              )}
-              {!r.selected && (
-                <Text style={styles.itemPreview} numberOfLines={1}>
-                  {r.name} · {formatPrice(parsePrice(r.priceText) ?? 0)}
-                </Text>
-              )}
-            </Card>
-          );
-        })}
+            </View>
+          ))}
+          <Pressable onPress={addRow} style={styles.addRow}>
+            <Ionicons name="add-circle" size={20} color={colors.primary} />
+            <Text style={styles.addRowText}>Add an item</Text>
+          </Pressable>
+        </Card>
 
         <Button
-          title={
-            saving
-              ? 'Saving…'
-              : selectedCount === 0
-              ? 'Pick items to protect'
-              : `Protect ${selectedCount} item${selectedCount === 1 ? '' : 's'}`
-          }
+          title={saving ? 'Saving…' : 'Protect this purchase'}
           variant="coral"
-          onPress={saveSelected}
-          disabled={saving || selectedCount === 0}
+          onPress={save}
+          disabled={saving}
           style={styles.saveBtn}
         />
       </ScrollView>
@@ -246,15 +262,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: spacing.md,
   },
-  sharedCard: { marginBottom: spacing.lg },
-  sharedLabel: {
+  card: { marginBottom: spacing.lg },
+  label: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
     color: colors.muted,
     marginBottom: 6,
     marginTop: spacing.sm,
   },
-  sharedInput: {
+  input: {
     backgroundColor: colors.background,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
@@ -264,52 +280,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: spacing.xs,
   },
-  sharedHint: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.primary,
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontFamily: fonts.display,
-    fontSize: 16,
-    color: colors.deepBlue,
-    marginBottom: spacing.sm,
-  },
-  itemCard: { marginBottom: spacing.sm, padding: spacing.md },
-  itemCardOn: { backgroundColor: '#FFFFFF' },
-  itemHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  check: {
-    width: 24,
-    height: 24,
-    borderRadius: 7,
-    backgroundColor: colors.divider,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkOn: { backgroundColor: colors.primary },
-  itemHeaderText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    color: colors.muted,
-    flex: 1,
-  },
-  warrantyTag: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12,
-    color: colors.primary,
-  },
-  itemFields: { marginTop: spacing.sm, gap: spacing.sm },
-  itemInput: {
-    backgroundColor: colors.background,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 11,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 15,
-    color: colors.deepBlue,
-  },
-  priceRow: {
+  totalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background,
@@ -317,24 +288,102 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   currency: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
-    color: colors.muted,
+    fontFamily: fonts.displayBold,
+    fontSize: 18,
+    color: colors.deepBlue,
     marginRight: 6,
   },
-  priceInput: {
+  totalInput: {
     flex: 1,
     paddingVertical: 11,
-    fontFamily: fonts.body,
-    fontSize: 15,
-    color: colors.text,
+    fontFamily: fonts.displayBold,
+    fontSize: 18,
+    color: colors.deepBlue,
   },
-  itemPreview: {
+  mismatch: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.coral,
+    marginTop: 6,
+    lineHeight: 17,
+  },
+  receiptHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: 4,
+  },
+  itemsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+    color: colors.deepBlue,
+  },
+  sumText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.muted,
+  },
+  noItems: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.muted,
+    paddingVertical: spacing.sm,
+    lineHeight: 18,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  itemName: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.deepBlue,
+  },
+  itemPriceBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.sm,
+    width: 92,
+  },
+  currencySmall: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.muted,
+    marginRight: 2,
+  },
+  itemPrice: {
+    flex: 1,
+    paddingVertical: 10,
     fontFamily: fonts.body,
     fontSize: 14,
     color: colors.text,
-    marginTop: spacing.sm,
-    marginLeft: 32,
   },
-  saveBtn: { marginTop: spacing.lg },
+  removeBtn: { padding: 2 },
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.sm,
+  },
+  addRowText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.primary,
+  },
+  saveBtn: { marginTop: spacing.xs },
 });

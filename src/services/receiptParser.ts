@@ -9,7 +9,8 @@ import { ExtractedReceipt } from './receiptOcr';
  * every store-policy guess.
  */
 
-const MONEY_RE = /(?:\$|USD\s?)?(\d{1,3}(?:,\d{3})*\.\d{2})\b/;
+// Dollar amount: comma-grouped ("1,299.99") or plain ("1299.99", "12.00").
+const MONEY_RE = /(?:\$|USD\s?)?((?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2})\b/;
 
 /** Lines that carry a price but are not purchasable items */
 const NON_ITEM_RE =
@@ -170,33 +171,73 @@ function findStore(lines: string[]): string | null {
   return null;
 }
 
-function findTotal(lines: string[]): number | null {
-  // 1) An explicit TOTAL line (money on it, or on the line right after)
-  for (let i = 0; i < lines.length; i++) {
-    if (TOTAL_RE.test(lines[i]) && !SUBTOTAL_RE.test(lines[i]) && !PAYMENT_RE.test(lines[i])) {
-      const here = parseMoney(lines[i]);
-      if (here !== null) return here;
-      const next = lines[i + 1] ? parseMoney(lines[i + 1]) : null;
-      if (next !== null && !PAYMENT_RE.test(lines[i + 1])) return next;
+/** A "TOTAL" line that's really savings/discount/tax/item-count, not the amount due. */
+const FAKE_TOTAL_RE = /saving|discount|coupon|\btax\b|\bitems?\b|\bcount\b|\bqty\b|points/i;
+
+function findTotal(lines: string[], lineItems: ParsedLineItem[]): number | null {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
+  // Gather reference numbers: subtotal, tax, and the sum of line items.
+  let subtotal: number | null = null;
+  let tax: number | null = null;
+  for (const line of lines) {
+    if (SUBTOTAL_RE.test(line) && subtotal === null) subtotal = parseMoney(line);
+    if (/\btax\b/i.test(line) && !/tax\s?id|tax\s?exempt/i.test(line) && tax === null) {
+      tax = parseMoney(line);
     }
   }
+  const itemsSum = lineItems.reduce((a, li) => a + li.price, 0);
+  const target =
+    subtotal !== null ? round2(subtotal + (tax ?? 0)) : itemsSum > 0 ? round2(itemsSum + (tax ?? 0)) : null;
 
-  // 2) The receipt's own arithmetic: cash tendered − change = total paid
+  // 1) Explicit TOTAL / AMOUNT DUE / BALANCE lines (value on the line or the next).
+  const candidates: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!TOTAL_RE.test(line) || SUBTOTAL_RE.test(line) || PAYMENT_RE.test(line)) continue;
+    if (FAKE_TOTAL_RE.test(line)) continue; // "total savings", "total items"…
+    const here = parseMoney(line);
+    if (here !== null) {
+      candidates.push(here);
+    } else if (lines[i + 1] && !PAYMENT_RE.test(lines[i + 1])) {
+      const next = parseMoney(lines[i + 1]);
+      if (next !== null) candidates.push(next);
+    }
+  }
+  if (candidates.length > 0) {
+    // Prefer the candidate closest to subtotal+tax; else the largest (final total).
+    if (target !== null) {
+      let best = candidates[0];
+      let bestDiff = Math.abs(best - target);
+      for (const c of candidates) {
+        const d = Math.abs(c - target);
+        if (d < bestDiff) {
+          best = c;
+          bestDiff = d;
+        }
+      }
+      return best;
+    }
+    return Math.max(...candidates);
+  }
+
+  // 2) The receipt's own arithmetic: cash tendered − change = total paid.
   let cash: number | null = null;
   let change: number | null = null;
   for (const line of lines) {
     if (/\bcash\b/i.test(line) && !/cash\s?back/i.test(line) && cash === null) {
       cash = parseMoney(line);
     }
-    if (/\bchange\b/i.test(line) && change === null) {
-      change = parseMoney(line);
-    }
+    if (/\bchange\b/i.test(line) && change === null) change = parseMoney(line);
   }
   if (cash !== null && change !== null && cash > change) {
-    return Math.round((cash - change) * 100) / 100;
+    return round2(cash - change);
   }
 
-  // 3) Fallback: the largest amount that is NOT a payment/tender line
+  // 3) Sum of the line items (+ tax if we saw a tax line).
+  if (itemsSum > 0) return round2(itemsSum + (tax ?? 0));
+
+  // 4) Last resort: the largest non-payment amount.
   let max: number | null = null;
   for (const line of lines) {
     if (PAYMENT_RE.test(line)) continue;
@@ -299,7 +340,7 @@ export function parseReceiptText(rawText: string): ExtractedReceipt {
   return {
     itemName: findItem(lines, lineItems),
     storeName: findStore(lines),
-    price: findTotal(lines),
+    price: findTotal(lines, lineItems),
     purchaseDate,
     returnDays: returnInfo?.returnDays ?? null,
     returnByDate: returnInfo?.returnByDate ?? null,

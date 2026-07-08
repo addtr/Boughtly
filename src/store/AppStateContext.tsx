@@ -37,6 +37,7 @@ export interface NewItemInput {
   warrantyLengthDays: number;
   returnWindowDays: number;
   notes?: string;
+  lineItems?: { name: string; price: number }[];
 }
 
 export interface NewWatchInput {
@@ -166,6 +167,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const updated: TrackedItem = {
         ...existing,
         ...withCalculatedDates(input),
+        // Preserve the receipt breakdown if the edit form didn't supply one
+        lineItems: input.lineItems ?? existing.lineItems,
       };
       updated.notificationIds = await scheduleItemReminders(updated, settingsRef.current);
       await persistItems(itemsRef.current.map((i) => (i.id === id ? updated : i)));

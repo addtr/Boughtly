@@ -132,6 +132,32 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </Card>
       </View>
 
+      {/* What's on this receipt */}
+      {item.lineItems && item.lineItems.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>
+            What’s inside ({item.lineItems.length})
+          </Text>
+          <Card style={styles.lineItemsCard}>
+            {item.lineItems.map((li, i) => (
+              <View
+                key={i}
+                style={[styles.lineItemRow, i > 0 && styles.lineItemDivider]}
+              >
+                <Text style={styles.lineItemName} numberOfLines={2}>
+                  {li.name}
+                </Text>
+                <Text style={styles.lineItemPrice}>{formatPrice(li.price)}</Text>
+              </View>
+            ))}
+            <View style={[styles.lineItemRow, styles.lineItemTotal]}>
+              <Text style={styles.lineItemTotalLabel}>Total paid</Text>
+              <Text style={styles.lineItemTotalValue}>{formatPrice(item.price)}</Text>
+            </View>
+          </Card>
+        </>
+      ) : null}
+
       {/* Receipt */}
       <Text style={styles.sectionTitle}>Receipt</Text>
       {item.receiptImageUri ? (
@@ -292,6 +318,46 @@ const styles = StyleSheet.create({
     color: colors.deepBlue,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
+  },
+  lineItemsCard: {
+    paddingVertical: spacing.xs,
+  },
+  lineItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: spacing.md,
+  },
+  lineItemDivider: {
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
+  lineItemName: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.text,
+  },
+  lineItemPrice: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    color: colors.deepBlue,
+  },
+  lineItemTotal: {
+    borderTopWidth: 1.5,
+    borderTopColor: colors.deepBlue,
+    marginTop: 2,
+  },
+  lineItemTotalLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.deepBlue,
+  },
+  lineItemTotalValue: {
+    fontFamily: fonts.displayBold,
+    fontSize: 17,
+    color: colors.deepBlue,
   },
   receiptCard: {
     padding: spacing.sm,

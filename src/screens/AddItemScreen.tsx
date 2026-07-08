@@ -197,6 +197,7 @@ export function AddItemScreen({ navigation, route }: Props) {
         purchaseDate: extracted.purchaseDate ?? toISODate(new Date()),
         returnDays: extracted.returnDays,
         receiptImageUri: persisted,
+        total: extracted.price,
         items: extracted.lineItems.map((li) => ({ name: li.name, price: li.price })),
       });
       return;
