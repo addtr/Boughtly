@@ -166,13 +166,26 @@ export function AddItemScreen({ navigation, route }: Props) {
     applySuggestion(suggestPolicies(item, store, knownReturnDays), false, baseNotes);
   }
 
-  // "Scan the receipt" path: open the camera right away
+  // "Scan the receipt" path: open the camera automatically — but only AFTER the
+  // screen finishes animating in. Launching the camera mid-transition makes iOS
+  // dismiss it instantly (you can't present over an in-progress transition),
+  // which looked like the camera "flashing" and dumping you back on the form.
   const autoScanned = useRef(false);
   useEffect(() => {
-    if (route.params?.mode === 'scan' && !editing && !autoScanned.current) {
+    if (route.params?.mode !== 'scan' || editing || autoScanned.current) return;
+    const launch = () => {
+      if (autoScanned.current) return;
       autoScanned.current = true;
       void pickImage(true);
-    }
+    };
+    // Fires once the push/replace transition settles.
+    const unsub = navigation.addListener('transitionEnd', launch);
+    // Safety net if transitionEnd never arrives (reduced motion, web, etc.).
+    const fallback = setTimeout(launch, 700);
+    return () => {
+      unsub();
+      clearTimeout(fallback);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
