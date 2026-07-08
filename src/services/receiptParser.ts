@@ -20,8 +20,10 @@ const NON_ITEM_RE =
 const PAYMENT_RE =
   /cash|change|tender|credit|debit|visa|mastercard|amex|discover|card\b|gift\s?card|balance|due|cash\s?back|refund|account|approved|auth/i;
 
-// OCR loves to mangle TOTAL into T0TAL / TOTAI / TQTAL etc.
-const TOTAL_RE = /\b(?:grand\s+)?t[o0q]ta[l1i]\b|amount\s+due|balance\s+due/i;
+// OCR loves to mangle TOTAL into T0TAL / TOTAI / TQTAL etc. Also catch the
+// other words receipts use for the amount due: balance, amount, grand total…
+const TOTAL_RE =
+  /\b(?:grand\s+)?t[o0q]ta[l1i]\b|\bbalance\b|\bamount\s+due\b|\bamount\b|\bbal\s+due\b|\bto\s+pay\b|\byou\s+(?:pay|paid)\b/i;
 const SUBTOTAL_RE = /sub\s?-?\s?t[o0q]ta[l1i]/i;
 
 /** Lines that are clearly not a store name */
@@ -38,6 +40,19 @@ function parseMoney(raw: string): number | null {
   if (!m) return null;
   const value = Number(m[1].replace(/,/g, ''));
   return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+/** The RIGHTMOST money amount on a line — the price "across from" a label/item. */
+function parseMoneyLast(raw: string): number | null {
+  const all = [...raw.matchAll(new RegExp(MONEY_RE.source, 'g'))];
+  if (all.length === 0) return null;
+  const value = Number(all[all.length - 1][1].replace(/,/g, ''));
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+/** True if a line is essentially just a price (OCR often splits it off). */
+function isPriceOnlyLine(line: string): boolean {
+  return MONEY_RE.test(line) && !/[a-zA-Z]{3}/.test(line.replace(MONEY_RE, ''));
 }
 
 /** ALL CAPS → Title Case, without capitalizing after apostrophes ("Joe's") */
@@ -190,18 +205,31 @@ function findTotal(lines: string[], lineItems: ParsedLineItem[]): number | null 
   const target =
     subtotal !== null ? round2(subtotal + (tax ?? 0)) : itemsSum > 0 ? round2(itemsSum + (tax ?? 0)) : null;
 
-  // 1) Explicit TOTAL / AMOUNT DUE / BALANCE lines (value on the line or the next).
+  // 1) Explicit TOTAL / BALANCE / AMOUNT DUE lines. The amount is the price to
+  //    the RIGHT of the label (rightmost on the line); if OCR pushed it onto an
+  //    adjacent price-only line, take that instead.
   const candidates: number[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (!TOTAL_RE.test(line) || SUBTOTAL_RE.test(line) || PAYMENT_RE.test(line)) continue;
+    // Exclude the payment section explicitly, but 'balance/due' appear in both
+    // TOTAL_RE and PAYMENT_RE — allow those through when the word 'total/balance
+    // /amount' is what matched.
+    if (!TOTAL_RE.test(line) || SUBTOTAL_RE.test(line)) continue;
     if (FAKE_TOTAL_RE.test(line)) continue; // "total savings", "total items"…
-    const here = parseMoney(line);
+    if (/\b(cash|change|tender|visa|mastercard|amex|discover|card|credit|debit|account|approved|auth)\b/i.test(line))
+      continue; // genuine payment line
+    const here = parseMoneyLast(line);
     if (here !== null) {
       candidates.push(here);
-    } else if (lines[i + 1] && !PAYMENT_RE.test(lines[i + 1])) {
-      const next = parseMoney(lines[i + 1]);
-      if (next !== null) candidates.push(next);
+    } else {
+      // price split onto the next or previous line
+      if (lines[i + 1] && isPriceOnlyLine(lines[i + 1])) {
+        const next = parseMoney(lines[i + 1]);
+        if (next !== null) candidates.push(next);
+      } else if (i > 0 && isPriceOnlyLine(lines[i - 1])) {
+        const prev = parseMoney(lines[i - 1]);
+        if (prev !== null) candidates.push(prev);
+      }
     }
   }
   if (candidates.length > 0) {
@@ -299,9 +327,23 @@ export function parseLineItems(rawText: string): ParsedLineItem[] {
   for (let i = 0; i < scanTo; i++) {
     const line = lines[i];
     if (isNonItemLine(line)) continue;
-    const price = parseMoney(line);
-    if (price === null || price <= 0 || price > 100000) continue;
+
+    // The item's price is the amount "across from" the name — the RIGHTMOST
+    // money on the line, not the first (leading unit-price/qty columns exist).
+    let price = parseMoneyLast(line);
     const name = cleanItemName(line);
+
+    // OCR often splits the price into its own line ("Column" layouts). If this
+    // line is a name with no price, adopt the price from the next price-only line.
+    if (price === null && /[a-zA-Z]{2}/.test(name) && lines[i + 1] && isPriceOnlyLine(lines[i + 1])) {
+      const next = parseMoneyLast(lines[i + 1]);
+      if (next !== null && !isNonItemLine(lines[i + 1])) {
+        price = next;
+        i++; // consume the price line so it isn't scanned again
+      }
+    }
+
+    if (price === null || price <= 0 || price > 100000) continue;
     if (name.length < 2 || !/[a-zA-Z]{2}/.test(name)) continue;
     items.push({ name: softenCaps(name), price });
   }
