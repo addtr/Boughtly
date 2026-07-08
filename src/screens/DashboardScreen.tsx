@@ -349,6 +349,37 @@ export function DashboardScreen() {
                   })}
                 </ScrollView>
               )}
+              {(watchStats.count > 0 || underWarranty > 0) && (
+                <View style={styles.quickRow}>
+                  {watchStats.count > 0 && (
+                    <Pressable
+                      style={styles.quickTile}
+                      onPress={() => navigation.navigate('Tabs', { screen: 'WatchTab' })}
+                    >
+                      <Ionicons name="pricetags-outline" size={18} color={colors.primary} />
+                      <Text style={styles.quickValue}>
+                        {watchStats.count} watched
+                      </Text>
+                      <Text style={styles.quickLabel}>
+                        {watchStats.atTarget > 0
+                          ? `${watchStats.atTarget} at your target`
+                          : 'tracking prices'}
+                      </Text>
+                    </Pressable>
+                  )}
+                  {underWarranty > 0 && (
+                    <View style={styles.quickTile}>
+                      <Ionicons
+                        name="shield-checkmark-outline"
+                        size={18}
+                        color={colors.primary}
+                      />
+                      <Text style={styles.quickValue}>{underWarranty} under</Text>
+                      <Text style={styles.quickLabel}>warranty</Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
           ) : null
         }
@@ -617,6 +648,34 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
     marginLeft: 2,
+  },
+  quickRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  quickTile: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    ...cardShadow,
+    shadowOpacity: 0.05,
+    elevation: 1,
+  },
+  quickValue: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.deepBlue,
+    marginTop: 6,
+  },
+  quickLabel: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 1,
   },
   tagFilterRow: {
     gap: spacing.sm,
