@@ -1,9 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,7 +18,8 @@ import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
-import { warningFeedback } from '../utils/haptics';
+import { tapFeedback, warningFeedback } from '../utils/haptics';
+import { openPriceScan } from '../utils/priceScan';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
@@ -48,6 +51,26 @@ export function ItemDetailScreen({ navigation, route }: Props) {
     : deadline.kind === 'return'
     ? `Returnable — ${deadline.daysLeft === 0 ? 'last day' : `${deadline.daysLeft} days left`}`
     : `Under warranty — ${deadline.daysLeft} days left`;
+
+  // The line item worth re-shopping: the most expensive thing on the receipt,
+  // or the item itself when there's no breakdown.
+  const primaryScan =
+    item.lineItems && item.lineItems.length > 0
+      ? item.lineItems.reduce((a, b) => (b.price > a.price ? b : a))
+      : { name: item.itemName, price: item.price };
+
+  /** Same as the Prices tab: live cross-retailer search for a cheaper price. */
+  async function scanForCheaper(name: string, paid: number) {
+    tapFeedback();
+    await openPriceScan(name);
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Found it for less?',
+        `You paid ${formatPrice(paid)} for “${name}”. If it’s cheaper somewhere and you’re still in the return window, you could rebuy at the lower price and return this one.`,
+        [{ text: 'Got it' }]
+      );
+    }
+  }
 
   function confirmDelete() {
     warningFeedback();
@@ -102,6 +125,21 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </Text>
       </View>
 
+      {/* Scan for a cheaper price on what they bought */}
+      <Pressable
+        onPress={() => scanForCheaper(primaryScan.name, primaryScan.price)}
+        style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.88 }]}
+      >
+        <Ionicons name="pricetag" size={19} color="#FFFFFF" />
+        <View style={styles.scanText}>
+          <Text style={styles.scanTitle}>Scan for a better price</Text>
+          <Text style={styles.scanSub} numberOfLines={2}>
+            Search retailers for “{primaryScan.name}” — you paid {formatPrice(primaryScan.price)}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
+      </Pressable>
+
       {/* Deadlines */}
       <View style={styles.ringsRow}>
         <Card style={styles.ringCard}>
@@ -138,17 +176,26 @@ export function ItemDetailScreen({ navigation, route }: Props) {
           <Text style={styles.sectionTitle}>
             What’s inside ({item.lineItems.length})
           </Text>
+          <Text style={styles.sectionHint}>Tap any item to scan for it cheaper.</Text>
           <Card style={styles.lineItemsCard}>
             {item.lineItems.map((li, i) => (
-              <View
+              <Pressable
                 key={i}
-                style={[styles.lineItemRow, i > 0 && styles.lineItemDivider]}
+                onPress={() => scanForCheaper(li.name, li.price)}
+                style={({ pressed }) => [
+                  styles.lineItemRow,
+                  i > 0 && styles.lineItemDivider,
+                  pressed && { opacity: 0.6 },
+                ]}
               >
                 <Text style={styles.lineItemName} numberOfLines={2}>
                   {li.name}
                 </Text>
-                <Text style={styles.lineItemPrice}>{formatPrice(li.price)}</Text>
-              </View>
+                <View style={styles.lineItemRight}>
+                  <Text style={styles.lineItemPrice}>{formatPrice(li.price)}</Text>
+                  <Ionicons name="search" size={15} color={colors.primary} />
+                </View>
+              </Pressable>
             ))}
             <View style={[styles.lineItemRow, styles.lineItemTotal]}>
               <Text style={styles.lineItemTotalLabel}>Total paid</Text>
@@ -290,6 +337,29 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
   },
+  scanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  scanText: {
+    flex: 1,
+  },
+  scanTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  scanSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+  },
   ringsRow: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -319,6 +389,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
+  sectionHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: -spacing.xs,
+    marginBottom: spacing.sm,
+  },
   lineItemsCard: {
     paddingVertical: spacing.xs,
   },
@@ -328,6 +405,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     gap: spacing.md,
+  },
+  lineItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   lineItemDivider: {
     borderTopWidth: 1,
