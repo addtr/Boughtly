@@ -36,7 +36,8 @@ import { scanReceipt } from '../services/receiptScanner';
 import { NewItemInput, useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { RETURN_PRESETS, WARRANTY_PRESETS } from '../types/item';
-import { formatDate, parseISODate, toISODate } from '../utils/dates';
+import { formatDate, formatPrice, parseISODate, toISODate } from '../utils/dates';
+import { findDuplicateItem } from '../utils/duplicates';
 import { successFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddItem'>;
@@ -442,6 +443,30 @@ export function AddItemScreen({ navigation, route }: Props) {
       return;
     }
 
+    // Warn before saving what looks like the same purchase twice.
+    if (!editing) {
+      const dup = findDuplicateItem(
+        { storeName: storeName.trim() || 'Unknown store', price, purchaseDate },
+        items
+      );
+      if (dup) {
+        Alert.alert(
+          'Looks like a duplicate',
+          `You already track “${dup.itemName}” from ${dup.storeName} on ${formatDate(
+            dup.purchaseDate
+          )} for ${formatPrice(dup.price)}. Add this one anyway?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Add anyway', onPress: () => void persistSave(price) },
+          ]
+        );
+        return;
+      }
+    }
+    await persistSave(price);
+  }
+
+  async function persistSave(price: number) {
     setSaving(true);
     try {
       let storedUri = receiptImageUri;

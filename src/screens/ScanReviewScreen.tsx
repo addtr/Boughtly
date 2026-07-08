@@ -25,7 +25,8 @@ import {
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { RETURN_PRESETS } from '../types/item';
-import { formatPrice } from '../utils/dates';
+import { formatDate, formatPrice } from '../utils/dates';
+import { findDuplicateItem } from '../utils/duplicates';
 import { successFeedback, tapFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ScanReview'>;
@@ -33,7 +34,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ScanReview'>;
 const RETURN_PRESET_DAYS: number[] = RETURN_PRESETS.map((p) => p.days);
 
 export function ScanReviewScreen({ navigation, route }: Props) {
-  const { addItem } = useAppState();
+  const { addItem, items } = useAppState();
   const params = route.params;
 
   const [storeName, setStoreName] = useState(params.storeName);
@@ -88,6 +89,26 @@ export function ScanReviewScreen({ navigation, route }: Props) {
       Alert.alert('Add a total', 'Enter what you paid, or add at least one item with a price.');
       return;
     }
+    // Warn if this looks like a purchase already tracked.
+    const effPrice = parsePrice(totalText) ?? itemsSum;
+    const dup = findDuplicateItem({ storeName, price: effPrice, purchaseDate }, items);
+    if (dup) {
+      Alert.alert(
+        'Looks like a duplicate',
+        `You already track “${dup.itemName}” from ${dup.storeName} on ${formatDate(
+          dup.purchaseDate
+        )} for ${formatPrice(dup.price)}. Save this one anyway?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Save anyway', onPress: () => void doSave() },
+        ]
+      );
+      return;
+    }
+    await doSave();
+  }
+
+  async function doSave() {
     setSaving(true);
     try {
       const input = buildPurchaseItem(rows, {
