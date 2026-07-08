@@ -263,6 +263,45 @@ export function DashboardScreen() {
                   <Text style={styles.statLabel}>recovered</Text>
                 </View>
               </View>
+              {!query.trim() && priceAdjustOpps.length > 0 && (
+                <View style={styles.oppCard}>
+                  <View style={styles.oppHeader}>
+                    <Ionicons name="cash-outline" size={18} color="#20744E" />
+                    <Text style={styles.oppTitle}>
+                      Price adjustments available ({priceAdjustOpps.length})
+                    </Text>
+                  </View>
+                  <Text style={styles.oppSub}>
+                    These stores refund the difference if the price dropped — worth a check.
+                  </Text>
+                  {priceAdjustOpps.slice(0, 4).map(({ item, daysLeft }) => (
+                    <Pressable
+                      key={item.id}
+                      style={styles.oppRow}
+                      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+                    >
+                      <View style={styles.attentionInfo}>
+                        <Text style={styles.oppName} numberOfLines={1}>
+                          {item.itemName}
+                        </Text>
+                        <Text style={styles.oppMeta} numberOfLines={1}>
+                          {item.storeName} · check for a lower price
+                        </Text>
+                      </View>
+                      <View style={[styles.oppPill, daysLeft <= URGENT_DAYS && styles.oppPillHot]}>
+                        <Text
+                          style={[
+                            styles.oppPillText,
+                            daysLeft <= URGENT_DAYS && styles.oppPillTextHot,
+                          ]}
+                        >
+                          {daysLeft === 0 ? 'last day' : `${daysLeft}d left`}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
               {activeItems.length >= 4 && (
                 <TextInput
                   value={query}
@@ -458,6 +497,66 @@ const styles = StyleSheet.create({
     color: '#20744E',
     marginTop: 6,
     lineHeight: 18,
+  },
+  oppCard: {
+    backgroundColor: '#DFF3E9',
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  oppHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  oppTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: '#20744E',
+  },
+  oppSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: '#20744E',
+    marginTop: 3,
+    marginBottom: 4,
+    lineHeight: 17,
+  },
+  oppRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 8,
+  },
+  oppName: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.deepBlue,
+  },
+  oppMeta: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 1,
+  },
+  oppPill: {
+    minWidth: 52,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 100,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  oppPillHot: {
+    backgroundColor: '#20744E',
+  },
+  oppPillText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    color: '#20744E',
+  },
+  oppPillTextHot: {
+    color: '#FFFFFF',
   },
   attentionRow: {
     flexDirection: 'row',
