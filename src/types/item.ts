@@ -21,6 +21,8 @@ export interface TrackedItem {
   /** Calculated: purchaseDate + returnWindowDays (ISO date string) */
   returnDeadlineDate: string;
   notes?: string;
+  /** Bought as a gift — returns usually mean store credit/exchange, not cash */
+  isGift?: boolean;
   /** Optional user labels for grouping/filtering, e.g. "electronics", "gift" */
   tags?: string[];
   /** Serial / model number, for warranty claims */

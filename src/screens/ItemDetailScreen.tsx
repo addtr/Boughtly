@@ -173,6 +173,12 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </Text>
       </View>
 
+      {item.isGift ? (
+        <View style={styles.giftBadge}>
+          <Text style={styles.giftBadgeText}>🎁 Gift — likely store credit on return</Text>
+        </View>
+      ) : null}
+
       {item.tags && item.tags.length > 0 ? (
         <View style={styles.detailTagsRow}>
           {item.tags.map((t) => (
@@ -508,6 +514,19 @@ const styles = StyleSheet.create({
   statusPillText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
+  },
+  giftBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.coralSoft,
+    borderRadius: 100,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: spacing.md,
+  },
+  giftBadgeText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.coral,
   },
   detailTagsRow: {
     flexDirection: 'row',

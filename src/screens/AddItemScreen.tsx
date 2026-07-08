@@ -13,6 +13,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -92,6 +93,7 @@ export function AddItemScreen({ navigation, route }: Props) {
     editing?.receiptImageUri ?? null
   );
   const [notes, setNotes] = useState(editing?.notes ?? '');
+  const [isGift, setIsGift] = useState(editing?.isGift ?? false);
   const [serialNumber, setSerialNumber] = useState(editing?.serialNumber ?? '');
   const [productPhotos, setProductPhotos] = useState<string[]>(editing?.productPhotos ?? []);
   const [tags, setTags] = useState<string[]>(editing?.tags ?? []);
@@ -474,6 +476,7 @@ export function AddItemScreen({ navigation, route }: Props) {
         warrantyLengthDays: warrantyDays,
         returnWindowDays: returnDays,
         notes: notes.trim() || undefined,
+        isGift: isGift || undefined,
         tags: tags.length > 0 ? tags : undefined,
         serialNumber: serialNumber.trim() || undefined,
         productPhotos: storedPhotos.length > 0 ? storedPhotos : undefined,
@@ -641,6 +644,22 @@ export function AddItemScreen({ navigation, route }: Props) {
             </Text>
           </View>
         )}
+
+        {/* Gift flag */}
+        <View style={styles.giftRow}>
+          <View style={styles.giftText}>
+            <Text style={styles.giftLabel}>This was a gift</Text>
+            <Text style={styles.giftHint}>
+              Returns usually mean store credit or an exchange, not cash back.
+            </Text>
+          </View>
+          <Switch
+            value={isGift}
+            onValueChange={setIsGift}
+            trackColor={{ true: colors.primary, false: colors.divider }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
 
         {/* Return window */}
         <Text style={styles.sectionTitle}>Return window</Text>
@@ -992,6 +1011,27 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 15,
     color: colors.text,
+  },
+  giftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  giftText: {
+    flex: 1,
+  },
+  giftLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    color: colors.text,
+  },
+  giftHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+    lineHeight: 17,
   },
   policyCard: {
     backgroundColor: colors.primarySoft,

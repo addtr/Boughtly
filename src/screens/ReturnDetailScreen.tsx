@@ -105,7 +105,8 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
       `I'd like to return the following:`,
       ...itemLines,
       item ? `• Purchased: ${formatDate(item.purchaseDate)}` : null,
-      `• Total refund: ${formatPrice(ret.refundAmount)}`,
+      `• ${item?.isGift ? 'Value' : 'Total refund'}: ${formatPrice(ret.refundAmount)}`,
+      item?.isGift ? '• This was a gift — store credit or an exchange is fine.' : null,
       ret.trackingNumber ? `• Tracking number: ${ret.trackingNumber}` : null,
       '',
       'I have the receipt available. Could you send me return instructions',
@@ -144,6 +145,15 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
       <Text style={styles.subtitle}>
         {ret.storeName} · {formatPrice(ret.refundAmount)} coming back
       </Text>
+
+      {item?.isGift ? (
+        <View style={styles.giftNote}>
+          <Ionicons name="gift-outline" size={16} color={colors.coral} />
+          <Text style={styles.giftNoteText}>
+            Gift return — expect store credit or an exchange rather than cash back.
+          </Text>
+        </View>
+      ) : null}
 
       {/* Take me to the store's return page */}
       <Card style={styles.returnPageCard}>
@@ -348,6 +358,22 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: 4,
     marginBottom: spacing.lg,
+  },
+  giftNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.coralSoft,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  giftNoteText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.coral,
+    lineHeight: 18,
   },
   returnPageCard: {
     marginBottom: spacing.md,
