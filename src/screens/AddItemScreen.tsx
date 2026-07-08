@@ -21,6 +21,11 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { OcrWebView } from '../components/OcrWebView';
 import { Button, Card, ChipRow, Field } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import {
+  correctStore,
+  learnStoreCorrection,
+  loadCorrections,
+} from '../services/corrections';
 import { getOwnerApiKey } from '../services/ownerKey';
 import { lookupPoliciesLive } from '../services/policyLive';
 import { PolicySuggestion, suggestPolicies } from '../services/policyLookup';
@@ -116,6 +121,13 @@ export function AddItemScreen({ navigation, route }: Props) {
   const returnTouched = useRef(!!editing);
   const warrantyTouched = useRef(!!editing);
   const lastLookupRef = useRef('');
+  // Raw store text a scan produced, so we can learn a correction if the user edits it.
+  const extractedStoreRaw = useRef<string | null>(null);
+
+  // Load learned store-name corrections so scans can apply them.
+  useEffect(() => {
+    void loadCorrections();
+  }, []);
 
   function applySuggestion(
     suggestion: PolicySuggestion,
@@ -229,8 +241,11 @@ export function AddItemScreen({ navigation, route }: Props) {
           /* keep the original uri */
         }
       }
+      const correctedStore = extracted.storeName
+        ? correctStore(extracted.storeName) ?? extracted.storeName
+        : '';
       navigation.replace('ScanReview', {
-        storeName: extracted.storeName ?? '',
+        storeName: correctedStore,
         purchaseDate: extracted.purchaseDate ?? toISODate(new Date()),
         returnDays: extracted.returnDays,
         receiptImageUri: persisted,
@@ -245,7 +260,12 @@ export function AddItemScreen({ navigation, route }: Props) {
   /** Fills in whatever was read — never clobbers anything the user typed. */
   function applyExtracted(extracted: ExtractedReceipt) {
     if (extracted.itemName && !itemName.trim()) setItemName(extracted.itemName);
-    if (extracted.storeName && !storeName.trim()) setStoreName(extracted.storeName);
+    // Apply any learned correction for this store's raw scanned text.
+    const correctedStore = extracted.storeName
+      ? correctStore(extracted.storeName) ?? extracted.storeName
+      : null;
+    if (extracted.storeName) extractedStoreRaw.current = extracted.storeName;
+    if (correctedStore && !storeName.trim()) setStoreName(correctedStore);
     if (extracted.price !== null && !priceText.trim()) setPriceText(String(extracted.price));
     if (extracted.purchaseDate) setPurchaseDate(extracted.purchaseDate);
 
@@ -270,7 +290,7 @@ export function AddItemScreen({ navigation, route }: Props) {
     // Fill the rest (warranty always; return window only if the receipt didn't say)
     applyPolicySuggestions(
       extracted.itemName ?? itemName,
-      extracted.storeName ?? storeName,
+      correctedStore ?? storeName,
       notes,
       extracted.returnDays ?? undefined
     );
@@ -458,6 +478,11 @@ export function AddItemScreen({ navigation, route }: Props) {
         serialNumber: serialNumber.trim() || undefined,
         productPhotos: storedPhotos.length > 0 ? storedPhotos : undefined,
       };
+      // Learn a store-name correction from a fresh scan the user edited.
+      if (!editing && extractedStoreRaw.current && storeName.trim()) {
+        void learnStoreCorrection(extractedStoreRaw.current, storeName.trim());
+      }
+
       if (editing) {
         await updateItem(editing.id, input);
         successFeedback();
