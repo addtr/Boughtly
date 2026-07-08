@@ -416,6 +416,10 @@ export function AddItemScreen({ navigation, route }: Props) {
                 : 'Snap or pick a photo and Boughtly reads the details for you — right on your phone.'}
             </Text>
           )}
+          <Text style={styles.scanDisclaimer}>
+            Scans aren’t perfectly accurate and depend a lot on the condition of the
+            receipt — double-check the details below before saving.
+          </Text>
         </Card>
 
         {/* Details */}
@@ -629,6 +633,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.muted,
     marginTop: spacing.sm,
+  },
+  scanDisclaimer: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: colors.muted,
+    lineHeight: 16,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
   },
   scanningRow: {
     flexDirection: 'row',

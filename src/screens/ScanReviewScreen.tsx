@@ -120,6 +120,10 @@ export function ScanReviewScreen({ navigation, route }: Props) {
           Here’s what Boughtly read off your receipt. Fix anything that looks off, then
           save it as one protected purchase.
         </Text>
+        <Text style={styles.disclaimer}>
+          Scans aren’t perfectly accurate and depend a lot on the condition of the
+          receipt — give the details a quick once-over.
+        </Text>
 
         {/* Purchase-level details */}
         <Card style={styles.card}>
@@ -260,6 +264,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.muted,
     lineHeight: 20,
+    marginBottom: spacing.sm,
+  },
+  disclaimer: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: colors.muted,
+    lineHeight: 16,
     marginBottom: spacing.md,
   },
   card: { marginBottom: spacing.lg },
