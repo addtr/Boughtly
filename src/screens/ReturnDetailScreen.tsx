@@ -169,7 +169,7 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
         </Pressable>
         <Text style={styles.returnPageHint}>
           {resolved.known
-            ? `Opens ${resolved.label}'s official returns page.`
+            ? `Takes you to ${resolved.label}'s returns page.`
             : 'Press go and we’ll take you to this store’s return page online.'}
         </Text>
       </Card>
