@@ -189,6 +189,16 @@ export function AddItemScreen({ navigation, route }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Pasted receipt/email text: parse it and route just like a scan would.
+  const pastedProcessed = useRef(false);
+  useEffect(() => {
+    const scanText = route.params?.scanText;
+    if (!scanText || editing || pastedProcessed.current) return;
+    pastedProcessed.current = true;
+    handleExtracted(parseReceiptText(scanText));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /**
    * Route a scan result: 2+ items → the multi-item review screen; otherwise
    * fill this single-item form. Only routes for a fresh scan (not editing,

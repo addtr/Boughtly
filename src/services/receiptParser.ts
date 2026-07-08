@@ -293,8 +293,10 @@ function cleanItemName(line: string): string {
 /** True for lines that carry a price but aren't a purchasable line item. */
 function isNonItemLine(line: string): boolean {
   if (NON_ITEM_RE.test(line)) return true;
-  // discount / negative lines
-  if (/-\s*\$?\d|\(\s*\$?\d/.test(line)) return true;
+  // discount / negative lines: "-$5.00" or a parenthesized money value "($5.00)".
+  // (Must look like an actual amount so product names like "(5th Gen)" are safe.)
+  if (/-\s*\$?\d+\.\d{2}\b/.test(line)) return true;
+  if (/\(\s*\$?\d[\d,]*\.\d{2}\s*\)/.test(line)) return true;
   return false;
 }
 

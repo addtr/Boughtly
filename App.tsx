@@ -22,6 +22,7 @@ import { AddItemScreen } from './src/screens/AddItemScreen';
 import { AddWatchScreen } from './src/screens/AddWatchScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
+import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
 import { ReturnDetailScreen } from './src/screens/ReturnDetailScreen';
 import { ScanReviewScreen } from './src/screens/ScanReviewScreen';
 import { WatchDetailScreen } from './src/screens/WatchDetailScreen';
@@ -148,6 +149,11 @@ function Root() {
               ? 'Scan a receipt'
               : 'Add an item',
           })}
+        />
+        <Stack.Screen
+          name="PasteReceipt"
+          component={PasteReceiptScreen}
+          options={{ title: 'Paste a receipt' }}
         />
         <Stack.Screen
           name="ScanReview"

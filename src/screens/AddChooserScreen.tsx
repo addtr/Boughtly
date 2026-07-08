@@ -55,6 +55,22 @@ export function AddChooserScreen({ navigation }: Props) {
 
       <Pressable
         style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+        onPress={() => navigation.replace('PasteReceipt')}
+      >
+        <View style={[styles.optionIcon, { backgroundColor: colors.primarySoft }]}>
+          <Ionicons name="clipboard" size={24} color={colors.primary} />
+        </View>
+        <View style={styles.optionText}>
+          <Text style={styles.optionTitle}>Paste a receipt or email</Text>
+          <Text style={styles.optionBody}>
+            Bought online? Paste the order email — no photo needed.
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
         onPress={() => navigation.replace('AddWatch')}
       >
         <View style={[styles.optionIcon, { backgroundColor: '#DFF3E9' }]}>

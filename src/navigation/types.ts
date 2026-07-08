@@ -12,7 +12,8 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   AddChooser: undefined;
-  AddItem: { mode?: 'scan' | 'manual'; itemId?: string } | undefined;
+  PasteReceipt: undefined;
+  AddItem: { mode?: 'scan' | 'manual'; itemId?: string; scanText?: string } | undefined;
   ScanReview: {
     storeName: string;
     purchaseDate: string;
