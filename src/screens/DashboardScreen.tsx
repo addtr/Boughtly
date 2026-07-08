@@ -18,13 +18,14 @@ import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { formatPrice, nearestDeadline } from '../utils/dates';
+import { computeInsights } from '../utils/insights';
 
 /** Items whose nearest active deadline is this close (days) are "act now". */
 const URGENT_DAYS = 7;
 
 export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { items } = useAppState();
+  const { items, returns } = useAppState();
   const [query, setQuery] = useState('');
   const [refreshTick, setRefreshTick] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,10 +65,7 @@ export function DashboardScreen() {
     [filtered]
   );
 
-  const totalCovered = useMemo(
-    () => items.reduce((sum, item) => sum + item.price, 0),
-    [items]
-  );
+  const insights = useMemo(() => computeInsights(items, returns), [items, returns]);
 
   // "Needs attention": items with an active deadline closing within a week,
   // soonest first. These get pulled to the top so nothing quietly expires.
@@ -140,10 +138,26 @@ export function DashboardScreen() {
                   ))}
                 </View>
               )}
-              <Text style={styles.summary}>
-                {items.length} item{items.length === 1 ? '' : 's'} protected ·{' '}
-                {formatPrice(totalCovered)} covered
-              </Text>
+              <View style={styles.statCard}>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{formatPrice(insights.protectedValue)}</Text>
+                  <Text style={styles.statLabel}>protected</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{insights.activeProtections}</Text>
+                  <Text style={styles.statLabel}>
+                    active {insights.activeProtections === 1 ? 'cover' : 'covers'}
+                  </Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.stat}>
+                  <Text style={[styles.statValue, insights.recovered > 0 && styles.statValueGood]}>
+                    {formatPrice(insights.recovered)}
+                  </Text>
+                  <Text style={styles.statLabel}>recovered</Text>
+                </View>
+              </View>
               {items.length >= 4 && (
                 <TextInput
                   value={query}
@@ -221,6 +235,38 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginBottom: spacing.md,
     marginLeft: 2,
+  },
+  statCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.md,
+    ...cardShadow,
+  },
+  stat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontFamily: fonts.displayBold,
+    fontSize: 19,
+    color: colors.deepBlue,
+  },
+  statValueGood: {
+    color: '#20744E',
+  },
+  statLabel: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: colors.divider,
   },
   attentionCard: {
     backgroundColor: colors.coralSoft,

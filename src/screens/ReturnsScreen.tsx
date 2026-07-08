@@ -59,6 +59,10 @@ export function ReturnsScreen() {
     () => active.reduce((sum, r) => sum + r.refundAmount, 0),
     [active]
   );
+  const recoveredTotal = useMemo(
+    () => done.reduce((sum, r) => sum + r.refundAmount, 0),
+    [done]
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -91,7 +95,9 @@ export function ReturnsScreen() {
           )}
           {done.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Refunded</Text>
+              <Text style={styles.sectionTitle}>
+                Refunded · {formatPrice(recoveredTotal)} recovered
+              </Text>
               {done.map((r) => (
                 <ReturnRow
                   key={r.id}
