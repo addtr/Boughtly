@@ -1,9 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -16,6 +18,9 @@ import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { formatPrice, nearestDeadline } from '../utils/dates';
+
+/** Items whose nearest active deadline is this close (days) are "act now". */
+const URGENT_DAYS = 7;
 
 export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -64,6 +69,22 @@ export function DashboardScreen() {
     [items]
   );
 
+  // "Needs attention": items with an active deadline closing within a week,
+  // soonest first. These get pulled to the top so nothing quietly expires.
+  const urgent = useMemo(() => {
+    return items
+      .map((item) => ({ item, deadline: nearestDeadline(item) }))
+      .filter(({ deadline }) => deadline.daysLeft >= 0 && deadline.daysLeft <= URGENT_DAYS)
+      .sort((a, b) => a.deadline.daysLeft - b.deadline.daysLeft);
+  }, [items]);
+
+  function urgencyText(kind: 'return' | 'warranty', daysLeft: number): string {
+    const noun = kind === 'return' ? 'Return window' : 'Warranty';
+    if (daysLeft === 0) return `${noun} ends today`;
+    if (daysLeft === 1) return `${noun} ends tomorrow`;
+    return `${noun} ends in ${daysLeft} days`;
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -78,6 +99,47 @@ export function DashboardScreen() {
         ListHeaderComponent={
           items.length > 0 ? (
             <View>
+              {!query.trim() && urgent.length > 0 && (
+                <View style={styles.attentionCard}>
+                  <View style={styles.attentionHeader}>
+                    <Ionicons name="alert-circle" size={18} color={colors.coral} />
+                    <Text style={styles.attentionTitle}>
+                      Needs attention ({urgent.length})
+                    </Text>
+                  </View>
+                  {urgent.map(({ item, deadline }) => (
+                    <Pressable
+                      key={item.id}
+                      style={styles.attentionRow}
+                      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+                    >
+                      <View style={styles.attentionInfo}>
+                        <Text style={styles.attentionName} numberOfLines={1}>
+                          {item.itemName}
+                        </Text>
+                        <Text style={styles.attentionMeta} numberOfLines={1}>
+                          {item.storeName} · {urgencyText(deadline.kind, deadline.daysLeft)}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.attentionPill,
+                          deadline.daysLeft <= 1 && styles.attentionPillHot,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.attentionPillText,
+                            deadline.daysLeft <= 1 && styles.attentionPillTextHot,
+                          ]}
+                        >
+                          {deadline.daysLeft === 0 ? 'today' : `${deadline.daysLeft}d`}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
               <Text style={styles.summary}>
                 {items.length} item{items.length === 1 ? '' : 's'} protected ·{' '}
                 {formatPrice(totalCovered)} covered
@@ -159,6 +221,62 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginBottom: spacing.md,
     marginLeft: 2,
+  },
+  attentionCard: {
+    backgroundColor: colors.coralSoft,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  attentionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.sm,
+  },
+  attentionTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.coral,
+  },
+  attentionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 8,
+  },
+  attentionInfo: {
+    flex: 1,
+  },
+  attentionName: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.deepBlue,
+  },
+  attentionMeta: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 1,
+  },
+  attentionPill: {
+    minWidth: 40,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 100,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  attentionPillHot: {
+    backgroundColor: colors.coral,
+  },
+  attentionPillText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.coral,
+  },
+  attentionPillTextHot: {
+    color: '#FFFFFF',
   },
   search: {
     backgroundColor: colors.card,
