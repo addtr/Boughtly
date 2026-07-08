@@ -23,6 +23,7 @@ import { AddWatchScreen } from './src/screens/AddWatchScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ReturnDetailScreen } from './src/screens/ReturnDetailScreen';
+import { ScanReviewScreen } from './src/screens/ScanReviewScreen';
 import { WatchDetailScreen } from './src/screens/WatchDetailScreen';
 import { AppStateProvider, useAppState } from './src/store/AppStateContext';
 import { colors, fonts } from './src/theme/theme';
@@ -147,6 +148,11 @@ function Root() {
               ? 'Scan a receipt'
               : 'Add an item',
           })}
+        />
+        <Stack.Screen
+          name="ScanReview"
+          component={ScanReviewScreen}
+          options={{ title: 'Review your receipt' }}
         />
         <Stack.Screen name="ItemDetail" component={ItemDetailScreen} options={{ title: '' }} />
         <Stack.Screen

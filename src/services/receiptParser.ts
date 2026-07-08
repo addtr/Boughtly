@@ -206,25 +206,84 @@ function findTotal(lines: string[]): number | null {
   return max;
 }
 
-function findItem(lines: string[]): string | null {
+/** Strip prices, SKUs, quantity markers and tax codes from a line-item line. */
+function cleanItemName(line: string): string {
+  return line
+    .replace(new RegExp(MONEY_RE.source, 'g'), '') // every price on the line
+    .replace(/^\d+\s*[x@]\s*/i, '') // leading qty ("1x Latte", "2 @")
+    .replace(/\b\d{5,}\b/g, '') // SKU / barcode digits (5+)
+    .replace(/\bqty\b|\beach\b|\bea\b/gi, '')
+    .replace(/\s+\d+\s*@\s*$/i, '') // trailing "2 @"
+    .replace(/[@x*]\s*$/i, '')
+    .replace(/\s+[A-Z]\s*$/, '') // trailing single tax-code letter (T, F, N)
+    .replace(/[^a-zA-Z0-9%.&/'()+\- ]/g, ' ') // drop stray OCR punctuation
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/** True for lines that carry a price but aren't a purchasable line item. */
+function isNonItemLine(line: string): boolean {
+  if (NON_ITEM_RE.test(line)) return true;
+  // discount / negative lines
+  if (/-\s*\$?\d|\(\s*\$?\d/.test(line)) return true;
+  return false;
+}
+
+export interface ParsedLineItem {
+  name: string;
+  price: number;
+}
+
+/**
+ * Every purchasable line item on the receipt (name + price), in order.
+ * Stops at the SUBTOTAL/TOTAL section so tax/total/payment rows are excluded.
+ */
+export function parseLineItems(rawText: string): ParsedLineItem[] {
+  const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+
+  // Everything above the first SUBTOTAL/TOTAL line is the item body.
+  let bodyEnd = lines.length;
+  for (let i = 0; i < lines.length; i++) {
+    if (
+      SUBTOTAL_RE.test(lines[i]) ||
+      (TOTAL_RE.test(lines[i]) && !PAYMENT_RE.test(lines[i]))
+    ) {
+      bodyEnd = i;
+      break;
+    }
+  }
+
+  const items: ParsedLineItem[] = [];
+  const scanTo = bodyEnd > 0 ? bodyEnd : lines.length;
+  for (let i = 0; i < scanTo; i++) {
+    const line = lines[i];
+    if (isNonItemLine(line)) continue;
+    const price = parseMoney(line);
+    if (price === null || price <= 0 || price > 100000) continue;
+    const name = cleanItemName(line);
+    if (name.length < 2 || !/[a-zA-Z]{2}/.test(name)) continue;
+    items.push({ name: softenCaps(name), price });
+  }
+  return items;
+}
+
+function findItem(lines: string[], lineItems: ParsedLineItem[]): string | null {
+  // The most expensive line item is the primary one worth protecting.
+  if (lineItems.length > 0) {
+    const best = lineItems.reduce((a, b) => (b.price > a.price ? b : a));
+    return best.name;
+  }
+  // Fallback: scan the whole receipt (rare — no clean item body)
   let best: { name: string; price: number } | null = null;
   for (const line of lines) {
-    if (NON_ITEM_RE.test(line)) continue;
+    if (isNonItemLine(line)) continue;
     const price = parseMoney(line);
     if (price === null) continue;
-    const name = line
-      .replace(MONEY_RE, '')
-      .replace(/^\d+\s*[x@]\s*/i, '') // leading qty ("1x Latte")
-      .replace(/\b\d{6,}\b/g, '') // SKU/barcode digits
-      .replace(/\s+[A-Z]\s*$/, '') // trailing tax-code letter
-      .replace(/[\s@x*]+\d+(\.\d+)?\s*$/i, '') // qty markers
-      .replace(/\s{2,}/g, ' ')
-      .trim();
+    const name = cleanItemName(line);
     if (name.length < 3 || !/[a-zA-Z]{3}/.test(name)) continue;
     if (!best || price > best.price) best = { name, price };
   }
-  if (!best) return null;
-  return softenCaps(best.name);
+  return best ? softenCaps(best.name) : null;
 }
 
 export function parseReceiptText(rawText: string): ExtractedReceipt {
@@ -235,13 +294,15 @@ export function parseReceiptText(rawText: string): ExtractedReceipt {
 
   const purchaseDate = findDate(rawText);
   const returnInfo = findReturnInfo(rawText, purchaseDate);
+  const lineItems = parseLineItems(rawText);
 
   return {
-    itemName: findItem(lines),
+    itemName: findItem(lines, lineItems),
     storeName: findStore(lines),
     price: findTotal(lines),
     purchaseDate,
     returnDays: returnInfo?.returnDays ?? null,
     returnByDate: returnInfo?.returnByDate ?? null,
+    lineItems,
   };
 }

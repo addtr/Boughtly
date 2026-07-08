@@ -176,6 +176,34 @@ export function AddItemScreen({ navigation, route }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Route a scan result: 2+ items → the multi-item review screen; otherwise
+   * fill this single-item form. Only routes for a fresh scan (not editing,
+   * and only when the user hasn't already typed an item name).
+   */
+  function handleExtracted(extracted: ExtractedReceipt) {
+    if (!editing && extracted.lineItems.length >= 2 && !itemName.trim()) {
+      // Persist the receipt photo so every created item shares it
+      let persisted = receiptImageUri;
+      if (persisted && !persisted.includes('receipt-')) {
+        try {
+          persisted = persistReceiptImage(persisted);
+        } catch {
+          /* keep the original uri */
+        }
+      }
+      navigation.replace('ScanReview', {
+        storeName: extracted.storeName ?? '',
+        purchaseDate: extracted.purchaseDate ?? toISODate(new Date()),
+        returnDays: extracted.returnDays,
+        receiptImageUri: persisted,
+        items: extracted.lineItems.map((li) => ({ name: li.name, price: li.price })),
+      });
+      return;
+    }
+    applyExtracted(extracted);
+  }
+
   /** Fills in whatever was read — never clobbers anything the user typed. */
   function applyExtracted(extracted: ExtractedReceipt) {
     if (extracted.itemName && !itemName.trim()) setItemName(extracted.itemName);
@@ -224,8 +252,8 @@ export function AddItemScreen({ navigation, route }: Props) {
     try {
       const extracted = await scanReceipt(imageUri, settings);
       if (extracted) {
-        applyExtracted(extracted);
         setScanning(false);
+        handleExtracted(extracted);
         return;
       }
       if (Platform.OS === 'web') {
@@ -252,7 +280,7 @@ export function AddItemScreen({ navigation, route }: Props) {
     setWebOcrImage(null);
     setOcrProgress(null);
     setScanning(false);
-    if (text !== null) applyExtracted(parseReceiptText(text));
+    if (text !== null) handleExtracted(parseReceiptText(text));
   }
 
   async function pickImage(fromCamera: boolean) {

@@ -48,6 +48,7 @@ export async function scanReceipt(
         purchaseDate: null,
         returnDays: null,
         returnByDate: null,
+        lineItems: [],
       };
     }
     return parseReceiptText(result.text);

@@ -9,7 +9,13 @@ import { File } from 'expo-file-system';
  * app falls back to manual entry — scanning still captures the photo.
  */
 
+export interface ExtractedLineItem {
+  name: string;
+  price: number;
+}
+
 export interface ExtractedReceipt {
+  /** The primary (usually priciest) item, for the single-item flow */
   itemName: string | null;
   storeName: string | null;
   price: number | null;
@@ -19,6 +25,8 @@ export interface ExtractedReceipt {
   returnDays: number | null;
   /** The receipt's printed "return by" date, ISO, if any */
   returnByDate: string | null;
+  /** Every line item found on the receipt (may be empty) */
+  lineItems: ExtractedLineItem[];
 }
 
 const EXTRACTION_SCHEMA = {
@@ -53,8 +61,30 @@ const EXTRACTION_SCHEMA = {
       description:
         'If the receipt prints an explicit "return by / return before" date, that date in YYYY-MM-DD format. Null otherwise.',
     },
+    lineItems: {
+      type: 'array',
+      description:
+        'Every purchasable product line on the receipt, in order. Exclude subtotal, tax, total, discounts, coupons, fees, and payment/tender lines. Each entry is the product name (expand obvious abbreviations) and the price charged for that line. Empty array if none are readable.',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Product name in plain language.' },
+          price: { type: 'number', description: 'Price for this line, no currency symbol.' },
+        },
+        required: ['name', 'price'],
+        additionalProperties: false,
+      },
+    },
   },
-  required: ['itemName', 'storeName', 'price', 'purchaseDate', 'returnDays', 'returnByDate'],
+  required: [
+    'itemName',
+    'storeName',
+    'price',
+    'purchaseDate',
+    'returnDays',
+    'returnByDate',
+    'lineItems',
+  ],
   additionalProperties: false,
 } as const;
 
@@ -121,6 +151,7 @@ export async function extractReceiptDetails(
     purchaseDate: null,
     returnDays: null,
     returnByDate: null,
+    lineItems: [],
   };
 
   if (response.stop_reason === 'refusal') return empty;
@@ -131,8 +162,21 @@ export async function extractReceiptDetails(
   const parsed = JSON.parse(textBlock.text) as Partial<ExtractedReceipt>;
   const isoOk = (s: unknown): s is string =>
     typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const lineItems: ExtractedLineItem[] = Array.isArray(parsed.lineItems)
+    ? parsed.lineItems
+        .filter(
+          (li): li is ExtractedLineItem =>
+            !!li &&
+            typeof li.name === 'string' &&
+            li.name.trim().length > 0 &&
+            typeof li.price === 'number' &&
+            Number.isFinite(li.price) &&
+            li.price > 0
+        )
+        .map((li) => ({ name: li.name.trim(), price: li.price }))
+    : [];
   return {
-    itemName: parsed.itemName ?? null,
+    itemName: parsed.itemName ?? (lineItems[0]?.name ?? null),
     storeName: parsed.storeName ?? null,
     price:
       typeof parsed.price === 'number' && Number.isFinite(parsed.price) && parsed.price > 0
@@ -147,5 +191,6 @@ export async function extractReceiptDetails(
         ? parsed.returnDays
         : null,
     returnByDate: isoOk(parsed.returnByDate) ? parsed.returnByDate : null,
+    lineItems,
   };
 }
