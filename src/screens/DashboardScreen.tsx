@@ -41,9 +41,18 @@ export function DashboardScreen() {
     }, 500);
   }, []);
 
+  // Once a purchase has been refunded it's done — drop it from the dashboard
+  // entirely (it still lives under "Refunded" in the Returns tab).
+  const activeItems = useMemo(() => {
+    const refunded = new Set(
+      returns.filter((r) => r.status === 'refunded').map((r) => r.itemId)
+    );
+    return items.filter((i) => !refunded.has(i.id));
+  }, [items, returns]);
+
   // Soonest active deadline first; fully-expired items sink to the bottom.
   const sorted = useMemo(() => {
-    return [...items].sort((a, b) => {
+    return [...activeItems].sort((a, b) => {
       const da = nearestDeadline(a).daysLeft;
       const db = nearestDeadline(b).daysLeft;
       const aExpired = da < 0 ? 1 : 0;
@@ -51,13 +60,13 @@ export function DashboardScreen() {
       if (aExpired !== bExpired) return aExpired - bExpired;
       return da - db;
     });
-  }, [items]);
+  }, [activeItems]);
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
-    items.forEach((i) => (i.tags ?? []).forEach((t) => set.add(t)));
+    activeItems.forEach((i) => (i.tags ?? []).forEach((t) => set.add(t)));
     return [...set].sort();
-  }, [items]);
+  }, [activeItems]);
 
   const filtered = useMemo(() => {
     let list = sorted;
@@ -79,16 +88,16 @@ export function DashboardScreen() {
     [filtered]
   );
 
-  const insights = useMemo(() => computeInsights(items, returns), [items, returns]);
+  const insights = useMemo(() => computeInsights(activeItems, returns), [activeItems, returns]);
 
   // "Needs attention": items with an active deadline closing within a week,
   // soonest first. These get pulled to the top so nothing quietly expires.
   const urgent = useMemo(() => {
-    return items
+    return activeItems
       .map((item) => ({ item, deadline: nearestDeadline(item) }))
       .filter(({ deadline }) => deadline.daysLeft >= 0 && deadline.daysLeft <= URGENT_DAYS)
       .sort((a, b) => a.deadline.daysLeft - b.deadline.daysLeft);
-  }, [items]);
+  }, [activeItems]);
 
   function urgencyText(kind: 'return' | 'warranty', daysLeft: number): string {
     const noun = kind === 'return' ? 'Return window' : 'Warranty';
@@ -109,7 +118,7 @@ export function DashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListHeaderComponent={
-          items.length > 0 ? (
+          activeItems.length > 0 ? (
             <View>
               {!query.trim() && urgent.length > 0 && (
                 <View style={styles.attentionCard}>
@@ -172,7 +181,7 @@ export function DashboardScreen() {
                   <Text style={styles.statLabel}>recovered</Text>
                 </View>
               </View>
-              {items.length >= 4 && (
+              {activeItems.length >= 4 && (
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
@@ -235,7 +244,7 @@ export function DashboardScreen() {
           </View>
         )}
         ListEmptyComponent={
-          items.length > 0 ? (
+          activeItems.length > 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>No matches</Text>
               <Text style={styles.emptyBody}>

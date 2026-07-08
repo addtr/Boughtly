@@ -61,9 +61,9 @@ export function AddChooserScreen({ navigation }: Props) {
           <Ionicons name="clipboard" size={24} color={colors.primary} />
         </View>
         <View style={styles.optionText}>
-          <Text style={styles.optionTitle}>Paste a receipt or email</Text>
+          <Text style={styles.optionTitle}>Paste or screenshot a receipt</Text>
           <Text style={styles.optionBody}>
-            Bought online? Paste the order email — no photo needed.
+            Bought online? Paste the order email or upload a screenshot.
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />

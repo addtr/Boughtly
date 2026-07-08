@@ -201,11 +201,13 @@ export function AddItemScreen({ navigation, route }: Props) {
   // which looked like the camera "flashing" and dumping you back on the form.
   const autoScanned = useRef(false);
   useEffect(() => {
-    if (route.params?.mode !== 'scan' || editing || autoScanned.current) return;
+    const mode = route.params?.mode;
+    if ((mode !== 'scan' && mode !== 'photo') || editing || autoScanned.current) return;
+    const fromCamera = mode === 'scan'; // 'photo' opens the library (e.g. a screenshot)
     const launch = () => {
       if (autoScanned.current) return;
       autoScanned.current = true;
-      void pickImage(true);
+      void pickImage(fromCamera);
     };
     // Fires once the push/replace transition settles.
     const unsub = navigation.addListener('transitionEnd', launch);

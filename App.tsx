@@ -147,6 +147,8 @@ function Root() {
               ? 'Edit item'
               : route.params?.mode === 'scan'
               ? 'Scan a receipt'
+              : route.params?.mode === 'photo'
+              ? 'Upload a receipt'
               : 'Add an item',
           })}
         />

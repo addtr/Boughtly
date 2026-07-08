@@ -1,9 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -49,8 +51,28 @@ export function PasteReceiptScreen({ navigation }: Props) {
       >
         <Text style={styles.intro}>
           Bought something online? Paste the order confirmation email or receipt
-          text below and Boughtly reads the details — no photo needed.
+          text below — or upload a screenshot of it — and Boughtly reads the details.
         </Text>
+
+        <Pressable
+          style={({ pressed }) => [styles.uploadBtn, pressed && { opacity: 0.9 }]}
+          onPress={() => navigation.replace('AddItem', { mode: 'photo' })}
+        >
+          <Ionicons name="image-outline" size={20} color="#FFFFFF" />
+          <View style={styles.uploadText}>
+            <Text style={styles.uploadTitle}>Upload a screenshot</Text>
+            <Text style={styles.uploadSub}>
+              Pick a screenshot of your order email from your photos.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
+        </Pressable>
+
+        <View style={styles.orRow}>
+          <View style={styles.orLine} />
+          <Text style={styles.orText}>or paste the text</Text>
+          <View style={styles.orLine} />
+        </View>
 
         <TextInput
           value={text}
@@ -96,6 +118,44 @@ const styles = StyleSheet.create({
     color: colors.muted,
     lineHeight: 20,
     marginBottom: spacing.md,
+  },
+  uploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  uploadText: {
+    flex: 1,
+  },
+  uploadTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  uploadSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+  },
+  orRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginVertical: spacing.md,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.divider,
+  },
+  orText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
   },
   input: {
     minHeight: 200,
