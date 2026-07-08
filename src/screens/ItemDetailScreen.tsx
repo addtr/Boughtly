@@ -26,7 +26,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
 export function ItemDetailScreen({ navigation, route }: Props) {
   const { items, returns, deleteItem, startReturn } = useAppState();
-  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [viewerUri, setViewerUri] = useState<string | null>(null);
   const [returnPickerOpen, setReturnPickerOpen] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState<Set<number>>(new Set());
   const item = useMemo(
@@ -284,7 +284,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
       <Text style={styles.sectionTitle}>Receipt</Text>
       {item.receiptImageUri ? (
         <Card style={styles.receiptCard}>
-          <Pressable onPress={() => setReceiptOpen(true)}>
+          <Pressable onPress={() => setViewerUri(item.receiptImageUri)}>
             <Image source={{ uri: item.receiptImageUri }} style={styles.receiptImage} />
             <Text style={styles.receiptHint}>Tap to view full screen</Text>
           </Pressable>
@@ -296,6 +296,34 @@ export function ItemDetailScreen({ navigation, route }: Props) {
           </Text>
         </Card>
       )}
+
+      {item.serialNumber ? (
+        <>
+          <Text style={styles.sectionTitle}>Serial / model number</Text>
+          <Card>
+            <Text style={styles.serial} selectable>
+              {item.serialNumber}
+            </Text>
+          </Card>
+        </>
+      ) : null}
+
+      {item.productPhotos && item.productPhotos.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>Product photos</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.photoGallery}
+          >
+            {item.productPhotos.map((uri, i) => (
+              <Pressable key={`${uri}-${i}`} onPress={() => setViewerUri(uri)}>
+                <Image source={{ uri }} style={styles.galleryImage} />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
+      ) : null}
 
       {item.notes ? (
         <>
@@ -402,12 +430,12 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </View>
       </Modal>
 
-      {/* Full-screen zoomable receipt */}
+      {/* Full-screen zoomable image (receipt or product photo) */}
       <Modal
-        visible={receiptOpen}
+        visible={!!viewerUri}
         animationType="fade"
         transparent
-        onRequestClose={() => setReceiptOpen(false)}
+        onRequestClose={() => setViewerUri(null)}
       >
         <View style={styles.viewerBackdrop}>
           <ScrollView
@@ -417,9 +445,9 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             minimumZoomScale={1}
             bouncesZoom
           >
-            {item.receiptImageUri && (
+            {viewerUri && (
               <Image
-                source={{ uri: item.receiptImageUri }}
+                source={{ uri: viewerUri }}
                 style={styles.viewerImage}
                 resizeMode="contain"
               />
@@ -427,9 +455,9 @@ export function ItemDetailScreen({ navigation, route }: Props) {
           </ScrollView>
           <Pressable
             style={styles.viewerClose}
-            onPress={() => setReceiptOpen(false)}
+            onPress={() => setViewerUri(null)}
             hitSlop={12}
-            accessibilityLabel="Close receipt"
+            accessibilityLabel="Close image"
           >
             <Text style={styles.viewerCloseText}>✕</Text>
           </Pressable>
@@ -762,6 +790,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
+  },
+  serial: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 16,
+    color: colors.deepBlue,
+    letterSpacing: 0.5,
+  },
+  photoGallery: {
+    gap: spacing.sm,
+    paddingRight: spacing.md,
+  },
+  galleryImage: {
+    width: 120,
+    height: 120,
+    borderRadius: radii.md,
+    backgroundColor: colors.divider,
   },
   actions: {
     marginTop: spacing.xl,

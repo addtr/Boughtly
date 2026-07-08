@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { File, Paths } from 'expo-file-system';
@@ -45,6 +46,15 @@ function persistReceiptImage(sourceUri: string): string {
   return dest.uri;
 }
 
+/** Same, for product photos (a random suffix avoids same-millisecond clashes). */
+function persistProductImage(sourceUri: string): string {
+  const ext = sourceUri.split('.').pop()?.split('?')[0] || 'jpg';
+  const rand = Math.random().toString(36).slice(2, 7);
+  const dest = new File(Paths.document, `product-${Date.now()}-${rand}.${ext}`);
+  new File(sourceUri).copy(dest);
+  return dest.uri;
+}
+
 function parsePriceInput(raw: string): number | null {
   const cleaned = raw.replace(/[^0-9.]/g, '');
   if (!cleaned) return null;
@@ -77,6 +87,8 @@ export function AddItemScreen({ navigation, route }: Props) {
     editing?.receiptImageUri ?? null
   );
   const [notes, setNotes] = useState(editing?.notes ?? '');
+  const [serialNumber, setSerialNumber] = useState(editing?.serialNumber ?? '');
+  const [productPhotos, setProductPhotos] = useState<string[]>(editing?.productPhotos ?? []);
 
   const [warrantyDays, setWarrantyDays] = useState<number>(
     editing?.warrantyLengthDays ?? 365
@@ -331,6 +343,47 @@ export function AddItemScreen({ navigation, route }: Props) {
     }
   }
 
+  async function pickProductPhoto(fromCamera: boolean) {
+    if (Platform.OS === 'web') fromCamera = false;
+    try {
+      if (fromCamera) {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Camera needed', 'Allow camera access to add a photo.');
+          return;
+        }
+      }
+      const result = fromCamera
+        ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            quality: 0.7,
+            allowsMultipleSelection: true,
+          });
+      if (!result.canceled && result.assets.length > 0) {
+        setProductPhotos((prev) => [...prev, ...result.assets.map((a) => a.uri)]);
+      }
+    } catch {
+      Alert.alert('Something went wrong', 'We couldn’t add that photo. Try again.');
+    }
+  }
+
+  function addProductPhotoPrompt() {
+    if (Platform.OS === 'web') {
+      void pickProductPhoto(false);
+      return;
+    }
+    Alert.alert('Add a product photo', 'Great for the serial plate, box, or condition.', [
+      { text: 'Take a photo', onPress: () => pickProductPhoto(true) },
+      { text: 'Choose from library', onPress: () => pickProductPhoto(false) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  function removeProductPhoto(idx: number) {
+    setProductPhotos((prev) => prev.filter((_, i) => i !== idx));
+  }
+
   async function handleSave() {
     const price = parsePriceInput(priceText);
     if (!itemName.trim()) {
@@ -365,6 +418,20 @@ export function AddItemScreen({ navigation, route }: Props) {
           // fall back to the original URI rather than blocking the save
         }
       }
+      // Persist any freshly-picked product photos to the documents dir.
+      const storedPhotos: string[] = [];
+      for (const uri of productPhotos) {
+        if (uri.includes('product-')) {
+          storedPhotos.push(uri); // already persisted
+        } else {
+          try {
+            storedPhotos.push(persistProductImage(uri));
+          } catch {
+            storedPhotos.push(uri);
+          }
+        }
+      }
+
       const input: NewItemInput = {
         itemName: itemName.trim(),
         storeName: storeName.trim() || 'Unknown store',
@@ -374,6 +441,8 @@ export function AddItemScreen({ navigation, route }: Props) {
         warrantyLengthDays: warrantyDays,
         returnWindowDays: returnDays,
         notes: notes.trim() || undefined,
+        serialNumber: serialNumber.trim() || undefined,
+        productPhotos: storedPhotos.length > 0 ? storedPhotos : undefined,
       };
       if (editing) {
         await updateItem(editing.id, input);
@@ -591,10 +660,48 @@ export function AddItemScreen({ navigation, route }: Props) {
         )}
 
         <Field
+          label="Serial / model number (optional)"
+          value={serialNumber}
+          onChangeText={setSerialNumber}
+          placeholder="For warranty claims"
+          autoCapitalize="characters"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.photosLabel}>Product photos (optional)</Text>
+        <Text style={styles.photosHint}>
+          Snap the serial plate, the box, or its condition — handy for a warranty claim.
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.photosRow}
+          keyboardShouldPersistTaps="handled"
+        >
+          {productPhotos.map((uri, idx) => (
+            <View key={`${uri}-${idx}`} style={styles.photoThumbWrap}>
+              <Image source={{ uri }} style={styles.photoThumb} />
+              <Pressable
+                style={styles.photoRemove}
+                onPress={() => removeProductPhoto(idx)}
+                hitSlop={6}
+                accessibilityLabel="Remove photo"
+              >
+                <Ionicons name="close" size={14} color="#FFFFFF" />
+              </Pressable>
+            </View>
+          ))}
+          <Pressable style={styles.photoAdd} onPress={addProductPhotoPrompt}>
+            <Ionicons name="camera-outline" size={24} color={colors.primary} />
+            <Text style={styles.photoAddText}>Add</Text>
+          </Pressable>
+        </ScrollView>
+
+        <Field
           label="Notes (optional)"
           value={notes}
           onChangeText={setNotes}
-          placeholder="Serial number, gift receipt, etc."
+          placeholder="Gift receipt, who it's for, etc."
           multiline
         />
 
@@ -734,6 +841,60 @@ const styles = StyleSheet.create({
     color: colors.deepBlue,
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
+  },
+  photosLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: 4,
+  },
+  photosHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginBottom: spacing.sm,
+    lineHeight: 17,
+  },
+  photosRow: {
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+    paddingRight: spacing.md,
+  },
+  photoThumbWrap: {
+    position: 'relative',
+  },
+  photoThumb: {
+    width: 84,
+    height: 84,
+    borderRadius: radii.md,
+    backgroundColor: colors.divider,
+  },
+  photoRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.deepBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoAdd: {
+    width: 84,
+    height: 84,
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  photoAddText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.primary,
   },
   policyCard: {
     backgroundColor: colors.primarySoft,

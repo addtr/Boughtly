@@ -21,6 +21,10 @@ export interface TrackedItem {
   /** Calculated: purchaseDate + returnWindowDays (ISO date string) */
   returnDeadlineDate: string;
   notes?: string;
+  /** Serial / model number, for warranty claims */
+  serialNumber?: string;
+  /** Local file URIs of product photos (condition, serial plate, box) */
+  productPhotos?: string[];
   /** The individual products on this receipt (empty for a single-item purchase) */
   lineItems?: ReceiptLineItem[];
   /** Scheduled local notification ids, so they can be cancelled on edit/delete */
