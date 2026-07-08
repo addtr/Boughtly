@@ -46,11 +46,24 @@ export function formatDate(iso: string): string {
   });
 }
 
+// App-wide currency, set from settings on load (see setActiveCurrency).
+let activeCurrency = 'USD';
+
+/** Change the currency all prices format in. Called when settings load/change. */
+export function setActiveCurrency(code: string): void {
+  activeCurrency = code || 'USD';
+}
+
 export function formatPrice(price: number): string {
-  return price.toLocaleString(undefined, {
-    style: 'currency',
-    currency: 'USD',
-  });
+  try {
+    return price.toLocaleString(undefined, {
+      style: 'currency',
+      currency: activeCurrency,
+    });
+  } catch {
+    // Unknown code — fall back to USD rather than throwing
+    return price.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+  }
 }
 
 export interface DeadlineInfo {

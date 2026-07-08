@@ -19,11 +19,11 @@ import {
 } from 'react-native';
 import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
-import { ensureNotificationSetup } from '../notifications/notifications';
+import { ensureNotificationSetup, sendTestReminder } from '../notifications/notifications';
 import { backupFileName, buildBackup, parseBackup } from '../services/backup';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, spacing } from '../theme/theme';
-import { PRICE_CHECK_OPTIONS } from '../types/item';
+import { CURRENCY_OPTIONS, PRICE_CHECK_OPTIONS, REMINDER_TIME_OPTIONS } from '../types/item';
 import { formatPrice, nearestDeadline } from '../utils/dates';
 import { successFeedback, warningFeedback } from '../utils/haptics';
 
@@ -143,6 +143,18 @@ export function SettingsScreen() {
     }
   }
 
+  async function testReminder() {
+    const ok = await sendTestReminder();
+    if (ok) {
+      Alert.alert('Test reminder sent', 'Watch for it in about 5 seconds.');
+    } else {
+      Alert.alert(
+        'Reminders are off',
+        'Turn reminders on (and allow notifications for Boughtly) to receive a test.'
+      );
+    }
+  }
+
   function confirmDeleteAll() {
     warningFeedback();
     Alert.alert(
@@ -209,6 +221,45 @@ export function SettingsScreen() {
           })}
         </View>
 
+        <Text style={styles.optionLabel}>What time of day?</Text>
+        <View style={[styles.optionRow, styles.optionRowWrap]}>
+          {REMINDER_TIME_OPTIONS.map((o) => {
+            const active = settings.reminderHour === o.hour;
+            return (
+              <Pressable
+                key={o.hour}
+                onPress={() => updateSettings({ reminderHour: o.hour })}
+                style={[styles.option, active && styles.optionActive]}
+                disabled={!settings.notificationsEnabled}
+              >
+                <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                  {o.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Pressable
+          style={styles.testRow}
+          onPress={testReminder}
+          disabled={!settings.notificationsEnabled}
+        >
+          <Ionicons
+            name="notifications-outline"
+            size={17}
+            color={settings.notificationsEnabled ? colors.primary : colors.muted}
+          />
+          <Text
+            style={[
+              styles.testText,
+              !settings.notificationsEnabled && styles.rowDisabled,
+            ]}
+          >
+            Send a test reminder
+          </Text>
+        </Pressable>
+
         <View style={styles.divider} />
         <Text style={styles.optionLabel}>Remind me to price-check my watchlist</Text>
         <View style={[styles.optionRow, styles.optionRowWrap]}>
@@ -232,6 +283,28 @@ export function SettingsScreen() {
           Fires only while you're actually watching something; tapping it opens your
           watchlist ready to scan.
         </Text>
+      </Card>
+
+      {/* Currency */}
+      <Text style={styles.sectionTitle}>Currency</Text>
+      <Card>
+        <Text style={styles.optionLabel}>Show prices in</Text>
+        <View style={[styles.optionRow, styles.optionRowWrap]}>
+          {CURRENCY_OPTIONS.map((o) => {
+            const active = settings.currencyCode === o.code;
+            return (
+              <Pressable
+                key={o.code}
+                onPress={() => updateSettings({ currencyCode: o.code })}
+                style={[styles.option, active && styles.optionActive]}
+              >
+                <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                  {o.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </Card>
 
       {/* Manage items */}
@@ -388,6 +461,17 @@ const styles = StyleSheet.create({
     color: colors.muted,
     lineHeight: 17,
     marginTop: 4,
+  },
+  testRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.md,
+  },
+  testText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.primary,
   },
   option: {
     paddingVertical: 6,

@@ -22,7 +22,8 @@ import {
   ReturnCase,
   WatchedProduct,
 } from '../types/tracking';
-import { addDays, toISODate } from '../utils/dates';
+import { Platform } from 'react-native';
+import { addDays, setActiveCurrency, toISODate } from '../utils/dates';
 
 const ITEMS_KEY = 'boughtly.items.v1';
 const SETTINGS_KEY = 'boughtly.settings.v1';
@@ -126,7 +127,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           AsyncStorage.getItem(RETURNS_KEY),
         ]);
         if (rawItems) setItems(JSON.parse(rawItems));
-        if (rawSettings) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(rawSettings) });
+        if (rawSettings) {
+          const loaded = { ...DEFAULT_SETTINGS, ...JSON.parse(rawSettings) };
+          setSettings(loaded);
+          setActiveCurrency(loaded.currencyCode);
+        }
         if (rawWatches) setWatches(JSON.parse(rawWatches));
         if (rawReturns) setReturns(JSON.parse(rawReturns));
       } catch (e) {
@@ -141,6 +146,28 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setItems(next);
     await AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(next));
   }, []);
+
+  // Reschedule every item's reminders once per launch. Scheduled local
+  // notifications can be lost on reboot, OS update, reinstall, or restore —
+  // this makes sure they always exist for what's currently tracked.
+  const resyncedRef = useRef(false);
+  useEffect(() => {
+    if (!isLoaded || resyncedRef.current || Platform.OS === 'web') return;
+    resyncedRef.current = true;
+    (async () => {
+      const current = itemsRef.current;
+      if (current.length === 0) return;
+      const updated: TrackedItem[] = [];
+      for (const item of current) {
+        await cancelItemReminders(item.notificationIds);
+        const notificationIds = await scheduleItemReminders(item, settingsRef.current);
+        updated.push({ ...item, notificationIds });
+      }
+      setItems(updated);
+      await AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(updated));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded]);
 
   const persistWatches = useCallback(async (next: WatchedProduct[]) => {
     setWatches(next);
@@ -364,7 +391,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           id,
           existing.itemName,
           existing.storeName,
-          settingsRef.current.notificationsEnabled
+          settingsRef.current.notificationsEnabled,
+          settingsRef.current.reminderHour
         );
       }
       await persistReturns(
@@ -392,6 +420,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const prev = settingsRef.current;
       const next = { ...prev, ...patch };
       setSettings(next);
+      if (next.currencyCode !== prev.currencyCode) setActiveCurrency(next.currencyCode);
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
 
       // Keep the repeating price-check reminder in sync with its settings
@@ -406,7 +435,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const affectsReminders =
         next.notificationsEnabled !== prev.notificationsEnabled ||
         next.returnReminderDays !== prev.returnReminderDays ||
-        next.warrantyReminderDays !== prev.warrantyReminderDays;
+        next.warrantyReminderDays !== prev.warrantyReminderDays ||
+        next.reminderHour !== prev.reminderHour;
       if (!affectsReminders) return;
 
       const rescheduled: TrackedItem[] = [];

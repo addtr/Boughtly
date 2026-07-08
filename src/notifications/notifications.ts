@@ -7,8 +7,8 @@ import { addDays, parseISODate } from '../utils/dates';
 
 const PRICE_CHECK_NOTIF_KEY = 'boughtly.priceCheckNotif.v1';
 
-/** Hour of day (local) reminders fire at. */
-const REMINDER_HOUR = 9;
+/** Default hour of day (local) reminders fire at, if unset. */
+const DEFAULT_REMINDER_HOUR = 9;
 
 // expo-notifications doesn't support web; all entry points below no-op there.
 if (Platform.OS !== 'web') {
@@ -36,10 +36,10 @@ export async function ensureNotificationSetup(): Promise<boolean> {
   return requested.granted;
 }
 
-function reminderDate(deadlineISO: string, daysBefore: number): Date {
+function reminderDate(deadlineISO: string, daysBefore: number, hour: number): Date {
   const date = parseISODate(deadlineISO);
   date.setDate(date.getDate() - daysBefore);
-  date.setHours(REMINDER_HOUR, 0, 0, 0);
+  date.setHours(hour, 0, 0, 0);
   return date;
 }
 
@@ -73,11 +73,12 @@ export async function scheduleItemReminders(
   if (!granted) return [];
 
   const ids: string[] = [];
+  const hour = settings.reminderHour ?? DEFAULT_REMINDER_HOUR;
 
   const returnId = await scheduleAt(
     `${settings.returnReminderDays} days left to return this`,
     `Your return window for ${item.itemName} from ${item.storeName} closes soon.`,
-    reminderDate(item.returnDeadlineDate, settings.returnReminderDays),
+    reminderDate(item.returnDeadlineDate, settings.returnReminderDays, hour),
     item.id
   );
   if (returnId) ids.push(returnId);
@@ -85,7 +86,7 @@ export async function scheduleItemReminders(
   const warrantyId = await scheduleAt(
     `Warranty ending soon`,
     `The warranty on ${item.itemName} from ${item.storeName} expires in ${settings.warrantyReminderDays} days.`,
-    reminderDate(item.warrantyExpirationDate, settings.warrantyReminderDays),
+    reminderDate(item.warrantyExpirationDate, settings.warrantyReminderDays, hour),
     item.id
   );
   if (warrantyId) ids.push(warrantyId);
@@ -98,13 +99,33 @@ export async function scheduleItemReminders(
     const adjustId = await scheduleAt(
       'Last chance for a price adjustment',
       `${item.storeName} may refund the difference if ${item.itemName} dropped in price — its price-adjustment window closes tomorrow.`,
-      reminderDate(windowEnd, 1),
+      reminderDate(windowEnd, 1, hour),
       item.id
     );
     if (adjustId) ids.push(adjustId);
   }
 
   return ids;
+}
+
+/** Fire a test reminder a few seconds out so the user can confirm reminders work. */
+export async function sendTestReminder(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
+  const granted = await ensureNotificationSetup();
+  if (!granted) return false;
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Reminders are working 🎉',
+      body: 'This is a test from Boughtly — real reminders arrive before your deadlines.',
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 5,
+      channelId: 'deadlines',
+    },
+  });
+  return true;
 }
 
 /**
@@ -115,14 +136,15 @@ export async function scheduleRefundFollowUp(
   returnId: string,
   itemName: string,
   storeName: string,
-  enabled: boolean
+  enabled: boolean,
+  reminderHour: number = DEFAULT_REMINDER_HOUR
 ): Promise<string[]> {
   if (!enabled || Platform.OS === 'web') return [];
   const granted = await ensureNotificationSetup();
   if (!granted) return [];
   const fireAt = new Date();
   fireAt.setDate(fireAt.getDate() + 7);
-  fireAt.setHours(REMINDER_HOUR, 0, 0, 0);
+  fireAt.setHours(reminderHour, 0, 0, 0);
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Refund still pending?',

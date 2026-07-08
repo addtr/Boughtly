@@ -44,6 +44,10 @@ export interface AppSettings {
   returnReminderDays: number;
   /** Days before warranty expiration to remind the user */
   warrantyReminderDays: number;
+  /** Local hour of day (0–23) reminders fire at */
+  reminderHour: number;
+  /** ISO 4217 currency code used to format prices app-wide */
+  currencyCode: string;
   /**
    * Reserved for the future premium bundle (Claude-powered extraction).
    * No UI sets this today — free on-device OCR is the default for everyone.
@@ -69,9 +73,30 @@ export const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: true,
   returnReminderDays: 3,
   warrantyReminderDays: 7,
+  reminderHour: 9,
+  currencyCode: 'USD',
   claudeApiKey: '',
   priceCheckCadence: 'weekly',
 };
+
+/** Reminder time-of-day presets shown in Settings. */
+export const REMINDER_TIME_OPTIONS: { hour: number; label: string }[] = [
+  { hour: 9, label: '9:00 AM' },
+  { hour: 12, label: '12:00 PM' },
+  { hour: 18, label: '6:00 PM' },
+  { hour: 21, label: '9:00 PM' },
+];
+
+/** Currencies offered in Settings. */
+export const CURRENCY_OPTIONS: { code: string; label: string }[] = [
+  { code: 'USD', label: '$ USD' },
+  { code: 'CAD', label: '$ CAD' },
+  { code: 'EUR', label: '€ EUR' },
+  { code: 'GBP', label: '£ GBP' },
+  { code: 'AUD', label: '$ AUD' },
+  { code: 'JPY', label: '¥ JPY' },
+  { code: 'INR', label: '₹ INR' },
+];
 
 export const WARRANTY_PRESETS = [
   { label: '90 days', days: 90 },
