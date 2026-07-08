@@ -1,13 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  Linking,
   Modal,
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -15,9 +18,11 @@ import {
 import { CountdownRing } from '../components/CountdownRing';
 import { Button, Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { lookupPriceAdjustment } from '../services/priceAdjust';
+import { resolveWarrantyPage } from '../services/warrantyUrl';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
-import { lookupPriceAdjustment } from '../services/priceAdjust';
+import { addDeadlineToCalendar } from '../utils/calendar';
 import { addDays, daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
 import { tapFeedback, warningFeedback } from '../utils/haptics';
 import { openPriceScan } from '../utils/priceScan';
@@ -79,6 +84,71 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         `You paid ${formatPrice(paid)} for “${name}”. If it’s cheaper somewhere and you’re still in the return window, you could rebuy at the lower price and return this one.`,
         [{ text: 'Got it' }]
       );
+    }
+  }
+
+  async function openUrl(url: string) {
+    if (Platform.OS === 'web') {
+      Linking.openURL(url).catch(() => {});
+      return;
+    }
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      await Linking.openURL(url).catch(() => {});
+    }
+  }
+
+  const warrantyPage = resolveWarrantyPage(item.itemName);
+
+  /** Open the manufacturer's warranty/support page. */
+  async function fileWarrantyClaim() {
+    tapFeedback();
+    await openUrl(warrantyPage.url);
+  }
+
+  /** Share a prefilled claim summary (serial, purchase details, photo count). */
+  async function shareWarrantyClaim() {
+    const lines = [
+      `Warranty claim — ${item!.itemName}`,
+      `Purchased ${formatDate(item!.purchaseDate)} at ${item!.storeName} for ${formatPrice(item!.price)}`,
+      item!.serialNumber ? `Serial / model number: ${item!.serialNumber}` : null,
+      item!.productPhotos && item!.productPhotos.length > 0
+        ? `Photos available: ${item!.productPhotos.length}`
+        : null,
+      '',
+      'Issue: (describe what went wrong)',
+    ].filter((l): l is string => l !== null);
+    try {
+      await Share.share({ title: `Warranty claim — ${item!.itemName}`, message: lines.join('\n') });
+    } catch {
+      // dismissed
+    }
+  }
+
+  /** Drop a deadline onto the device calendar. */
+  async function addToCalendar(kind: 'return' | 'warranty') {
+    tapFeedback();
+    const iso = kind === 'return' ? item!.returnDeadlineDate : item!.warrantyExpirationDate;
+    const title =
+      kind === 'return'
+        ? `Return window closes — ${item!.itemName}`
+        : `Warranty ends — ${item!.itemName}`;
+    const notes = `${item!.storeName} · ${formatPrice(item!.price)}${
+      item!.serialNumber ? ` · SN ${item!.serialNumber}` : ''
+    }`;
+    const res = await addDeadlineToCalendar(title, iso, notes);
+    if (res === 'created') {
+      Alert.alert('Added to your calendar', `“${title}” is on ${formatDate(iso)}.`);
+    } else if (res === 'denied') {
+      Alert.alert(
+        'Calendar access needed',
+        'Allow calendar access in your phone’s Settings to add deadlines.'
+      );
+    } else if (res === 'unavailable') {
+      Alert.alert('No calendar found', 'We couldn’t find a calendar to add this to.');
+    } else {
+      Alert.alert('Couldn’t add it', 'Something went wrong adding to your calendar.');
     }
   }
 
@@ -245,6 +315,11 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             {returnDaysLeft < 0 ? 'Closed ' : 'Closes '}
             {formatDate(item.returnDeadlineDate)}
           </Text>
+          {returnDaysLeft >= 0 && (
+            <Pressable onPress={() => addToCalendar('return')} hitSlop={6}>
+              <Text style={styles.calLink}>Add to calendar</Text>
+            </Pressable>
+          )}
         </Card>
         <Card style={styles.ringCard}>
           <CountdownRing
@@ -258,8 +333,35 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             {warrantyDaysLeft < 0 ? 'Ended ' : 'Ends '}
             {formatDate(item.warrantyExpirationDate)}
           </Text>
+          {warrantyDaysLeft >= 0 && (
+            <Pressable onPress={() => addToCalendar('warranty')} hitSlop={6}>
+              <Text style={styles.calLink}>Add to calendar</Text>
+            </Pressable>
+          )}
         </Card>
       </View>
+
+      {/* Warranty claim assistant — active warranties are actionable */}
+      {warrantyDaysLeft >= 0 && (
+        <View style={styles.warrantyCard}>
+          <View style={styles.warrantyHeader}>
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+            <Text style={styles.warrantyTitle}>Warranty help</Text>
+          </View>
+          <Text style={styles.warrantyBody}>
+            Something wrong with it?{' '}
+            {warrantyPage.known
+              ? `File a claim with ${warrantyPage.label}`
+              : 'Find the maker’s claim page'}
+            {item.serialNumber ? ' — your serial number is ready to go.' : '.'}
+          </Text>
+          <Button title="File a warranty claim" onPress={fileWarrantyClaim} />
+          <Pressable onPress={shareWarrantyClaim} style={styles.warrantyShare} hitSlop={6}>
+            <Ionicons name="share-outline" size={15} color={colors.primary} />
+            <Text style={styles.warrantyShareText}>Share claim details</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* What's on this receipt */}
       {item.lineItems && item.lineItems.length > 0 ? (
@@ -639,6 +741,47 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: 2,
     textAlign: 'center',
+  },
+  calLink: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: 8,
+  },
+  warrantyCard: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  warrantyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  warrantyTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.deepBlue,
+  },
+  warrantyBody: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.deepBlue,
+    lineHeight: 19,
+  },
+  warrantyShare: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+  },
+  warrantyShareText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.primary,
   },
   sectionTitle: {
     fontFamily: fonts.display,

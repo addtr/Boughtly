@@ -17,7 +17,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.addtr.boughtly",
       "infoPlist": {
-        "NSCameraUsageDescription": "Boughtly uses the camera to snap photos of your receipts."
+        "NSCameraUsageDescription": "Boughtly uses the camera to snap photos of your receipts.",
+        "NSCalendarsUsageDescription": "Boughtly adds your return and warranty deadlines to your calendar.",
+        "NSCalendarsFullAccessUsageDescription": "Boughtly adds your return and warranty deadlines to your calendar."
       }
     },
     "android": {
@@ -49,6 +51,12 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#4C7EF3"
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Boughtly adds your return and warranty deadlines to your calendar."
         }
       ]
     ]
