@@ -214,6 +214,28 @@ export function DashboardScreen() {
                   ))}
                 </View>
               )}
+              {!query.trim() && urgent.length === 0 && (
+                <View style={styles.caughtUpCard}>
+                  <View style={styles.caughtUpHeader}>
+                    <Ionicons name="checkmark-circle" size={18} color="#20744E" />
+                    <Text style={styles.caughtUpTitle}>You’re all caught up ✨</Text>
+                  </View>
+                  {nextDeadline ? (
+                    <Pressable
+                      onPress={() =>
+                        navigation.navigate('ItemDetail', { itemId: nextDeadline.item.id })
+                      }
+                    >
+                      <Text style={styles.caughtUpNext}>
+                        Next up: {nextDeadline.deadline.kind === 'return' ? 'return' : 'warranty'}{' '}
+                        for {nextDeadline.item.itemName} — {formatDate(nextDeadline.deadline.date)}
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={styles.caughtUpNext}>Nothing closing soon. Nicely done.</Text>
+                  )}
+                </View>
+              )}
               <View style={styles.statCard}>
                 <View style={styles.stat}>
                   <Text style={styles.statValue}>{formatPrice(insights.protectedValue)}</Text>
@@ -413,6 +435,29 @@ const styles = StyleSheet.create({
     color: colors.coral,
     marginTop: -2,
     marginBottom: spacing.sm,
+  },
+  caughtUpCard: {
+    backgroundColor: '#DFF3E9',
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  caughtUpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  caughtUpTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: '#20744E',
+  },
+  caughtUpNext: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: '#20744E',
+    marginTop: 6,
+    lineHeight: 18,
   },
   attentionRow: {
     flexDirection: 'row',
