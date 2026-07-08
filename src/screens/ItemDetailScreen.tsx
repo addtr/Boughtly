@@ -17,7 +17,8 @@ import { Button, Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
-import { daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
+import { lookupPriceAdjustment } from '../services/priceAdjust';
+import { addDays, daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
 import { tapFeedback, warningFeedback } from '../utils/haptics';
 import { openPriceScan } from '../utils/priceScan';
 
@@ -58,6 +59,13 @@ export function ItemDetailScreen({ navigation, route }: Props) {
     item.lineItems && item.lineItems.length > 0
       ? item.lineItems.reduce((a, b) => (b.price > a.price ? b : a))
       : { name: item.itemName, price: item.price };
+
+  // Price-adjustment window: if this store refunds price drops after purchase
+  // and we're still inside the window, surface it (free money most people miss).
+  const priceAdjust = lookupPriceAdjustment(item.storeName);
+  const adjustEndISO = priceAdjust ? addDays(item.purchaseDate, priceAdjust.days) : null;
+  const adjustDaysLeft = adjustEndISO ? daysUntil(adjustEndISO) : null;
+  const inAdjustWindow = adjustDaysLeft !== null && adjustDaysLeft >= 0;
 
   /** Same as the Prices tab: live cross-retailer search for a cheaper price. */
   async function scanForCheaper(name: string, paid: number) {
@@ -139,6 +147,33 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </View>
         <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
       </Pressable>
+
+      {/* Price-adjustment window — claim the difference if it dropped */}
+      {inAdjustWindow && (
+        <View style={styles.adjustCard}>
+          <View style={styles.adjustHeader}>
+            <Ionicons name="cash-outline" size={18} color="#20744E" />
+            <Text style={styles.adjustTitle}>Price-adjustment window open</Text>
+            <View style={styles.adjustBadge}>
+              <Text style={styles.adjustBadgeText}>
+                {adjustDaysLeft === 0 ? 'last day' : `${adjustDaysLeft}d left`}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.adjustBody}>
+            {item.storeName} refunds the difference if this dropped in price before{' '}
+            {formatDate(adjustEndISO!)}. {priceAdjust!.note ? `${priceAdjust!.note}. ` : ''}
+            Worth a 10-second check.
+          </Text>
+          <Pressable
+            onPress={() => scanForCheaper(primaryScan.name, primaryScan.price)}
+            style={({ pressed }) => [styles.adjustBtn, pressed && { opacity: 0.9 }]}
+          >
+            <Ionicons name="search" size={16} color="#20744E" />
+            <Text style={styles.adjustBtnText}>Check for a lower price</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Deadlines */}
       <View style={styles.ringsRow}>
@@ -359,6 +394,56 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.85)',
     marginTop: 2,
+  },
+  adjustCard: {
+    backgroundColor: '#DFF3E9',
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  adjustHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  adjustTitle: {
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: '#20744E',
+  },
+  adjustBadge: {
+    backgroundColor: '#20744E',
+    borderRadius: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  adjustBadgeText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    color: '#FFFFFF',
+  },
+  adjustBody: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: '#20744E',
+    lineHeight: 19,
+    marginBottom: spacing.sm,
+  },
+  adjustBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: radii.md,
+    paddingVertical: 10,
+  },
+  adjustBtnText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: '#20744E',
   },
   ringsRow: {
     flexDirection: 'row',

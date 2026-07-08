@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { AppSettings, PRICE_CHECK_OPTIONS, TrackedItem } from '../types/item';
-import { parseISODate } from '../utils/dates';
+import { addDays, parseISODate } from '../utils/dates';
 
 const PRICE_CHECK_NOTIF_KEY = 'boughtly.priceCheckNotif.v1';
 
@@ -88,6 +89,20 @@ export async function scheduleItemReminders(
     item.id
   );
   if (warrantyId) ids.push(warrantyId);
+
+  // Price-adjustment window: if the store refunds price drops after purchase,
+  // nudge the day before it closes to go check for a lower price.
+  const adjust = lookupPriceAdjustment(item.storeName);
+  if (adjust) {
+    const windowEnd = addDays(item.purchaseDate, adjust.days);
+    const adjustId = await scheduleAt(
+      'Last chance for a price adjustment',
+      `${item.storeName} may refund the difference if ${item.itemName} dropped in price — its price-adjustment window closes tomorrow.`,
+      reminderDate(windowEnd, 1),
+      item.id
+    );
+    if (adjustId) ids.push(adjustId);
+  }
 
   return ids;
 }
