@@ -16,9 +16,10 @@ import {
 import { ItemCard } from '../components/ItemCard';
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { useAppState } from '../store/AppStateContext';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
-import { formatPrice, nearestDeadline } from '../utils/dates';
+import { addDays, daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
 import { computeInsights } from '../utils/insights';
 
 /** Items whose nearest active deadline is this close (days) are "act now". */
@@ -26,7 +27,7 @@ const URGENT_DAYS = 7;
 
 export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { items, returns } = useAppState();
+  const { items, returns, watches } = useAppState();
   const [query, setQuery] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
@@ -106,6 +107,53 @@ export function DashboardScreen() {
     return `${noun} ends in ${daysLeft} days`;
   }
 
+  // Total value of return windows closing this week (money you could still get back).
+  const valueClosing = useMemo(
+    () =>
+      urgent
+        .filter((u) => u.deadline.kind === 'return')
+        .reduce((sum, u) => sum + u.item.price, 0),
+    [urgent]
+  );
+
+  // The soonest upcoming deadline, for the "next up" line when nothing's urgent.
+  const nextDeadline = useMemo(() => {
+    const upcoming = activeItems
+      .map((item) => ({ item, deadline: nearestDeadline(item) }))
+      .filter(({ deadline }) => deadline.daysLeft >= 0)
+      .sort((a, b) => a.deadline.daysLeft - b.deadline.daysLeft);
+    return upcoming[0] ?? null;
+  }, [activeItems]);
+
+  // Purchases still inside their store's price-adjustment window (free money).
+  const priceAdjustOpps = useMemo(() => {
+    return activeItems
+      .map((item) => {
+        const adj = lookupPriceAdjustment(item.storeName);
+        if (!adj) return null;
+        const daysLeft = daysUntil(addDays(item.purchaseDate, adj.days));
+        if (daysLeft < 0) return null;
+        return { item, daysLeft };
+      })
+      .filter((x): x is { item: (typeof activeItems)[number]; daysLeft: number } => x !== null)
+      .sort((a, b) => a.daysLeft - b.daysLeft);
+  }, [activeItems]);
+
+  // Watchlist snapshot: how many watched, how many at/under target.
+  const watchStats = useMemo(() => {
+    const atTarget = watches.filter((w) => {
+      const latest = w.priceLog[w.priceLog.length - 1];
+      return w.targetPrice !== undefined && latest && latest.price <= w.targetPrice;
+    }).length;
+    return { count: watches.length, atTarget };
+  }, [watches]);
+
+  // Items still under an active manufacturer warranty.
+  const underWarranty = useMemo(
+    () => activeItems.filter((i) => daysUntil(i.warrantyExpirationDate) >= 0).length,
+    [activeItems]
+  );
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -128,6 +176,11 @@ export function DashboardScreen() {
                       Needs attention ({urgent.length})
                     </Text>
                   </View>
+                  {valueClosing > 0 && (
+                    <Text style={styles.attentionValue}>
+                      {formatPrice(valueClosing)} in return windows close this week
+                    </Text>
+                  )}
                   {urgent.map(({ item, deadline }) => (
                     <Pressable
                       key={item.id}
@@ -172,6 +225,13 @@ export function DashboardScreen() {
                   <Text style={styles.statLabel}>
                     active {insights.activeProtections === 1 ? 'cover' : 'covers'}
                   </Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.stat}>
+                  <Text style={[styles.statValue, insights.pending > 0 && styles.statValuePending]}>
+                    {formatPrice(insights.pending)}
+                  </Text>
+                  <Text style={styles.statLabel}>coming back</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.stat}>
@@ -309,17 +369,21 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontFamily: fonts.displayBold,
-    fontSize: 19,
+    fontSize: 17,
     color: colors.deepBlue,
   },
   statValueGood: {
     color: '#20744E',
   },
+  statValuePending: {
+    color: colors.coral,
+  },
   statLabel: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.muted,
     marginTop: 2,
+    textAlign: 'center',
   },
   statDivider: {
     width: 1,
@@ -342,6 +406,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
     color: colors.coral,
+  },
+  attentionValue: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.coral,
+    marginTop: -2,
+    marginBottom: spacing.sm,
   },
   attentionRow: {
     flexDirection: 'row',
