@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useMemo } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -13,6 +16,7 @@ import {
 } from 'react-native';
 import { Button, Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { resolveReturnPage } from '../services/returnUrl';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { RETURN_STEPS } from '../types/tracking';
@@ -30,6 +34,13 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
   const item = useMemo(
     () => (ret ? items.find((i) => i.id === ret.itemId) : undefined),
     [items, ret]
+  );
+
+  // Where the user bought it — prefilled from the return, editable here.
+  const [storeInput, setStoreInput] = useState(ret?.storeName ?? '');
+  const resolved = useMemo(
+    () => resolveReturnPage(storeInput.trim() || ret?.storeName || ''),
+    [storeInput, ret?.storeName]
   );
 
   if (!ret) {
@@ -56,6 +67,29 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
     if (!ret || stepIndex <= 0) return;
     await setReturnStatus(ret.id, RETURN_STEPS[stepIndex - 1].key);
     tapFeedback();
+  }
+
+  /** Open the store's return page (known retailer → its returns page; else a
+   *  web search), saving any edit to where they bought it. */
+  async function openReturnPage() {
+    if (!ret) return;
+    const store = storeInput.trim() || ret.storeName;
+    if (!store) {
+      Alert.alert('Where did you buy it?', 'Type the store so we can find its return page.');
+      return;
+    }
+    if (store !== ret.storeName) updateReturn(ret.id, { storeName: store });
+    const page = resolveReturnPage(store);
+    tapFeedback();
+    if (Platform.OS === 'web') {
+      Linking.openURL(page.url).catch(() => {});
+      return;
+    }
+    try {
+      await WebBrowser.openBrowserAsync(page.url);
+    } catch {
+      await Linking.openURL(page.url).catch(() => {});
+    }
   }
 
   /** Prefilled return request — share to email/messages, ready to send. */
@@ -106,6 +140,39 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
       <Text style={styles.subtitle}>
         {ret.storeName} · {formatPrice(ret.refundAmount)} coming back
       </Text>
+
+      {/* Take me to the store's return page */}
+      <Card style={styles.returnPageCard}>
+        <Text style={styles.returnPageTitle}>Return it at the store</Text>
+        <Text style={styles.fieldLabel}>Where did you buy it?</Text>
+        <TextInput
+          value={storeInput}
+          onChangeText={setStoreInput}
+          onSubmitEditing={openReturnPage}
+          placeholder="Target"
+          placeholderTextColor={colors.muted}
+          autoCapitalize="words"
+          autoCorrect={false}
+          returnKeyType="go"
+          style={styles.input}
+        />
+        <Pressable
+          onPress={openReturnPage}
+          style={({ pressed }) => [styles.returnPageBtn, pressed && { opacity: 0.9 }]}
+        >
+          <Ionicons name="open-outline" size={18} color="#FFFFFF" />
+          <Text style={styles.returnPageBtnText}>
+            {resolved.known
+              ? `Go to ${resolved.label}'s return page`
+              : 'Find where to return it'}
+          </Text>
+        </Pressable>
+        <Text style={styles.returnPageHint}>
+          {resolved.known
+            ? `Opens ${resolved.label}'s official returns page.`
+            : 'Press go and we’ll take you to this store’s return page online.'}
+        </Text>
+      </Card>
 
       {/* Progress stepper */}
       <Card style={styles.stepsCard}>
@@ -260,6 +327,37 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: 4,
     marginBottom: spacing.lg,
+  },
+  returnPageCard: {
+    marginBottom: spacing.md,
+  },
+  returnPageTitle: {
+    fontFamily: fonts.display,
+    fontSize: 16,
+    color: colors.deepBlue,
+    marginBottom: spacing.sm,
+  },
+  returnPageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    paddingVertical: 13,
+    marginTop: spacing.xs,
+  },
+  returnPageBtnText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: '#FFFFFF',
+  },
+  returnPageHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: spacing.sm,
+    lineHeight: 17,
   },
   stepsCard: {
     marginBottom: spacing.sm,

@@ -71,7 +71,7 @@ interface AppState {
   startReturn: (item: TrackedItem) => Promise<ReturnCase>;
   updateReturn: (
     id: string,
-    patch: Partial<Pick<ReturnCase, 'method' | 'trackingNumber' | 'notes' | 'refundAmount'>>
+    patch: Partial<Pick<ReturnCase, 'method' | 'trackingNumber' | 'notes' | 'refundAmount' | 'storeName'>>
   ) => Promise<void>;
   setReturnStatus: (id: string, status: ReturnCase['status']) => Promise<void>;
   deleteReturn: (id: string) => Promise<void>;
@@ -275,7 +275,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const updateReturn = useCallback(
     async (
       id: string,
-      patch: Partial<Pick<ReturnCase, 'method' | 'trackingNumber' | 'notes' | 'refundAmount'>>
+      patch: Partial<Pick<ReturnCase, 'method' | 'trackingNumber' | 'notes' | 'refundAmount' | 'storeName'>>
     ) => {
       await persistReturns(
         returnsRef.current.map((r) =>
