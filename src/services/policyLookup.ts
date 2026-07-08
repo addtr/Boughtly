@@ -51,6 +51,14 @@ const STORE_RETURN_POLICIES: StorePolicy[] = [
   { match: ['williams sonoma', 'williams-sonoma'], days: 30 },
   { match: ['crate & barrel', 'crate and barrel'], days: 30 },
   { match: ['trader joe', 'whole foods', 'kroger', 'safeway', 'aldi'], days: 30, note: 'groceries are usually easy to return with a receipt' },
+  { match: ['cvs'], days: 60, note: 'CVS: 60 days with receipt' },
+  { match: ['walgreens', 'walgreen'], days: 30 },
+  { match: ['rite aid', 'riteaid'], days: 30 },
+  { match: ['petco', 'petsmart'], days: 60 },
+  { match: ['bath & body', 'bath and body'], days: 90 },
+  { match: ['michaels', 'joann', "jo-ann", 'hobby lobby'], days: 60 },
+  { match: ['autozone', "o'reilly", 'advance auto'], days: 90 },
+  { match: ['ace hardware'], days: 30 },
 ];
 
 interface WarrantyCategory {
@@ -104,11 +112,24 @@ const WARRANTY_CATEGORIES: WarrantyCategory[] = [
   },
 ];
 
+/**
+ * Whole-word (not naive substring) match, so "macy" doesn't match inside
+ * "phar-macy" and "gap" doesn't match inside "gap-filler". A fragment matches
+ * when it appears bounded by non-letters (or string edges). Fragments may
+ * contain spaces/punctuation (e.g. "tj maxx", "h&m") — those match literally.
+ */
+function containsWord(haystack: string, fragment: string): boolean {
+  const esc = fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // \b is unreliable around & and ' — bound with "not a letter/digit"
+  const re = new RegExp(`(^|[^a-z0-9])${esc}([^a-z0-9]|$)`, 'i');
+  return re.test(haystack);
+}
+
 export function lookupStoreReturnPolicy(storeName: string): { days: number; note?: string } | null {
   const s = storeName.trim().toLowerCase();
-  if (s.length < 3) return null;
+  if (s.length < 2) return null;
   for (const policy of STORE_RETURN_POLICIES) {
-    if (policy.match.some((m) => s.includes(m))) {
+    if (policy.match.some((m) => containsWord(s, m))) {
       return { days: policy.days, note: policy.note };
     }
   }
@@ -119,7 +140,7 @@ export function lookupWarrantyByCategory(itemName: string): { days: number; labe
   const s = itemName.trim().toLowerCase();
   if (s.length < 3) return null;
   for (const cat of WARRANTY_CATEGORIES) {
-    if (cat.keywords.some((k) => s.includes(k))) {
+    if (cat.keywords.some((k) => containsWord(s, k))) {
       return { days: cat.days, label: cat.label };
     }
   }
@@ -127,11 +148,21 @@ export function lookupWarrantyByCategory(itemName: string): { days: number; labe
 }
 
 /**
- * Combined suggestion for an item+store pair. A 0-day category warranty
- * (no manufacturer warranty) mirrors the return window so the countdown
- * stays meaningful.
+ * Combined suggestion for an item+store pair.
+ *
+ * Warranty rule (the important one): a real manufacturer warranty is only
+ * suggested when we recognize the product category. Otherwise — and for
+ * categories with no manufacturer warranty, like textiles or groceries —
+ * the warranty mirrors the return window, so we never invent a bogus
+ * "1 year" for a snack or a T-shirt.
  */
-export function suggestPolicies(itemName: string, storeName: string): PolicySuggestion {
+export function suggestPolicies(
+  itemName: string,
+  storeName: string,
+  /** Authoritative return window (e.g. printed on the receipt) to mirror for
+   *  items with no manufacturer warranty. Overrides the store-policy guess. */
+  knownReturnDays?: number
+): PolicySuggestion {
   const out: PolicySuggestion = {};
   const store = lookupStoreReturnPolicy(storeName);
   if (store) {
@@ -140,16 +171,26 @@ export function suggestPolicies(itemName: string, storeName: string): PolicySugg
       store.note ? ` (${store.note})` : ''
     }`;
   }
+
   const warranty = lookupWarrantyByCategory(itemName);
-  if (warranty) {
-    if (warranty.days === 0) {
-      const mirror = out.returnDays ?? 30;
+  // Prefer the authoritative (receipt) window for mirroring; else store policy
+  const mirror = knownReturnDays ?? out.returnDays;
+
+  if (warranty && warranty.days > 0) {
+    // Known product category with a genuine manufacturer warranty
+    out.warrantyDays = warranty.days;
+    out.warrantyNote = warranty.label;
+  } else if (warranty && warranty.days === 0) {
+    // Known category that has NO manufacturer warranty (textiles, etc.)
+    if (mirror !== undefined) {
       out.warrantyDays = mirror;
       out.warrantyNote = warranty.label;
-    } else {
-      out.warrantyDays = warranty.days;
-      out.warrantyNote = warranty.label;
     }
+  } else if (mirror !== undefined) {
+    // Unknown product — don't invent a warranty; track the return window
+    out.warrantyDays = mirror;
+    out.warrantyNote =
+      'No manufacturer warranty found for this item — tracking the return window instead. Edit if it came with one.';
   }
   return out;
 }

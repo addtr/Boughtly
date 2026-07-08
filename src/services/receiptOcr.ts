@@ -15,6 +15,10 @@ export interface ExtractedReceipt {
   price: number | null;
   /** ISO date "YYYY-MM-DD" */
   purchaseDate: string | null;
+  /** Return window in days if the receipt states/implies one; else null */
+  returnDays: number | null;
+  /** The receipt's printed "return by" date, ISO, if any */
+  returnByDate: string | null;
 }
 
 const EXTRACTION_SCHEMA = {
@@ -23,23 +27,34 @@ const EXTRACTION_SCHEMA = {
     itemName: {
       type: ['string', 'null'],
       description:
-        'The main purchased item, in plain language (e.g. "Noise-cancelling headphones"). If the receipt lists several items, pick the most significant one. Null if unreadable.',
+        'The main purchased item, in plain language (e.g. "Noise-cancelling headphones"). If the receipt lists several items, pick the most expensive/significant one. Expand obvious abbreviations. Null if unreadable.',
     },
     storeName: {
       type: ['string', 'null'],
-      description: 'The store or merchant name. Null if unreadable.',
+      description: 'The store or merchant name (usually the top line). Null if unreadable.',
     },
     price: {
       type: ['number', 'null'],
       description:
-        'The total amount paid as a number, no currency symbol. Prefer the receipt total. Null if unreadable.',
+        'The amount actually paid for the goods, as a number with no currency symbol. This is the TOTAL (or amount due / balance) line — NOT the cash tendered and NOT the change given. If the receipt shows cash tendered and change, the true total is (cash tendered − change). Never report the cash-tendered amount as the price. Null if unreadable.',
     },
     purchaseDate: {
       type: ['string', 'null'],
-      description: 'The purchase date in YYYY-MM-DD format. Null if unreadable.',
+      description:
+        'The date the purchase was made, in YYYY-MM-DD format. This is the transaction date printed near the bottom with the time — NOT a "return by" date, coupon expiry, or any future date. Null if unreadable.',
+    },
+    returnDays: {
+      type: ['integer', 'null'],
+      description:
+        'If the receipt states a return policy (e.g. "returns within 60 days", "60-day return policy", "return by 09/06/2026"), the number of days from purchase to the return deadline. Compute it from a printed return-by date if needed. Null if the receipt does not mention a return window.',
+    },
+    returnByDate: {
+      type: ['string', 'null'],
+      description:
+        'If the receipt prints an explicit "return by / return before" date, that date in YYYY-MM-DD format. Null otherwise.',
     },
   },
-  required: ['itemName', 'storeName', 'price', 'purchaseDate'],
+  required: ['itemName', 'storeName', 'price', 'purchaseDate', 'returnDays', 'returnByDate'],
   additionalProperties: false,
 } as const;
 
@@ -87,7 +102,11 @@ export async function extractReceiptDetails(
           {
             type: 'text',
             text:
-              'This is a photo of a shopping receipt. Extract the purchase details. ' +
+              'This is a photo of a shopping receipt. Extract the purchase details precisely. ' +
+              'Be careful with the price: report what was paid for the goods (the TOTAL), ' +
+              'never the cash tendered — if you see cash and change, the total is cash minus change. ' +
+              'The purchase date is the transaction date near the bottom, not any return-by or expiry date. ' +
+              'If the receipt prints a return policy or return-by date, capture it. ' +
               'Use null for anything you cannot read confidently.',
           },
         ],
@@ -95,23 +114,38 @@ export async function extractReceiptDetails(
     ],
   });
 
-  if (response.stop_reason === 'refusal') {
-    return { itemName: null, storeName: null, price: null, purchaseDate: null };
-  }
+  const empty: ExtractedReceipt = {
+    itemName: null,
+    storeName: null,
+    price: null,
+    purchaseDate: null,
+    returnDays: null,
+    returnByDate: null,
+  };
+
+  if (response.stop_reason === 'refusal') return empty;
 
   const textBlock = response.content.find((b) => b.type === 'text');
-  if (!textBlock || textBlock.type !== 'text') {
-    return { itemName: null, storeName: null, price: null, purchaseDate: null };
-  }
+  if (!textBlock || textBlock.type !== 'text') return empty;
 
-  const parsed = JSON.parse(textBlock.text) as ExtractedReceipt;
+  const parsed = JSON.parse(textBlock.text) as Partial<ExtractedReceipt>;
+  const isoOk = (s: unknown): s is string =>
+    typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
   return {
     itemName: parsed.itemName ?? null,
     storeName: parsed.storeName ?? null,
-    price: typeof parsed.price === 'number' && Number.isFinite(parsed.price) ? parsed.price : null,
-    purchaseDate:
-      parsed.purchaseDate && /^\d{4}-\d{2}-\d{2}$/.test(parsed.purchaseDate)
-        ? parsed.purchaseDate
+    price:
+      typeof parsed.price === 'number' && Number.isFinite(parsed.price) && parsed.price > 0
+        ? parsed.price
         : null,
+    purchaseDate: isoOk(parsed.purchaseDate) ? parsed.purchaseDate : null,
+    returnDays:
+      typeof parsed.returnDays === 'number' &&
+      Number.isInteger(parsed.returnDays) &&
+      parsed.returnDays >= 1 &&
+      parsed.returnDays <= 730
+        ? parsed.returnDays
+        : null,
+    returnByDate: isoOk(parsed.returnByDate) ? parsed.returnByDate : null,
   };
 }

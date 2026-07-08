@@ -41,7 +41,14 @@ export async function scanReceipt(
   try {
     const result = await recognize(imageUri);
     if (!result?.text?.trim()) {
-      return { itemName: null, storeName: null, price: null, purchaseDate: null };
+      return {
+        itemName: null,
+        storeName: null,
+        price: null,
+        purchaseDate: null,
+        returnDays: null,
+        returnByDate: null,
+      };
     }
     return parseReceiptText(result.text);
   } catch {

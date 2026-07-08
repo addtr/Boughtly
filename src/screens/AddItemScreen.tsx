@@ -103,8 +103,12 @@ export function AddItemScreen({ navigation, route }: Props) {
   const warrantyTouched = useRef(!!editing);
   const lastLookupRef = useRef('');
 
-  function applySuggestion(suggestion: PolicySuggestion, verified: boolean) {
-    const notes: string[] = [];
+  function applySuggestion(
+    suggestion: PolicySuggestion,
+    verified: boolean,
+    baseNotes: string[] = []
+  ) {
+    const notes = [...baseNotes];
     if (suggestion.returnDays !== undefined && !returnTouched.current) {
       setReturnDays(suggestion.returnDays);
       setReturnCustom(!RETURN_PRESET_DAYS.includes(suggestion.returnDays));
@@ -122,26 +126,35 @@ export function AddItemScreen({ navigation, route }: Props) {
   }
 
   /**
-   * Receipts never print warranties or return windows. Engine order:
-   * live web lookup for this exact item+store (owner key), falling back to
-   * the built-in store-policy + product-category knowledge base.
+   * Fills the warranty (and the return window, when the receipt didn't print
+   * one). Engine order: live web lookup for this exact item+store (owner key),
+   * falling back to the built-in store-policy + product-category knowledge base.
+   * `baseNotes` carries any note already set from the receipt itself.
    */
-  async function applyPolicySuggestions(forItemName: string, forStoreName: string) {
+  async function applyPolicySuggestions(
+    forItemName: string,
+    forStoreName: string,
+    baseNotes: string[] = [],
+    /** Return window already locked in from the receipt, if any */
+    knownReturnDays?: number
+  ) {
     const item = forItemName.trim();
     const store = forStoreName.trim();
     if (!item && !store) return;
+    // Nothing left to fill?
+    if (returnTouched.current && warrantyTouched.current) return;
     // Don't re-run the expensive lookup for the same inputs
     const lookupKey = `${item}|${store}`.toLowerCase();
     if (lookupKey === lastLookupRef.current) return;
     lastLookupRef.current = lookupKey;
 
     const ownerKey = getOwnerApiKey(settings);
-    if (ownerKey && item && store && (!returnTouched.current || !warrantyTouched.current)) {
+    if (ownerKey && item && store) {
       setPolicyChecking(true);
       try {
         const live = await lookupPoliciesLive(item, store, ownerKey);
         if (live.returnDays !== undefined || live.warrantyDays !== undefined) {
-          applySuggestion(live, true);
+          applySuggestion(live, true, baseNotes);
           return;
         }
       } catch {
@@ -150,7 +163,7 @@ export function AddItemScreen({ navigation, route }: Props) {
         setPolicyChecking(false);
       }
     }
-    applySuggestion(suggestPolicies(item, store), false);
+    applySuggestion(suggestPolicies(item, store, knownReturnDays), false, baseNotes);
   }
 
   // "Scan the receipt" path: open the camera right away
@@ -169,11 +182,33 @@ export function AddItemScreen({ navigation, route }: Props) {
     if (extracted.storeName && !storeName.trim()) setStoreName(extracted.storeName);
     if (extracted.price !== null && !priceText.trim()) setPriceText(String(extracted.price));
     if (extracted.purchaseDate) setPurchaseDate(extracted.purchaseDate);
-    // Look up the store's return policy + the item's typical warranty
+
+    // Highest authority for the return window: what the RECEIPT itself printed.
+    // If present, lock it in so the store-policy lookup can't override it.
+    const notes: string[] = [];
+    if (extracted.returnDays !== null && !returnTouched.current) {
+      setReturnDays(extracted.returnDays);
+      setReturnCustom(!RETURN_PRESET_DAYS.includes(extracted.returnDays));
+      returnTouched.current = true; // the receipt beats any guess
+      notes.push(
+        extracted.returnByDate
+          ? `Return by ${formatDate(extracted.returnByDate)} — printed on your receipt (${extracted.returnDays} days)`
+          : `${extracted.returnDays}-day return window — printed on your receipt`
+      );
+    }
+    if (notes.length > 0) {
+      setPolicyNotes(notes);
+      setPolicyVerified(true);
+    }
+
+    // Fill the rest (warranty always; return window only if the receipt didn't say)
     applyPolicySuggestions(
       extracted.itemName ?? itemName,
-      extracted.storeName ?? storeName
+      extracted.storeName ?? storeName,
+      notes,
+      extracted.returnDays ?? undefined
     );
+
     if (!extracted.itemName && !extracted.storeName && extracted.price === null) {
       Alert.alert(
         'Couldn’t read that receipt',
