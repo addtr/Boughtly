@@ -14,6 +14,7 @@ import {
   scheduleRefundFollowUp,
   syncPriceCheckReminder,
 } from '../notifications/notifications';
+import { BoughtlyBackup } from '../services/backup';
 import { AppSettings, DEFAULT_SETTINGS, TrackedItem } from '../types/item';
 import {
   PricePoint,
@@ -58,6 +59,7 @@ interface AppState {
   updateItem: (id: string, input: NewItemInput) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   deleteAllItems: () => Promise<void>;
+  restoreBackup: (backup: BoughtlyBackup) => Promise<{ items: number; watches: number; returns: number }>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
   // Price watching
   addWatch: (input: NewWatchInput) => Promise<WatchedProduct>;
@@ -191,6 +193,47 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }
     await persistItems([]);
   }, [persistItems]);
+
+  /**
+   * Replace all local data with a backup. Existing reminders are cancelled and
+   * fresh ones are scheduled for the restored items, so notifications stay
+   * consistent with what's now on the device.
+   */
+  const restoreBackup = useCallback(
+    async (backup: BoughtlyBackup) => {
+      // Clear every reminder tied to current items and returns.
+      for (const item of itemsRef.current) await cancelItemReminders(item.notificationIds);
+      for (const ret of returnsRef.current) await cancelItemReminders(ret.notificationIds);
+
+      const nextSettings = { ...DEFAULT_SETTINGS, ...backup.settings };
+      setSettings(nextSettings);
+      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(nextSettings));
+
+      // Reschedule reminders for each restored item under the restored settings.
+      const restoredItems: TrackedItem[] = [];
+      for (const it of backup.items) {
+        const item: TrackedItem = { ...it, notificationIds: [] };
+        item.notificationIds = await scheduleItemReminders(item, nextSettings);
+        restoredItems.push(item);
+      }
+      const restoredReturns: ReturnCase[] = backup.returns.map((r) => ({
+        ...r,
+        notificationIds: [],
+      }));
+
+      await persistItems(restoredItems);
+      await persistWatches(backup.watches);
+      await persistReturns(restoredReturns);
+      await syncPriceCheckReminder(nextSettings, backup.watches.length);
+
+      return {
+        items: restoredItems.length,
+        watches: backup.watches.length,
+        returns: restoredReturns.length,
+      };
+    },
+    [persistItems, persistWatches, persistReturns]
+  );
 
   /* ---------- Price watching ---------- */
 
@@ -367,6 +410,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       updateItem,
       deleteItem,
       deleteAllItems,
+      restoreBackup,
       updateSettings,
       addWatch,
       logWatchPrice,
@@ -387,6 +431,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       updateItem,
       deleteItem,
       deleteAllItems,
+      restoreBackup,
       updateSettings,
       addWatch,
       logWatchPrice,

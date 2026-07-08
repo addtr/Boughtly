@@ -2,6 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
+import * as DocumentPicker from 'expo-document-picker';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import React from 'react';
 import {
   Alert,
@@ -17,18 +20,30 @@ import {
 import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { ensureNotificationSetup } from '../notifications/notifications';
+import { backupFileName, buildBackup, parseBackup } from '../services/backup';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, spacing } from '../theme/theme';
 import { PRICE_CHECK_OPTIONS } from '../types/item';
 import { formatPrice, nearestDeadline } from '../utils/dates';
-import { warningFeedback } from '../utils/haptics';
+import { successFeedback, warningFeedback } from '../utils/haptics';
 
 const RETURN_REMINDER_OPTIONS = [1, 3, 7];
 const WARRANTY_REMINDER_OPTIONS = [3, 7, 14];
 
 export function SettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { items, settings, updateSettings, deleteItem, deleteAllItems } = useAppState();
+  const {
+    items,
+    watches,
+    returns,
+    settings,
+    updateSettings,
+    deleteItem,
+    deleteAllItems,
+    restoreBackup,
+  } = useAppState();
+
+  const hasData = items.length > 0 || watches.length > 0 || returns.length > 0;
 
   function confirmDelete(id: string, name: string) {
     warningFeedback();
@@ -51,22 +66,80 @@ export function SettingsScreen() {
     updateSettings({ notificationsEnabled: enabled });
   }
 
+  /** Write a full backup file and hand it to the share sheet (Files, Mail, …). */
   async function exportData() {
-    const backup = {
-      app: 'Boughtly',
-      exportedAt: new Date().toISOString(),
-      items: items.map(({ notificationIds, ...rest }) => rest),
-    };
+    const json = JSON.stringify(buildBackup(items, watches, returns, settings), null, 2);
     try {
-      await Share.share(
-        {
-          title: 'Boughtly backup',
-          message: JSON.stringify(backup, null, 2),
-        },
-        { dialogTitle: 'Export Boughtly data' }
+      if (Platform.OS === 'web') {
+        await Share.share({ title: 'Boughtly backup', message: json });
+        return;
+      }
+      const file = new File(Paths.cache, backupFileName());
+      if (file.exists) file.delete();
+      file.create();
+      file.write(json);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: 'application/json',
+          dialogTitle: 'Export Boughtly backup',
+          UTI: 'public.json',
+        });
+      } else {
+        await Share.share({ title: 'Boughtly backup', message: json });
+      }
+    } catch {
+      // share sheet dismissed or write failed — nothing to do
+    }
+  }
+
+  /** Pick a backup file and restore it (after confirming the replace). */
+  async function importData() {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['application/json', 'public.json', 'text/plain', '*/*'],
+        copyToCacheDirectory: true,
+      });
+      if (res.canceled || !res.assets?.[0]) return;
+      const text = await new File(res.assets[0].uri).text();
+      const parsed = parseBackup(text);
+      if (!parsed.ok) {
+        Alert.alert('Couldn’t import that file', parsed.error);
+        return;
+      }
+      const b = parsed.backup;
+      const when = new Date(b.exportedAt).toLocaleDateString();
+      Alert.alert(
+        'Restore this backup?',
+        `This replaces everything in Boughtly with ${b.items.length} item${
+          b.items.length === 1 ? '' : 's'
+        }, ${b.returns.length} return${b.returns.length === 1 ? '' : 's'}, and ${
+          b.watches.length
+        } watch${b.watches.length === 1 ? '' : 'es'} from ${when}.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Restore',
+            style: 'destructive',
+            onPress: async () => {
+              const counts = await restoreBackup(b);
+              successFeedback();
+              Alert.alert(
+                'Backup restored',
+                `Loaded ${counts.items} item${counts.items === 1 ? '' : 's'}, ${
+                  counts.returns
+                } return${counts.returns === 1 ? '' : 's'}, and ${counts.watches} watch${
+                  counts.watches === 1 ? '' : 'es'
+                }.`
+              );
+            },
+          },
+        ]
       );
     } catch {
-      // user closed the share sheet — nothing to do
+      Alert.alert(
+        'Couldn’t import that file',
+        'Make sure you picked a Boughtly backup (.json) file.'
+      );
     }
   }
 
@@ -202,16 +275,30 @@ export function SettingsScreen() {
       {/* Your data */}
       <Text style={styles.sectionTitle}>Your data</Text>
       <Card>
-        <Pressable style={styles.row} onPress={exportData} disabled={items.length === 0}>
+        <Pressable style={styles.row} onPress={exportData} disabled={!hasData}>
           <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
             <Ionicons name="share-outline" size={19} color={colors.primary} />
           </View>
           <View style={styles.itemInfo}>
-            <Text style={[styles.rowLabel, items.length === 0 && styles.rowDisabled]}>
-              Export my data
+            <Text style={[styles.rowLabel, !hasData && styles.rowDisabled]}>
+              Back up my data
             </Text>
             <Text style={styles.itemMeta}>
-              Share a copy of your items as text — email it to yourself as a backup.
+              Save a full backup file — items, returns, and watchlist — to Files or
+              email it to yourself.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+        </Pressable>
+        <View style={styles.divider} />
+        <Pressable style={styles.row} onPress={importData}>
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="download-outline" size={19} color={colors.primary} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={styles.rowLabel}>Restore from a backup</Text>
+            <Text style={styles.itemMeta}>
+              Load a backup file to move to a new phone or recover your data.
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={17} color={colors.muted} />
