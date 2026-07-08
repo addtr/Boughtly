@@ -21,6 +21,8 @@ export interface TrackedItem {
   /** Calculated: purchaseDate + returnWindowDays (ISO date string) */
   returnDeadlineDate: string;
   notes?: string;
+  /** Optional user labels for grouping/filtering, e.g. "electronics", "gift" */
+  tags?: string[];
   /** Serial / model number, for warranty claims */
   serialNumber?: string;
   /** Local file URIs of product photos (condition, serial plate, box) */

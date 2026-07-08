@@ -173,6 +173,16 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </Text>
       </View>
 
+      {item.tags && item.tags.length > 0 ? (
+        <View style={styles.detailTagsRow}>
+          {item.tags.map((t) => (
+            <View key={t} style={styles.detailTagChip}>
+              <Text style={styles.detailTagText}>{t}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
       {/* Scan for a cheaper price on what they bought */}
       <Pressable
         onPress={() => scanForCheaper(primaryScan.name, primaryScan.price)}
@@ -498,6 +508,23 @@ const styles = StyleSheet.create({
   statusPillText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
+  },
+  detailTagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  detailTagChip: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: 100,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+  detailTagText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.primary,
   },
   scanBtn: {
     flexDirection: 'row',

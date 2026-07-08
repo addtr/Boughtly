@@ -89,6 +89,8 @@ export function AddItemScreen({ navigation, route }: Props) {
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [serialNumber, setSerialNumber] = useState(editing?.serialNumber ?? '');
   const [productPhotos, setProductPhotos] = useState<string[]>(editing?.productPhotos ?? []);
+  const [tags, setTags] = useState<string[]>(editing?.tags ?? []);
+  const [tagDraft, setTagDraft] = useState('');
 
   const [warrantyDays, setWarrantyDays] = useState<number>(
     editing?.warrantyLengthDays ?? 365
@@ -384,6 +386,17 @@ export function AddItemScreen({ navigation, route }: Props) {
     setProductPhotos((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  function addTag() {
+    const t = tagDraft.trim().replace(/,/g, '').toLowerCase();
+    setTagDraft('');
+    if (!t) return;
+    setTags((prev) => (prev.includes(t) ? prev : [...prev, t]));
+  }
+
+  function removeTag(tag: string) {
+    setTags((prev) => prev.filter((t) => t !== tag));
+  }
+
   async function handleSave() {
     const price = parsePriceInput(priceText);
     if (!itemName.trim()) {
@@ -441,6 +454,7 @@ export function AddItemScreen({ navigation, route }: Props) {
         warrantyLengthDays: warrantyDays,
         returnWindowDays: returnDays,
         notes: notes.trim() || undefined,
+        tags: tags.length > 0 ? tags : undefined,
         serialNumber: serialNumber.trim() || undefined,
         productPhotos: storedPhotos.length > 0 ? storedPhotos : undefined,
       };
@@ -705,6 +719,35 @@ export function AddItemScreen({ navigation, route }: Props) {
           multiline
         />
 
+        <Text style={styles.photosLabel}>Tags (optional)</Text>
+        <Text style={styles.photosHint}>
+          Group items like “electronics” or “kitchen” — then filter by them on your
+          dashboard.
+        </Text>
+        {tags.length > 0 && (
+          <View style={styles.tagWrap}>
+            {tags.map((t) => (
+              <Pressable key={t} style={styles.tagChip} onPress={() => removeTag(t)}>
+                <Text style={styles.tagChipText}>{t}</Text>
+                <Ionicons name="close" size={13} color={colors.primary} />
+              </Pressable>
+            ))}
+          </View>
+        )}
+        <TextInput
+          value={tagDraft}
+          onChangeText={setTagDraft}
+          onSubmitEditing={addTag}
+          onBlur={addTag}
+          placeholder="Add a tag and press return"
+          placeholderTextColor={colors.muted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="done"
+          blurOnSubmit={false}
+          style={styles.tagInput}
+        />
+
         <Button
           title={saving ? 'Saving…' : editing ? 'Save changes' : 'Start protecting this'}
           variant="coral"
@@ -895,6 +938,35 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
     color: colors.primary,
+  },
+  tagWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 100,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  tagChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.primary,
+  },
+  tagInput: {
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 11,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.text,
   },
   policyCard: {
     backgroundColor: colors.primarySoft,

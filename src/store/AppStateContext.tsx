@@ -38,6 +38,7 @@ export interface NewItemInput {
   warrantyLengthDays: number;
   returnWindowDays: number;
   notes?: string;
+  tags?: string[];
   serialNumber?: string;
   productPhotos?: string[];
   lineItems?: { name: string; price: number }[];

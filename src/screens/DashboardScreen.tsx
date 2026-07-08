@@ -7,6 +7,7 @@ import {
   Image,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -27,6 +28,7 @@ export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { items, returns } = useAppState();
   const [query, setQuery] = useState('');
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -51,14 +53,26 @@ export function DashboardScreen() {
     });
   }, [items]);
 
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach((i) => (i.tags ?? []).forEach((t) => set.add(t)));
+    return [...set].sort();
+  }, [items]);
+
   const filtered = useMemo(() => {
+    let list = sorted;
+    if (tagFilter) list = list.filter((i) => (i.tags ?? []).includes(tagFilter));
     const q = query.trim().toLowerCase();
-    if (!q) return sorted;
-    return sorted.filter(
-      (item) =>
-        item.itemName.toLowerCase().includes(q) || item.storeName.toLowerCase().includes(q)
-    );
-  }, [sorted, query]);
+    if (q) {
+      list = list.filter(
+        (item) =>
+          item.itemName.toLowerCase().includes(q) ||
+          item.storeName.toLowerCase().includes(q) ||
+          (item.tags ?? []).some((t) => t.includes(q))
+      );
+    }
+    return list;
+  }, [sorted, query, tagFilter]);
 
   const firstExpiredIndex = useMemo(
     () => filtered.findIndex((item) => nearestDeadline(item).daysLeft < 0),
@@ -169,6 +183,41 @@ export function DashboardScreen() {
                   autoCorrect={false}
                   clearButtonMode="while-editing"
                 />
+              )}
+              {allTags.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.tagFilterRow}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <Pressable
+                    onPress={() => setTagFilter(null)}
+                    style={[styles.tagFilter, !tagFilter && styles.tagFilterActive]}
+                  >
+                    <Text
+                      style={[styles.tagFilterText, !tagFilter && styles.tagFilterTextActive]}
+                    >
+                      All
+                    </Text>
+                  </Pressable>
+                  {allTags.map((t) => {
+                    const active = tagFilter === t;
+                    return (
+                      <Pressable
+                        key={t}
+                        onPress={() => setTagFilter(active ? null : t)}
+                        style={[styles.tagFilter, active && styles.tagFilterActive]}
+                      >
+                        <Text
+                          style={[styles.tagFilterText, active && styles.tagFilterTextActive]}
+                        >
+                          {t}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
               )}
             </View>
           ) : null
@@ -344,6 +393,31 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
     marginLeft: 2,
+  },
+  tagFilterRow: {
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
+    paddingRight: spacing.md,
+  },
+  tagFilter: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 100,
+    backgroundColor: colors.card,
+    ...cardShadow,
+    shadowOpacity: 0.05,
+    elevation: 1,
+  },
+  tagFilterActive: {
+    backgroundColor: colors.primary,
+  },
+  tagFilterText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.text,
+  },
+  tagFilterTextActive: {
+    color: '#FFFFFF',
   },
   empty: {
     flex: 1,
