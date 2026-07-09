@@ -66,6 +66,8 @@ export interface AppSettings {
   reminderHour: number;
   /** ISO 4217 currency code used to format prices app-wide */
   currencyCode: string;
+  /** Require Face ID / passcode to open the app */
+  appLockEnabled: boolean;
   /**
    * Reserved for the future premium bundle (Claude-powered extraction).
    * No UI sets this today — free on-device OCR is the default for everyone.
@@ -95,6 +97,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   warrantyReminderDays: 7,
   reminderHour: 9,
   currencyCode: 'USD',
+  appLockEnabled: false,
   claudeApiKey: '',
   priceCheckCadence: 'weekly',
 };

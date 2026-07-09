@@ -13,8 +13,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import React, { useEffect } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, Platform, StyleSheet, View } from 'react-native';
+import { LockScreen } from './src/components/LockScreen';
 import { Tabs } from './src/navigation/Tabs';
 import { RootStackParamList } from './src/navigation/types';
 import { AddChooserScreen } from './src/screens/AddChooserScreen';
@@ -25,6 +26,7 @@ import { InsightsScreen } from './src/screens/InsightsScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
+import { RemindersScreen } from './src/screens/RemindersScreen';
 import { ReturnDetailScreen } from './src/screens/ReturnDetailScreen';
 import { ScanReviewScreen } from './src/screens/ScanReviewScreen';
 import { WatchDetailScreen } from './src/screens/WatchDetailScreen';
@@ -101,12 +103,47 @@ function Root() {
     Inter_600SemiBold,
   });
 
+  // App lock: gate the UI until Face ID/passcode succeeds. Locks at launch
+  // (when enabled) and again after the app has been backgrounded; enabling
+  // the toggle mid-session does NOT lock the session you're already in.
+  const lockSupported = Platform.OS !== 'web';
+  const [locked, setLocked] = useState<boolean | null>(null);
+  const lockEnabledRef = useRef(false);
+  lockEnabledRef.current = lockSupported && settings.appLockEnabled;
+  useEffect(() => {
+    // Decide the initial lock state once settings have loaded.
+    if (isLoaded && locked === null) setLocked(lockEnabledRef.current);
+  }, [isLoaded, locked]);
+  useEffect(() => {
+    // Turning the lock off always unlocks.
+    if (!settings.appLockEnabled && locked) setLocked(false);
+  }, [settings.appLockEnabled, locked]);
+  const appStateRef = useRef(AppState.currentState);
+  useEffect(() => {
+    if (!lockSupported) return;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (
+        appStateRef.current === 'active' &&
+        next.match(/inactive|background/) &&
+        lockEnabledRef.current
+      ) {
+        setLocked(true); // returning requires auth again
+      }
+      appStateRef.current = next;
+    });
+    return () => sub.remove();
+  }, [lockSupported]);
+
   if (!fontsLoaded || !isLoaded) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
+  }
+
+  if (locked) {
+    return <LockScreen onUnlock={() => setLocked(false)} />;
   }
 
   return (
@@ -190,6 +227,11 @@ function Root() {
           name="Insights"
           component={InsightsScreen}
           options={{ title: 'Your spending' }}
+        />
+        <Stack.Screen
+          name="Reminders"
+          component={RemindersScreen}
+          options={{ title: 'Upcoming reminders' }}
         />
         <Stack.Screen
           name="AddWatch"

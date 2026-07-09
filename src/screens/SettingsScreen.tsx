@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
+import * as LocalAuthentication from 'expo-local-authentication';
 import * as Sharing from 'expo-sharing';
 import React from 'react';
 import {
@@ -140,6 +141,33 @@ export function SettingsScreen() {
         'Couldn’t import that file',
         'Make sure you picked a Boughtly backup (.json) file.'
       );
+    }
+  }
+
+  /** Enable the app lock only after proving Face ID/passcode works here. */
+  async function toggleAppLock(enabled: boolean) {
+    if (!enabled) {
+      updateSettings({ appLockEnabled: false });
+      return;
+    }
+    if (Platform.OS === 'web') {
+      Alert.alert('Phone only', 'The app lock uses Face ID / passcode on your phone.');
+      return;
+    }
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    const enrolled = await LocalAuthentication.isEnrolledAsync();
+    if (!hasHardware || !enrolled) {
+      Alert.alert(
+        'No lock set up',
+        'Set up Face ID, Touch ID, or a passcode in your phone’s Settings first.'
+      );
+      return;
+    }
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Confirm to enable the app lock',
+    });
+    if (result.success) {
+      updateSettings({ appLockEnabled: true });
     }
   }
 
@@ -325,6 +353,45 @@ export function SettingsScreen() {
           Fires only while you're actually watching something; tapping it opens your
           watchlist ready to scan.
         </Text>
+
+        <View style={styles.divider} />
+        <Pressable
+          style={styles.row}
+          onPress={() => navigation.navigate('Reminders')}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="calendar-outline" size={19} color={colors.primary} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={styles.rowLabel}>See upcoming reminders</Text>
+            <Text style={styles.itemMeta}>
+              Every nudge that's scheduled, and when it fires.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+        </Pressable>
+      </Card>
+
+      {/* Privacy */}
+      <Text style={styles.sectionTitle}>Privacy</Text>
+      <Card>
+        <View style={styles.row}>
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="lock-closed-outline" size={19} color={colors.primary} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={styles.rowLabel}>Lock the app</Text>
+            <Text style={styles.itemMeta}>
+              Require Face ID or your passcode when Boughtly opens.
+            </Text>
+          </View>
+          <Switch
+            value={settings.appLockEnabled}
+            onValueChange={(v) => void toggleAppLock(v)}
+            trackColor={{ true: colors.primary, false: colors.divider }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
       </Card>
 
       {/* Currency */}

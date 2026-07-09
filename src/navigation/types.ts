@@ -30,6 +30,7 @@ export type RootStackParamList = {
   };
   ItemDetail: { itemId: string };
   Insights: undefined;
+  Reminders: undefined;
   AddWatch: { prefillName?: string } | undefined;
   WatchDetail: { watchId: string };
   ReturnDetail: { returnId: string };
