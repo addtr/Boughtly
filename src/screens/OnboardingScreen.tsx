@@ -13,6 +13,7 @@ import {
 import { CountdownRing } from '../components/CountdownRing';
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { ensureNotificationSetup } from '../notifications/notifications';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, spacing } from '../theme/theme';
 import { successFeedback } from '../utils/haptics';
@@ -61,7 +62,7 @@ const SLIDES: Slide[] = [
   {
     key: 'remind',
     title: 'Reminded before it’s too late',
-    body: 'Boughtly nudges you before a return window closes and before a warranty expires. No spreadsheets, no sticky notes.',
+    body: 'Boughtly nudges you before a return window closes and before a warranty expires — that’s the whole point. On the next screen, iOS will ask permission to send those reminders.',
     art: (
       <View style={styles_art.bell}>
         <Ionicons name="notifications" size={72} color={colors.coral} />
@@ -76,15 +77,22 @@ export function OnboardingScreen({ navigation }: Props) {
   const listRef = useRef<FlatList<Slide>>(null);
   const isLast = page === SLIDES.length - 1;
 
-  async function finish() {
+  async function finish(withReminders: boolean) {
     successFeedback();
-    await updateSettings({ hasOnboarded: true });
+    // Ask for notification permission only AFTER the slide explained why —
+    // people who see the reason first say yes far more often.
+    if (withReminders) {
+      const granted = await ensureNotificationSetup();
+      await updateSettings({ hasOnboarded: true, notificationsEnabled: granted });
+    } else {
+      await updateSettings({ hasOnboarded: true });
+    }
     navigation.replace('Tabs');
   }
 
   function next() {
     if (isLast) {
-      finish();
+      void finish(true);
     } else {
       const target = page + 1;
       listRef.current?.scrollToIndex({ index: target, animated: true });
@@ -94,7 +102,7 @@ export function OnboardingScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.skip} onPress={finish} hitSlop={12}>
+      <Pressable style={styles.skip} onPress={() => void finish(false)} hitSlop={12}>
         <Text style={styles.skipText}>Skip</Text>
       </Pressable>
 
@@ -124,10 +132,15 @@ export function OnboardingScreen({ navigation }: Props) {
           ))}
         </View>
         <Button
-          title={isLast ? 'Get started' : 'Next'}
+          title={isLast ? 'Turn on reminders' : 'Next'}
           variant={isLast ? 'coral' : 'primary'}
           onPress={next}
         />
+        {isLast && (
+          <Pressable onPress={() => void finish(false)} hitSlop={8} style={styles.later}>
+            <Text style={styles.laterText}>Not now — I’ll decide later</Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -194,5 +207,14 @@ const styles = StyleSheet.create({
   dotActive: {
     backgroundColor: colors.primary,
     width: 22,
+  },
+  later: {
+    alignSelf: 'center',
+    marginTop: -spacing.sm,
+  },
+  laterText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.muted,
   },
 });
