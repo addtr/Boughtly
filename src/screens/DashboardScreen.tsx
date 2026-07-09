@@ -265,7 +265,7 @@ export function DashboardScreen() {
                     >
                       {formatPrice(insights.pending)}
                     </Text>
-                    <Text style={styles.statLabel}>coming back</Text>
+                    <Text style={styles.statLabel}>on its way</Text>
                   </View>
                   <View style={styles.statVDivider} />
                   <View style={styles.stat}>
