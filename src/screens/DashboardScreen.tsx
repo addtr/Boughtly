@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -27,6 +28,15 @@ import { computeInsights } from '../utils/insights';
 /** Items whose nearest active deadline is this close (days) are "act now". */
 const URGENT_DAYS = 7;
 
+type SortMode = 'deadline' | 'newest' | 'price' | 'name';
+const SORT_OPTIONS: { key: SortMode; label: string }[] = [
+  { key: 'deadline', label: 'Deadline' },
+  { key: 'newest', label: 'Newest' },
+  { key: 'price', label: 'Price' },
+  { key: 'name', label: 'A–Z' },
+];
+const DASH_PREFS_KEY = 'boughtly.dashPrefs.v1';
+
 export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { items, returns, watches, recentlyDeleted, undoDelete, deleteItem, startReturn } =
@@ -35,6 +45,24 @@ export function DashboardScreen() {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>('deadline');
+  const [hideExpired, setHideExpired] = useState(false);
+
+  // Sort/filter choices stick between sessions.
+  useEffect(() => {
+    AsyncStorage.getItem(DASH_PREFS_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        const prefs = JSON.parse(raw);
+        if (SORT_OPTIONS.some((o) => o.key === prefs.sortMode)) setSortMode(prefs.sortMode);
+        if (typeof prefs.hideExpired === 'boolean') setHideExpired(prefs.hideExpired);
+      })
+      .catch(() => {});
+  }, []);
+  function savePrefs(next: { sortMode?: SortMode; hideExpired?: boolean }) {
+    const merged = { sortMode, hideExpired, ...next };
+    AsyncStorage.setItem(DASH_PREFS_KEY, JSON.stringify(merged)).catch(() => {});
+  }
 
   // Pull-to-refresh recomputes every countdown and replays the ring animations
   const onRefresh = useCallback(() => {
@@ -54,17 +82,30 @@ export function DashboardScreen() {
     return items.filter((i) => !refunded.has(i.id));
   }, [items, returns]);
 
-  // Soonest active deadline first; fully-expired items sink to the bottom.
+  // Apply the chosen sort. Deadline sort keeps expired items at the bottom.
   const sorted = useMemo(() => {
-    return [...activeItems].sort((a, b) => {
-      const da = nearestDeadline(a).daysLeft;
-      const db = nearestDeadline(b).daysLeft;
-      const aExpired = da < 0 ? 1 : 0;
-      const bExpired = db < 0 ? 1 : 0;
-      if (aExpired !== bExpired) return aExpired - bExpired;
-      return da - db;
-    });
-  }, [activeItems]);
+    const list = [...activeItems];
+    switch (sortMode) {
+      case 'newest':
+        return list.sort((a, b) => b.purchaseDate.localeCompare(a.purchaseDate));
+      case 'price':
+        return list.sort((a, b) => b.price - a.price);
+      case 'name':
+        return list.sort((a, b) =>
+          a.itemName.localeCompare(b.itemName, undefined, { sensitivity: 'base' })
+        );
+      case 'deadline':
+      default:
+        return list.sort((a, b) => {
+          const da = nearestDeadline(a).daysLeft;
+          const db = nearestDeadline(b).daysLeft;
+          const aExpired = da < 0 ? 1 : 0;
+          const bExpired = db < 0 ? 1 : 0;
+          if (aExpired !== bExpired) return aExpired - bExpired;
+          return da - db;
+        });
+    }
+  }, [activeItems, sortMode]);
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
@@ -74,6 +115,7 @@ export function DashboardScreen() {
 
   const filtered = useMemo(() => {
     let list = sorted;
+    if (hideExpired) list = list.filter((i) => nearestDeadline(i).daysLeft >= 0);
     if (tagFilter) list = list.filter((i) => (i.tags ?? []).includes(tagFilter));
     const q = query.trim().toLowerCase();
     if (q) {
@@ -85,7 +127,7 @@ export function DashboardScreen() {
       );
     }
     return list;
-  }, [sorted, query, tagFilter]);
+  }, [sorted, query, tagFilter, hideExpired]);
 
   const firstExpiredIndex = useMemo(
     () => filtered.findIndex((item) => nearestDeadline(item).daysLeft < 0),
@@ -409,6 +451,49 @@ export function DashboardScreen() {
                       </Pressable>
                     );
                   })}
+                </ScrollView>
+              )}
+              {activeItems.length >= 4 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.sortRow}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <Text style={styles.sortLabel}>Sort</Text>
+                  {SORT_OPTIONS.map((o) => {
+                    const active = sortMode === o.key;
+                    return (
+                      <Pressable
+                        key={o.key}
+                        onPress={() => {
+                          setSortMode(o.key);
+                          savePrefs({ sortMode: o.key });
+                        }}
+                        style={[styles.tagFilter, active && styles.tagFilterActive]}
+                      >
+                        <Text
+                          style={[styles.tagFilterText, active && styles.tagFilterTextActive]}
+                        >
+                          {o.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                  <View style={styles.sortDivider} />
+                  <Pressable
+                    onPress={() => {
+                      setHideExpired(!hideExpired);
+                      savePrefs({ hideExpired: !hideExpired });
+                    }}
+                    style={[styles.tagFilter, hideExpired && styles.tagFilterActive]}
+                  >
+                    <Text
+                      style={[styles.tagFilterText, hideExpired && styles.tagFilterTextActive]}
+                    >
+                      Hide expired
+                    </Text>
+                  </Pressable>
                 </ScrollView>
               )}
               {(watchStats.count > 0 || underWarranty > 0) && (
@@ -735,6 +820,24 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
     marginLeft: 2,
+  },
+  sortRow: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
+    paddingRight: spacing.md,
+  },
+  sortLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.muted,
+    marginRight: 2,
+  },
+  sortDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: colors.divider,
+    marginHorizontal: 4,
   },
   quickRow: {
     flexDirection: 'row',

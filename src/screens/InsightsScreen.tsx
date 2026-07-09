@@ -1,11 +1,13 @@
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { formatPrice } from '../utils/dates';
+import { computeYearRecap, recapShareText } from '../utils/recap';
 import { monthlySpend, spendByStore, spendByTag } from '../utils/spending';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Insights'>;
@@ -32,6 +34,17 @@ export function InsightsScreen({ navigation }: Props) {
       ) / 100,
     [returns]
   );
+
+  const year = new Date().getFullYear();
+  const recap = useMemo(() => computeYearRecap(items, returns, year), [items, returns, year]);
+
+  async function shareRecap() {
+    try {
+      await Share.share({ message: recapShareText(recap, formatPrice) });
+    } catch {
+      // dismissed
+    }
+  }
 
   const maxMonth = Math.max(...months.map((m) => m.total), 1);
   const maxStore = Math.max(...stores.map((s) => s.total), 1);
@@ -133,6 +146,40 @@ export function InsightsScreen({ navigation }: Props) {
               </View>
             ))}
           </Card>
+        </>
+      )}
+
+      {/* Year in review */}
+      {recap.itemCount > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Your {year} so far</Text>
+          <View style={styles.recapCard}>
+            <Text style={styles.recapLine}>
+              🧾 Protected {recap.itemCount} purchase{recap.itemCount === 1 ? '' : 's'}{' '}
+              worth {formatPrice(recap.protectedTotal)}
+            </Text>
+            {recap.recovered > 0 && (
+              <Text style={styles.recapLine}>
+                💸 Got {formatPrice(recap.recovered)} back across{' '}
+                {recap.returnsCompleted} return{recap.returnsCompleted === 1 ? '' : 's'}
+              </Text>
+            )}
+            {recap.topStore && (
+              <Text style={styles.recapLine}>🏬 Shopped most at {recap.topStore}</Text>
+            )}
+            {recap.biggestName && (
+              <Text style={styles.recapLine}>
+                🏆 Biggest buy: {recap.biggestName} ({formatPrice(recap.biggestPrice)})
+              </Text>
+            )}
+            <Pressable
+              style={({ pressed }) => [styles.recapShare, pressed && { opacity: 0.9 }]}
+              onPress={() => void shareRecap()}
+            >
+              <Ionicons name="share-outline" size={16} color={colors.success} />
+              <Text style={styles.recapShareText}>Share my recap</Text>
+            </Pressable>
+          </View>
         </>
       )}
 
@@ -255,6 +302,33 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.primary,
+  },
+  recapCard: {
+    backgroundColor: colors.successSoft,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  recapLine: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.success,
+    lineHeight: 20,
+  },
+  recapShare: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    marginTop: spacing.xs,
+  },
+  recapShareText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.success,
   },
   empty: {
     fontFamily: fonts.body,
