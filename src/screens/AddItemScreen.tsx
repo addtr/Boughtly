@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -104,6 +105,9 @@ export function AddItemScreen({ navigation, route }: Props) {
   const [productPhotos, setProductPhotos] = useState<string[]>(editing?.productPhotos ?? []);
   const [tags, setTags] = useState<string[]>(editing?.tags ?? []);
   const [tagDraft, setTagDraft] = useState('');
+  const [documents, setDocuments] = useState<{ name: string; uri: string }[]>(
+    editing?.documents ?? []
+  );
 
   const [warrantyDays, setWarrantyDays] = useState<number>(
     editing?.warrantyLengthDays ?? 365
@@ -416,6 +420,37 @@ export function AddItemScreen({ navigation, route }: Props) {
     setProductPhotos((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  /** Attach a PDF/image document (warranty card, manual, receipt PDF). */
+  async function pickDocument() {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*', 'text/plain'],
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+      if (res.canceled || res.assets.length === 0) return;
+      const added = res.assets.map((a) => {
+        // Copy into the documents dir so it survives cache cleanup.
+        try {
+          const ext = a.name?.split('.').pop() || a.uri.split('.').pop() || 'pdf';
+          const rand = Math.random().toString(36).slice(2, 7);
+          const dest = new File(Paths.document, `doc-${Date.now()}-${rand}.${ext}`);
+          new File(a.uri).copy(dest);
+          return { name: a.name ?? `document.${ext}`, uri: dest.uri };
+        } catch {
+          return { name: a.name ?? 'document', uri: a.uri };
+        }
+      });
+      setDocuments((prev) => [...prev, ...added]);
+    } catch {
+      Alert.alert('Something went wrong', 'We couldn’t attach that file. Try again.');
+    }
+  }
+
+  function removeDocument(idx: number) {
+    setDocuments((prev) => prev.filter((_, i) => i !== idx));
+  }
+
   function addTag() {
     const t = tagDraft.trim().replace(/,/g, '').toLowerCase();
     setTagDraft('');
@@ -512,6 +547,7 @@ export function AddItemScreen({ navigation, route }: Props) {
         tags: tags.length > 0 ? tags : undefined,
         serialNumber: serialNumber.trim() || undefined,
         productPhotos: storedPhotos.length > 0 ? storedPhotos : undefined,
+        documents: documents.length > 0 ? documents : undefined,
         protectionPlan:
           hasPlan && planProvider.trim()
             ? {
@@ -850,6 +886,27 @@ export function AddItemScreen({ navigation, route }: Props) {
           </Pressable>
         </ScrollView>
 
+        <Text style={styles.photosLabel}>Documents (optional)</Text>
+        <Text style={styles.photosHint}>
+          Attach the warranty card, manual, or a PDF receipt — everything for a claim
+          in one place.
+        </Text>
+        {documents.map((d, idx) => (
+          <View key={`${d.uri}-${idx}`} style={styles.docRow}>
+            <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+            <Text style={styles.docName} numberOfLines={1}>
+              {d.name}
+            </Text>
+            <Pressable onPress={() => removeDocument(idx)} hitSlop={8}>
+              <Ionicons name="close-circle" size={20} color={colors.muted} />
+            </Pressable>
+          </View>
+        ))}
+        <Pressable style={styles.docAdd} onPress={() => void pickDocument()}>
+          <Ionicons name="attach" size={18} color={colors.primary} />
+          <Text style={styles.docAddText}>Attach a document</Text>
+        </Pressable>
+
         <Field
           label="Notes (optional)"
           value={notes}
@@ -1076,6 +1133,34 @@ const styles = StyleSheet.create({
   photoAddText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
+    color: colors.primary,
+  },
+  docRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  docName: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.text,
+  },
+  docAdd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  docAddText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
     color: colors.primary,
   },
   tagWrap: {

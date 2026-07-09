@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useMemo, useState } from 'react';
 import {
@@ -455,6 +456,35 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             <Text style={styles.serial} selectable>
               {item.serialNumber}
             </Text>
+          </Card>
+        </>
+      ) : null}
+
+      {item.documents && item.documents.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>Documents</Text>
+          <Card style={styles.docsCard}>
+            {item.documents.map((d, i) => (
+              <Pressable
+                key={`${d.uri}-${i}`}
+                style={[styles.docOpenRow, i > 0 && styles.lineItemDivider]}
+                onPress={async () => {
+                  try {
+                    if (await Sharing.isAvailableAsync()) {
+                      await Sharing.shareAsync(d.uri);
+                    }
+                  } catch {
+                    Alert.alert('Couldn’t open that', 'The file may have been moved.');
+                  }
+                }}
+              >
+                <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+                <Text style={styles.docOpenName} numberOfLines={1}>
+                  {d.name}
+                </Text>
+                <Ionicons name="open-outline" size={16} color={colors.muted} />
+              </Pressable>
+            ))}
           </Card>
         </>
       ) : null}
@@ -1026,6 +1056,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.deepBlue,
     letterSpacing: 0.5,
+  },
+  docsCard: {
+    paddingVertical: spacing.xs,
+  },
+  docOpenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 12,
+  },
+  docOpenName: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.text,
   },
   photoGallery: {
     gap: spacing.sm,
