@@ -92,9 +92,15 @@ export function AddItemScreen({ navigation, route }: Props) {
   const [purchaseDate, setPurchaseDate] = useState(
     editing?.purchaseDate ?? toISODate(new Date())
   );
-  const [receiptImageUri, setReceiptImageUri] = useState<string | null>(
-    editing?.receiptImageUri ?? null
+  // All receipt pages (long receipts need several photos). First page = OCR.
+  const [receiptImages, setReceiptImages] = useState<string[]>(
+    editing?.receiptImageUris ??
+      (editing?.receiptImageUri ? [editing.receiptImageUri] : [])
   );
+  const receiptImageUri = receiptImages[0] ?? null;
+  // Fresh value inside async OCR callbacks (state in that closure is stale).
+  const receiptImagesRef = useRef(receiptImages);
+  receiptImagesRef.current = receiptImages;
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [isGift, setIsGift] = useState(editing?.isGift ?? false);
   const [serialNumber, setSerialNumber] = useState(editing?.serialNumber ?? '');
@@ -265,8 +271,9 @@ export function AddItemScreen({ navigation, route }: Props) {
    */
   function handleExtracted(extracted: ExtractedReceipt) {
     if (!editing && extracted.lineItems.length >= 2 && !itemName.trim()) {
-      // Persist the receipt photo so every created item shares it
-      let persisted = receiptImageUri;
+      // Persist the receipt photo so every created item shares it.
+      // (Read via ref — this runs after an await, where state is stale.)
+      let persisted: string | null = receiptImagesRef.current[0] ?? null;
       if (persisted && !persisted.includes('receipt-')) {
         try {
           persisted = persistReceiptImage(persisted);
@@ -390,8 +397,10 @@ export function AddItemScreen({ navigation, route }: Props) {
         : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
       if (!result.canceled && result.assets[0]) {
         const uri = result.assets[0].uri;
-        setReceiptImageUri(uri);
-        void runOcr(uri);
+        const isFirstPage = receiptImages.length === 0;
+        setReceiptImages((prev) => [...prev, uri]);
+        // Only the first page drives auto-fill; extra pages are kept as proof.
+        if (isFirstPage) void runOcr(uri);
       }
     } catch (e) {
       Alert.alert('Something went wrong', 'We couldn’t open that. Try again.');
@@ -530,15 +539,16 @@ export function AddItemScreen({ navigation, route }: Props) {
   async function persistSave(price: number) {
     setSaving(true);
     try {
-      let storedUri = receiptImageUri;
-      // Only copy newly-picked images (cache paths); already-persisted ones keep their URI
-      if (storedUri && !storedUri.includes('receipt-')) {
+      // Persist every receipt page (only newly-picked cache paths get copied).
+      const storedReceipts: string[] = receiptImages.map((uri) => {
+        if (uri.includes('receipt-')) return uri;
         try {
-          storedUri = persistReceiptImage(storedUri);
+          return persistReceiptImage(uri);
         } catch {
-          // fall back to the original URI rather than blocking the save
+          return uri; // keep the original rather than blocking the save
         }
-      }
+      });
+      const storedUri = storedReceipts[0] ?? null;
       // Persist any freshly-picked product photos to the documents dir.
       const storedPhotos: string[] = [];
       for (const uri of productPhotos) {
@@ -559,6 +569,7 @@ export function AddItemScreen({ navigation, route }: Props) {
         price,
         purchaseDate,
         receiptImageUri: storedUri,
+        receiptImageUris: storedReceipts.length > 0 ? storedReceipts : undefined,
         warrantyLengthDays: warrantyDays,
         returnWindowDays: returnDays,
         notes: notes.trim() || undefined,
@@ -607,8 +618,31 @@ export function AddItemScreen({ navigation, route }: Props) {
       >
         {/* Receipt photo */}
         <Card style={styles.receiptCard}>
-          {receiptImageUri ? (
-            <Image source={{ uri: receiptImageUri }} style={styles.receiptPreview} />
+          {receiptImages.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.receiptPages}
+            >
+              {receiptImages.map((uri, idx) => (
+                <View key={`${uri}-${idx}`} style={styles.receiptPageWrap}>
+                  <Image source={{ uri }} style={styles.receiptPage} />
+                  <Text style={styles.receiptPageLabel}>
+                    {idx === 0 ? 'Page 1 (scanned)' : `Page ${idx + 1}`}
+                  </Text>
+                  <Pressable
+                    style={styles.receiptPageRemove}
+                    onPress={() =>
+                      setReceiptImages((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                    hitSlop={6}
+                    accessibilityLabel="Remove page"
+                  >
+                    <Ionicons name="close" size={14} color="#FFFFFF" />
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
           ) : (
             <Text style={styles.receiptHint}>
               Snap the receipt now — you’ll thank yourself at the return counter.
@@ -616,7 +650,7 @@ export function AddItemScreen({ navigation, route }: Props) {
           )}
           <View style={styles.receiptButtons}>
             <Button
-              title={receiptImageUri ? 'Retake photo' : 'Scan receipt'}
+              title={receiptImages.length > 0 ? 'Add another page' : 'Scan receipt'}
               onPress={() => pickImage(true)}
               style={styles.flex}
             />
@@ -1014,6 +1048,39 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     backgroundColor: colors.divider,
     resizeMode: 'cover',
+  },
+  receiptPages: {
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
+    paddingRight: spacing.md,
+  },
+  receiptPageWrap: {
+    position: 'relative',
+    alignItems: 'center',
+  },
+  receiptPage: {
+    width: 110,
+    height: 140,
+    borderRadius: radii.md,
+    backgroundColor: colors.divider,
+    resizeMode: 'cover',
+  },
+  receiptPageLabel: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 4,
+  },
+  receiptPageRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(15,18,28,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   receiptHint: {
     fontFamily: fonts.body,

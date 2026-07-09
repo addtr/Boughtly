@@ -257,7 +257,16 @@ export function ItemDetailScreen({ navigation, route }: Props) {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.name}>{item.itemName}</Text>
       <Text style={styles.subtitle}>
-        {item.storeName} · {formatPrice(item.price)} · bought {formatDate(item.purchaseDate)}
+        <Text
+          style={styles.storeLink}
+          onPress={() =>
+            navigation.navigate('StoreProfile', { storeName: item.storeName })
+          }
+        >
+          {item.storeName}
+        </Text>
+        {'  ·  '}
+        {formatPrice(item.price)} · bought {formatDate(item.purchaseDate)}
       </Text>
       <View
         style={[
@@ -508,14 +517,39 @@ export function ItemDetailScreen({ navigation, route }: Props) {
 
       {/* Receipt */}
       <Text style={styles.sectionTitle}>Receipt</Text>
-      {item.receiptImageUri ? (
-        <Card style={styles.receiptCard}>
-          <Pressable onPress={() => setViewerUri(item.receiptImageUri)}>
-            <Image source={{ uri: item.receiptImageUri }} style={styles.receiptImage} />
-            <Text style={styles.receiptHint}>Tap to view full screen</Text>
-          </Pressable>
-        </Card>
-      ) : (
+      {(() => {
+        const pages =
+          item.receiptImageUris ??
+          (item.receiptImageUri ? [item.receiptImageUri] : []);
+        if (pages.length === 0) return null;
+        if (pages.length === 1) {
+          return (
+            <Card style={styles.receiptCard}>
+              <Pressable onPress={() => setViewerUri(pages[0])}>
+                <Image source={{ uri: pages[0] }} style={styles.receiptImage} />
+                <Text style={styles.receiptHint}>Tap to view full screen</Text>
+              </Pressable>
+            </Card>
+          );
+        }
+        return (
+          <Card style={styles.receiptCard}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.receiptPagesRow}
+            >
+              {pages.map((uri, i) => (
+                <Pressable key={`${uri}-${i}`} onPress={() => setViewerUri(uri)}>
+                  <Image source={{ uri }} style={styles.receiptPageThumb} />
+                  <Text style={styles.receiptPageNum}>Page {i + 1}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Text style={styles.receiptHint}>Tap a page to view full screen</Text>
+          </Card>
+        );
+      })() ?? (
         <Card style={styles.receiptCard}>
           <Text style={styles.noReceipt}>
             No receipt photo yet. Add one from Edit so it’s there when you need it.
@@ -820,6 +854,10 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: 4,
   },
+  storeLink: {
+    fontFamily: fonts.bodyMedium,
+    color: colors.primary,
+  },
   statusPill: {
     alignSelf: 'flex-start',
     paddingVertical: 6,
@@ -1081,6 +1119,24 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
     marginTop: spacing.sm,
+  },
+  receiptPagesRow: {
+    gap: spacing.sm,
+    paddingRight: spacing.sm,
+  },
+  receiptPageThumb: {
+    width: 130,
+    height: 180,
+    borderRadius: radii.md,
+    backgroundColor: colors.divider,
+    resizeMode: 'cover',
+  },
+  receiptPageNum: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.muted,
+    textAlign: 'center',
+    marginTop: 4,
   },
   reminderRow: {
     flexDirection: 'row',

@@ -31,6 +31,7 @@ export type RootStackParamList = {
   ItemDetail: { itemId: string };
   Insights: undefined;
   Reminders: undefined;
+  StoreProfile: { storeName: string };
   AddWatch: { prefillName?: string } | undefined;
   WatchDetail: { watchId: string };
   ReturnDetail: { returnId: string };

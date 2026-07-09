@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
@@ -12,7 +12,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Insights'>;
 
 const CHART_HEIGHT = 120;
 
-export function InsightsScreen(_props: Props) {
+export function InsightsScreen({ navigation }: Props) {
   const { items, returns } = useAppState();
 
   const months = useMemo(() => monthlySpend(items), [items]);
@@ -92,9 +92,13 @@ export function InsightsScreen(_props: Props) {
           <Text style={styles.sectionTitle}>Where it goes</Text>
           <Card>
             {stores.map((s, i) => (
-              <View key={s.name} style={[styles.rowItem, i > 0 && styles.rowDivider]}>
+              <Pressable
+                key={s.name}
+                style={[styles.rowItem, i > 0 && styles.rowDivider]}
+                onPress={() => navigation.navigate('StoreProfile', { storeName: s.name })}
+              >
                 <View style={styles.rowTop}>
-                  <Text style={styles.rowName} numberOfLines={1}>
+                  <Text style={[styles.rowName, styles.rowNameLink]} numberOfLines={1}>
                     {s.name}
                   </Text>
                   <Text style={styles.rowValue}>{formatPrice(s.total)}</Text>
@@ -104,7 +108,7 @@ export function InsightsScreen(_props: Props) {
                     style={[styles.rowBar, { width: `${(s.total / maxStore) * 100}%` }]}
                   />
                 </View>
-              </View>
+              </Pressable>
             ))}
           </Card>
         </>
@@ -232,6 +236,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
     color: colors.text,
+  },
+  rowNameLink: {
+    color: colors.primary,
   },
   rowValue: {
     fontFamily: fonts.bodySemiBold,

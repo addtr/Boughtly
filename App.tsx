@@ -30,6 +30,7 @@ import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
 import { RemindersScreen } from './src/screens/RemindersScreen';
 import { ReturnDetailScreen } from './src/screens/ReturnDetailScreen';
 import { ScanReviewScreen } from './src/screens/ScanReviewScreen';
+import { StoreProfileScreen } from './src/screens/StoreProfileScreen';
 import { WatchDetailScreen } from './src/screens/WatchDetailScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { AppStateProvider, useAppState } from './src/store/AppStateContext';
@@ -233,6 +234,11 @@ function Root() {
           name="Reminders"
           component={RemindersScreen}
           options={{ title: 'Upcoming reminders' }}
+        />
+        <Stack.Screen
+          name="StoreProfile"
+          component={StoreProfileScreen}
+          options={{ title: '' }}
         />
         <Stack.Screen
           name="AddWatch"

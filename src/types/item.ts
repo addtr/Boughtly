@@ -23,8 +23,10 @@ export interface TrackedItem {
   price: number;
   /** ISO date string, e.g. "2026-07-05" */
   purchaseDate: string;
-  /** Local file URI of the receipt photo, if any */
+  /** Local file URI of the receipt photo, if any (first page) */
   receiptImageUri: string | null;
+  /** All receipt pages, in order (long receipts, front/back). Includes the first. */
+  receiptImageUris?: string[];
   warrantyLengthDays: number;
   /** Calculated: purchaseDate + warrantyLengthDays (ISO date string) */
   warrantyExpirationDate: string;

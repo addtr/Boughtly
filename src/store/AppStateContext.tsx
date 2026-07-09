@@ -36,6 +36,7 @@ export interface NewItemInput {
   price: number;
   purchaseDate: string;
   receiptImageUri: string | null;
+  receiptImageUris?: string[];
   warrantyLengthDays: number;
   returnWindowDays: number;
   notes?: string;
