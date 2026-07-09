@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -24,6 +24,12 @@ import { useAppState } from '../store/AppStateContext';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { addDays, daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
 import { computeInsights } from '../utils/insights';
+import { spendByStore } from '../utils/spending';
+import {
+  fetchUpcomingReminders,
+  formatFireAt,
+  UpcomingReminder,
+} from '../utils/upcomingReminders';
 
 /** Items whose nearest active deadline is this close (days) are "act now". */
 const URGENT_DAYS = 7;
@@ -199,6 +205,19 @@ export function DashboardScreen() {
     [activeItems]
   );
 
+  // The next few scheduled reminders, shown right on the home screen.
+  const [upcoming, setUpcoming] = useState<UpcomingReminder[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      void fetchUpcomingReminders().then((all) =>
+        setUpcoming(all.filter((r) => r.fireAt !== null).slice(0, 3))
+      );
+    }, [])
+  );
+
+  // Your stores, biggest spend first — one tap to a store's profile page.
+  const topStores = useMemo(() => spendByStore(activeItems, 8), [activeItems]);
+
   /** Swipe → Return: single items go straight to a return; multi-item
    *  purchases open the detail so the partial-return picker can run. */
   async function swipeReturn(item: (typeof items)[number]) {
@@ -367,6 +386,28 @@ export function DashboardScreen() {
                   </View>
                 </View>
               </Pressable>
+              {!query.trim() && upcoming.length > 0 && (
+                <View style={styles.remindersCard}>
+                  <Pressable
+                    style={styles.remindersHeader}
+                    onPress={() => navigation.navigate('Reminders')}
+                  >
+                    <Ionicons name="notifications" size={17} color={colors.primary} />
+                    <Text style={styles.remindersTitle}>Upcoming reminders</Text>
+                    <Text style={styles.remindersSeeAll}>See all ›</Text>
+                  </Pressable>
+                  {upcoming.map((r) => (
+                    <View key={r.id} style={styles.reminderLine}>
+                      <Text style={styles.reminderWhen}>
+                        {r.fireAt ? formatFireAt(r.fireAt) : ''}
+                      </Text>
+                      <Text style={styles.reminderWhat} numberOfLines={1}>
+                        {r.title}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               {!query.trim() && priceAdjustOpps.length > 0 && (
                 <View style={styles.oppCard}>
                   <View style={styles.oppHeader}>
@@ -453,7 +494,34 @@ export function DashboardScreen() {
                   })}
                 </ScrollView>
               )}
-              {activeItems.length >= 4 && (
+              {topStores.length > 0 && (
+                <View>
+                  <Text style={styles.storesTitle}>Your stores</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.storesRow}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    {topStores.map((s) => (
+                      <Pressable
+                        key={s.name}
+                        style={({ pressed }) => [styles.storeChip, pressed && { opacity: 0.85 }]}
+                        onPress={() =>
+                          navigation.navigate('StoreProfile', { storeName: s.name })
+                        }
+                      >
+                        <Ionicons name="storefront-outline" size={15} color={colors.primary} />
+                        <Text style={styles.storeChipText} numberOfLines={1}>
+                          {s.name}
+                        </Text>
+                        <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+              {activeItems.length >= 2 && (
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -820,6 +888,78 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
     marginLeft: 2,
+  },
+  remindersCard: {
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    ...cardShadow,
+  },
+  remindersHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.sm,
+  },
+  remindersTitle: {
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.deepBlue,
+  },
+  remindersSeeAll: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.primary,
+  },
+  reminderLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 5,
+  },
+  reminderWhen: {
+    width: 118,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.primary,
+  },
+  reminderWhat: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.text,
+  },
+  storesTitle: {
+    fontFamily: fonts.display,
+    fontSize: 14,
+    color: colors.muted,
+    marginBottom: spacing.sm,
+    marginLeft: 2,
+  },
+  storesRow: {
+    gap: spacing.sm,
+    paddingBottom: spacing.md,
+    paddingRight: spacing.md,
+  },
+  storeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.card,
+    borderRadius: 100,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    maxWidth: 200,
+    ...cardShadow,
+    shadowOpacity: 0.05,
+    elevation: 1,
+  },
+  storeChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.deepBlue,
   },
   sortRow: {
     alignItems: 'center',

@@ -1,8 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { TrackedItem } from '../types/item';
-import { formatPrice, nearestDeadline } from '../utils/dates';
+import { formatDate, formatPrice, nearestDeadline } from '../utils/dates';
 import { CountdownRing } from './CountdownRing';
 
 interface ItemCardProps {
@@ -70,6 +71,14 @@ export function ItemCard({ item, onPress, index = 0 }: ItemCardProps) {
         <Text style={styles.deadline} numberOfLines={1}>
           {deadlineCopy}
         </Text>
+        {item.customReminder ? (
+          <View style={styles.reminderRow}>
+            <Ionicons name="notifications" size={12} color={colors.primary} />
+            <Text style={styles.reminderText} numberOfLines={1}>
+              {item.customReminder.note} · {formatDate(item.customReminder.date)}
+            </Text>
+          </View>
+        ) : null}
       </View>
       {item.receiptImageUri ? (
         <Image source={{ uri: item.receiptImageUri }} style={styles.thumb} />
@@ -113,6 +122,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
     marginTop: 6,
+  },
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  reminderText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.primary,
   },
   thumb: {
     width: 44,

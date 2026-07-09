@@ -1,85 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as Notifications from 'expo-notifications';
 import React, { useCallback, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { colors, fonts, spacing } from '../theme/theme';
+import {
+  fetchUpcomingReminders,
+  formatFireAt,
+  UpcomingReminder,
+} from '../utils/upcomingReminders';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Reminders'>;
-
-interface UpcomingReminder {
-  id: string;
-  title: string;
-  body: string;
-  /** When it fires; null for repeating interval reminders */
-  fireAt: Date | null;
-  /** For repeating reminders, the repeat interval in days */
-  repeatDays: number | null;
-}
-
-/** Read the fire time out of the platform-specific trigger shape, defensively. */
-function parseTrigger(trigger: unknown): { fireAt: Date | null; repeatDays: number | null } {
-  const t = trigger as Record<string, any> | null;
-  if (!t) return { fireAt: null, repeatDays: null };
-  // Repeating interval (the price-check reminder)
-  if (typeof t.seconds === 'number' && (t.repeats || t.type === 'timeInterval')) {
-    return { fireAt: null, repeatDays: Math.round(t.seconds / 86400) };
-  }
-  // One-shot date triggers surface differently per platform/version
-  const raw = t.value ?? t.date ?? t.timestamp;
-  if (typeof raw === 'number') return { fireAt: new Date(raw), repeatDays: null };
-  if (typeof raw === 'string') {
-    const d = new Date(raw);
-    if (!Number.isNaN(d.getTime())) return { fireAt: d, repeatDays: null };
-  }
-  return { fireAt: null, repeatDays: null };
-}
-
-function formatFireAt(d: Date): string {
-  return d.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  }) +
-    ' · ' +
-    d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
 
 export function RemindersScreen(_props: Props) {
   const [reminders, setReminders] = useState<UpcomingReminder[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (Platform.OS === 'web') {
-      setLoaded(true);
-      return;
-    }
-    try {
-      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-      const list: UpcomingReminder[] = scheduled.map((n) => {
-        const { fireAt, repeatDays } = parseTrigger(n.trigger);
-        return {
-          id: n.identifier,
-          title: n.content.title ?? 'Reminder',
-          body: n.content.body ?? '',
-          fireAt,
-          repeatDays,
-        };
-      });
-      // Soonest first; repeating ones sink to the bottom.
-      list.sort((a, b) => {
-        if (a.fireAt && b.fireAt) return a.fireAt.getTime() - b.fireAt.getTime();
-        if (a.fireAt) return -1;
-        if (b.fireAt) return 1;
-        return 0;
-      });
-      setReminders(list);
-    } finally {
-      setLoaded(true);
-    }
+    setReminders(await fetchUpcomingReminders());
+    setLoaded(true);
   }, []);
 
   useFocusEffect(

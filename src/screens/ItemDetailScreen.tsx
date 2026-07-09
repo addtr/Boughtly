@@ -406,6 +406,40 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </Card>
       </View>
 
+      {/* Custom reminder — right under the deadlines so it can't be missed */}
+      <Pressable
+        style={({ pressed }) => [styles.reminderRow, pressed && { opacity: 0.9 }]}
+        onPress={openReminderEditor}
+      >
+        <View style={styles.reminderIcon}>
+          <Ionicons
+            name={item.customReminder ? 'notifications' : 'add'}
+            size={item.customReminder ? 18 : 22}
+            color="#FFFFFF"
+          />
+        </View>
+        <View style={styles.reminderText}>
+          {item.customReminder ? (
+            <>
+              <Text style={styles.reminderTitle} numberOfLines={1}>
+                {item.customReminder.note}
+              </Text>
+              <Text style={styles.reminderMeta}>
+                Reminds you {formatDate(item.customReminder.date)} — tap to change
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.reminderTitle}>Set your own reminder</Text>
+              <Text style={styles.reminderMeta}>
+                Pick any date and note — “decide if I’m keeping this by Sunday”.
+              </Text>
+            </>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+      </Pressable>
+
       {/* Warranty claim assistant — active warranties are actionable */}
       {warrantyDaysLeft >= 0 && (
         <View style={styles.warrantyCard}>
@@ -488,37 +522,6 @@ export function ItemDetailScreen({ navigation, route }: Props) {
           ) : null}
         </View>
       )}
-
-      {/* Custom reminder */}
-      <Pressable style={styles.reminderRow} onPress={openReminderEditor}>
-        <View style={styles.reminderIcon}>
-          <Ionicons
-            name={item.customReminder ? 'notifications' : 'notifications-outline'}
-            size={18}
-            color={colors.primary}
-          />
-        </View>
-        <View style={styles.reminderText}>
-          {item.customReminder ? (
-            <>
-              <Text style={styles.reminderTitle} numberOfLines={1}>
-                {item.customReminder.note}
-              </Text>
-              <Text style={styles.reminderMeta}>
-                Reminds you {formatDate(item.customReminder.date)} — tap to change
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.reminderTitle}>Add your own reminder</Text>
-              <Text style={styles.reminderMeta}>
-                A date and note just for this item — “decide by Sunday”.
-              </Text>
-            </>
-          )}
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={colors.muted} />
-      </Pressable>
 
       {/* What's on this receipt */}
       {item.lineItems && item.lineItems.length > 0 ? (
@@ -1223,17 +1226,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.card,
+    backgroundColor: colors.primarySoft,
     borderRadius: radii.lg,
     padding: spacing.md,
     marginTop: spacing.md,
-    ...cardShadow,
   },
   reminderIcon: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: colors.primarySoft,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
