@@ -40,6 +40,10 @@ export interface TrackedItem {
   serialNumber?: string;
   /** Local file URIs of product photos (condition, serial plate, box) */
   productPhotos?: string[];
+  /** A user-set one-off reminder for this item ("decide by Sunday") */
+  customReminder?: { date: string; note: string };
+  /** True once the user registered the product with the manufacturer */
+  productRegistered?: boolean;
   /** Extended warranty / protection plan, if one was purchased */
   protectionPlan?: ProtectionPlan;
   /** Attached documents (warranty card PDF, manual…) as local file URIs */

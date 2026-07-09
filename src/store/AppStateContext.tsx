@@ -64,6 +64,11 @@ interface AppState {
   isLoaded: boolean;
   addItem: (input: NewItemInput) => Promise<TrackedItem>;
   updateItem: (id: string, input: NewItemInput) => Promise<void>;
+  /** Small targeted change (custom reminder, flags) — reschedules reminders. */
+  patchItem: (
+    id: string,
+    patch: Partial<Pick<TrackedItem, 'customReminder' | 'productRegistered'>>
+  ) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   /** The item most recently deleted, still restorable for a few seconds */
   recentlyDeleted: TrackedItem | null;
@@ -217,6 +222,21 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         // Preserve the receipt breakdown if the edit form didn't supply one
         lineItems: input.lineItems ?? existing.lineItems,
       };
+      updated.notificationIds = await scheduleItemReminders(updated, settingsRef.current);
+      await persistItems(itemsRef.current.map((i) => (i.id === id ? updated : i)));
+    },
+    [persistItems]
+  );
+
+  const patchItem = useCallback(
+    async (
+      id: string,
+      patch: Partial<Pick<TrackedItem, 'customReminder' | 'productRegistered'>>
+    ) => {
+      const existing = itemsRef.current.find((i) => i.id === id);
+      if (!existing) return;
+      await cancelItemReminders(existing.notificationIds);
+      const updated: TrackedItem = { ...existing, ...patch };
       updated.notificationIds = await scheduleItemReminders(updated, settingsRef.current);
       await persistItems(itemsRef.current.map((i) => (i.id === id ? updated : i)));
     },
@@ -490,6 +510,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       isLoaded,
       addItem,
       updateItem,
+      patchItem,
       deleteItem,
       recentlyDeleted,
       undoDelete,
@@ -513,6 +534,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       isLoaded,
       addItem,
       updateItem,
+      patchItem,
       deleteItem,
       recentlyDeleted,
       undoDelete,

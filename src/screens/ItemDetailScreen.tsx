@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
@@ -14,6 +15,7 @@ import {
   Share,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { CountdownRing } from '../components/CountdownRing';
@@ -24,16 +26,29 @@ import { resolveWarrantyPage } from '../services/warrantyUrl';
 import { useAppState } from '../store/AppStateContext';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { addDeadlineToCalendar } from '../utils/calendar';
-import { addDays, daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
+import {
+  addDays,
+  daysUntil,
+  formatDate,
+  formatPrice,
+  nearestDeadline,
+  parseISODate,
+  toISODate,
+} from '../utils/dates';
 import { tapFeedback, warningFeedback } from '../utils/haptics';
 import { openPriceScan } from '../utils/priceScan';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
 export function ItemDetailScreen({ navigation, route }: Props) {
-  const { items, returns, deleteItem, startReturn } = useAppState();
+  const { items, returns, deleteItem, startReturn, patchItem } = useAppState();
   const [viewerUri, setViewerUri] = useState<string | null>(null);
   const [returnPickerOpen, setReturnPickerOpen] = useState(false);
+  // Custom reminder editor
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [remDate, setRemDate] = useState<Date>(new Date());
+  const [remNote, setRemNote] = useState('');
+  const [remPickerVisible, setRemPickerVisible] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState<Set<number>>(new Set());
   const item = useMemo(
     () => items.find((i) => i.id === route.params.itemId),
@@ -151,6 +166,34 @@ export function ItemDetailScreen({ navigation, route }: Props) {
     } else {
       Alert.alert('Couldn’t add it', 'Something went wrong adding to your calendar.');
     }
+  }
+
+  function openReminderEditor() {
+    const existing = item!.customReminder;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setRemDate(existing ? parseISODate(existing.date) : tomorrow);
+    setRemNote(existing?.note ?? '');
+    setRemPickerVisible(Platform.OS === 'ios');
+    setReminderOpen(true);
+  }
+
+  async function saveCustomReminder() {
+    const iso = toISODate(remDate);
+    if (parseISODate(iso).getTime() <= Date.now() - 86400000) {
+      Alert.alert('Pick a future date', 'The reminder needs to be later than today.');
+      return;
+    }
+    setReminderOpen(false);
+    await patchItem(item!.id, {
+      customReminder: { date: iso, note: remNote.trim() || `Check on ${item!.itemName}` },
+    });
+    tapFeedback();
+  }
+
+  async function removeCustomReminder() {
+    setReminderOpen(false);
+    await patchItem(item!.id, { customReminder: undefined });
   }
 
   const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -397,6 +440,37 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </View>
       )}
 
+      {/* Custom reminder */}
+      <Pressable style={styles.reminderRow} onPress={openReminderEditor}>
+        <View style={styles.reminderIcon}>
+          <Ionicons
+            name={item.customReminder ? 'notifications' : 'notifications-outline'}
+            size={18}
+            color={colors.primary}
+          />
+        </View>
+        <View style={styles.reminderText}>
+          {item.customReminder ? (
+            <>
+              <Text style={styles.reminderTitle} numberOfLines={1}>
+                {item.customReminder.note}
+              </Text>
+              <Text style={styles.reminderMeta}>
+                Reminds you {formatDate(item.customReminder.date)} — tap to change
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.reminderTitle}>Add your own reminder</Text>
+              <Text style={styles.reminderMeta}>
+                A date and note just for this item — “decide by Sunday”.
+              </Text>
+            </>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+      </Pressable>
+
       {/* What's on this receipt */}
       {item.lineItems && item.lineItems.length > 0 ? (
         <>
@@ -552,6 +626,84 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         />
         <Button title="Stop tracking" variant="danger" onPress={confirmDelete} />
       </View>
+
+      {/* Custom reminder editor */}
+      <Modal
+        visible={reminderOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setReminderOpen(false)}
+      >
+        <View style={styles.sheetBackdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Remind me about this</Text>
+            <Text style={styles.sheetSub}>
+              One nudge, on the day you pick, at your usual reminder time.
+            </Text>
+
+            <Text style={styles.reminderLabel}>What should it say?</Text>
+            <TextInput
+              value={remNote}
+              onChangeText={setRemNote}
+              placeholder={`Check on ${item.itemName}`}
+              placeholderTextColor={colors.muted}
+              style={styles.reminderInput}
+            />
+
+            <Text style={styles.reminderLabel}>When?</Text>
+            {Platform.OS === 'web' ? (
+              <TextInput
+                value={toISODate(remDate)}
+                onChangeText={(t) => {
+                  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) setRemDate(parseISODate(t));
+                }}
+                placeholder="2026-07-20"
+                placeholderTextColor={colors.muted}
+                autoCapitalize="none"
+                style={styles.reminderInput}
+              />
+            ) : (
+              <>
+                <Pressable
+                  style={styles.reminderInput}
+                  onPress={() => setRemPickerVisible(true)}
+                >
+                  <Text style={styles.reminderDateText}>{formatDate(toISODate(remDate))}</Text>
+                </Pressable>
+                {remPickerVisible && (
+                  <DateTimePicker
+                    value={remDate}
+                    mode="date"
+                    minimumDate={new Date()}
+                    onChange={(event, date) => {
+                      if (Platform.OS !== 'ios') setRemPickerVisible(false);
+                      if (event.type !== 'dismissed' && date) setRemDate(date);
+                    }}
+                  />
+                )}
+              </>
+            )}
+
+            <Button title="Save reminder" onPress={() => void saveCustomReminder()} />
+            {item.customReminder ? (
+              <Pressable
+                style={styles.sheetCancel}
+                onPress={() => void removeCustomReminder()}
+                hitSlop={8}
+              >
+                <Text style={styles.reminderRemove}>Remove this reminder</Text>
+              </Pressable>
+            ) : null}
+            <Pressable
+              style={styles.sheetCancel}
+              onPress={() => setReminderOpen(false)}
+              hitSlop={8}
+            >
+              <Text style={styles.sheetCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Pick which items to return (partial returns) */}
       <Modal
@@ -929,6 +1081,65 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
     marginTop: spacing.sm,
+  },
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginTop: spacing.md,
+    ...cardShadow,
+  },
+  reminderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reminderText: {
+    flex: 1,
+  },
+  reminderTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.deepBlue,
+  },
+  reminderMeta: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  reminderLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.muted,
+    marginTop: spacing.sm,
+    marginBottom: 6,
+  },
+  reminderInput: {
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  reminderDateText: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.text,
+  },
+  reminderRemove: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.danger,
   },
   sheetBackdrop: {
     flex: 1,

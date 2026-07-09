@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -13,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { ItemCard } from '../components/ItemCard';
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
@@ -27,7 +29,8 @@ const URGENT_DAYS = 7;
 
 export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { items, returns, watches, recentlyDeleted, undoDelete } = useAppState();
+  const { items, returns, watches, recentlyDeleted, undoDelete, deleteItem, startReturn } =
+    useAppState();
   const [query, setQuery] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
@@ -153,6 +156,48 @@ export function DashboardScreen() {
     () => activeItems.filter((i) => daysUntil(i.warrantyExpirationDate) >= 0).length,
     [activeItems]
   );
+
+  /** Swipe → Return: single items go straight to a return; multi-item
+   *  purchases open the detail so the partial-return picker can run. */
+  async function swipeReturn(item: (typeof items)[number]) {
+    if (item.lineItems && item.lineItems.length >= 2) {
+      navigation.navigate('ItemDetail', { itemId: item.id });
+      return;
+    }
+    const ret = await startReturn(item);
+    navigation.navigate('ReturnDetail', { returnId: ret.id });
+  }
+
+  function swipeDelete(item: (typeof items)[number]) {
+    Alert.alert('Stop tracking this item?', `${item.itemName} — you'll have a few seconds to undo.`, [
+      { text: 'Keep it', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => void deleteItem(item.id) },
+    ]);
+  }
+
+  function renderRowActions(item: (typeof items)[number]) {
+    const returnable = daysUntil(item.returnDeadlineDate) >= 0;
+    return (
+      <View style={styles.swipeActions}>
+        {returnable && (
+          <Pressable
+            style={[styles.swipeAction, { backgroundColor: colors.coral }]}
+            onPress={() => void swipeReturn(item)}
+          >
+            <Ionicons name="arrow-undo" size={20} color="#FFFFFF" />
+            <Text style={styles.swipeActionText}>Return</Text>
+          </Pressable>
+        )}
+        <Pressable
+          style={[styles.swipeAction, { backgroundColor: colors.danger }]}
+          onPress={() => swipeDelete(item)}
+        >
+          <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.swipeActionText}>Delete</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -405,11 +450,17 @@ export function DashboardScreen() {
             {index === firstExpiredIndex && (
               <Text style={styles.expiredLabel}>Protection ended</Text>
             )}
-            <ItemCard
-              item={item}
-              index={index}
-              onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
-            />
+            <Swipeable
+              renderRightActions={() => renderRowActions(item)}
+              overshootRight={false}
+              friction={2}
+            >
+              <ItemCard
+                item={item}
+                index={index}
+                onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+              />
+            </Swipeable>
           </View>
         )}
         ListEmptyComponent={
@@ -736,6 +787,25 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   tagFilterTextActive: {
+    color: '#FFFFFF',
+  },
+  swipeActions: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginBottom: spacing.md,
+    marginLeft: spacing.sm,
+    gap: spacing.sm,
+  },
+  swipeAction: {
+    width: 76,
+    borderRadius: radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  swipeActionText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
     color: '#FFFFFF',
   },
   undoBar: {

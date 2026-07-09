@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LockScreen } from './src/components/LockScreen';
 import { Tabs } from './src/navigation/Tabs';
 import { RootStackParamList } from './src/navigation/types';
@@ -255,13 +256,16 @@ function Root() {
 
 export default function App() {
   return (
-    <AppStateProvider>
-      <Root />
-    </AppStateProvider>
+    <GestureHandlerRootView style={styles.flex}>
+      <AppStateProvider>
+        <Root />
+      </AppStateProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   loading: {
     flex: 1,
     backgroundColor: colors.background,

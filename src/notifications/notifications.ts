@@ -91,6 +91,17 @@ export async function scheduleItemReminders(
   );
   if (warrantyId) ids.push(warrantyId);
 
+  // User-set custom reminder for this item.
+  if (item.customReminder) {
+    const customId = await scheduleAt(
+      item.customReminder.note || `About ${item.itemName}`,
+      `Your reminder for ${item.itemName} from ${item.storeName}.`,
+      reminderDate(item.customReminder.date, 0, hour),
+      item.id
+    );
+    if (customId) ids.push(customId);
+  }
+
   // Protection plan: nudge before the paid coverage ends, same lead time as
   // the warranty reminder.
   if (item.protectionPlan) {
