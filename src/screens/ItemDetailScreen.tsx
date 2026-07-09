@@ -194,7 +194,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
     warningFeedback();
     Alert.alert(
       'Stop tracking this item?',
-      'Its reminders will be cancelled too. This can’t be undone.',
+      'Its reminders will be cancelled too. You’ll have a few seconds to undo.',
       [
         { text: 'Keep it', style: 'cancel' },
         {

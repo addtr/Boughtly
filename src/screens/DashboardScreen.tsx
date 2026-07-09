@@ -27,7 +27,7 @@ const URGENT_DAYS = 7;
 
 export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { items, returns, watches } = useAppState();
+  const { items, returns, watches, recentlyDeleted, undoDelete } = useAppState();
   const [query, setQuery] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
@@ -439,6 +439,16 @@ export function DashboardScreen() {
           )
         }
       />
+      {recentlyDeleted && (
+        <View style={styles.undoBar}>
+          <Text style={styles.undoText} numberOfLines={1}>
+            Deleted “{recentlyDeleted.itemName}”
+          </Text>
+          <Pressable onPress={() => void undoDelete()} hitSlop={10}>
+            <Text style={styles.undoAction}>Undo</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -724,6 +734,33 @@ const styles = StyleSheet.create({
   },
   tagFilterTextActive: {
     color: '#FFFFFF',
+  },
+  undoBar: {
+    position: 'absolute',
+    left: spacing.md,
+    right: spacing.md,
+    bottom: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    backgroundColor: colors.deepBlue,
+    borderRadius: radii.lg,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.md,
+    ...cardShadow,
+    shadowOpacity: 0.25,
+  },
+  undoText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  undoAction: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: '#8FB0F7',
   },
   empty: {
     flex: 1,

@@ -63,6 +63,9 @@ interface AppState {
   addItem: (input: NewItemInput) => Promise<TrackedItem>;
   updateItem: (id: string, input: NewItemInput) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
+  /** The item most recently deleted, still restorable for a few seconds */
+  recentlyDeleted: TrackedItem | null;
+  undoDelete: () => Promise<void>;
   deleteAllItems: () => Promise<void>;
   restoreBackup: (backup: BoughtlyBackup) => Promise<{ items: number; watches: number; returns: number }>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
@@ -212,14 +215,34 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [persistItems]
   );
 
+  // Soft delete: the removed item is held for a short window so an accidental
+  // "Stop tracking" can be undone from the dashboard.
+  const [recentlyDeleted, setRecentlyDeleted] = useState<TrackedItem | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const deleteItem = useCallback(
     async (id: string) => {
       const existing = itemsRef.current.find((i) => i.id === id);
       if (existing) await cancelItemReminders(existing.notificationIds);
       await persistItems(itemsRef.current.filter((i) => i.id !== id));
+      if (existing) {
+        setRecentlyDeleted(existing);
+        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        undoTimerRef.current = setTimeout(() => setRecentlyDeleted(null), 8000);
+      }
     },
     [persistItems]
   );
+
+  const undoDelete = useCallback(async () => {
+    const item = recentlyDeleted;
+    if (!item) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setRecentlyDeleted(null);
+    const restored: TrackedItem = { ...item, notificationIds: [] };
+    restored.notificationIds = await scheduleItemReminders(restored, settingsRef.current);
+    await persistItems([restored, ...itemsRef.current]);
+  }, [recentlyDeleted, persistItems]);
 
   const deleteAllItems = useCallback(async () => {
     for (const item of itemsRef.current) {
@@ -460,6 +483,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       addItem,
       updateItem,
       deleteItem,
+      recentlyDeleted,
+      undoDelete,
       deleteAllItems,
       restoreBackup,
       updateSettings,
@@ -481,6 +506,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       addItem,
       updateItem,
       deleteItem,
+      recentlyDeleted,
+      undoDelete,
       deleteAllItems,
       restoreBackup,
       updateSettings,
