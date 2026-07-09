@@ -9,6 +9,7 @@ export type TabParamList = {
 };
 
 export type RootStackParamList = {
+  Welcome: undefined;
   Onboarding: undefined;
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   AddChooser: undefined;

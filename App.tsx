@@ -28,6 +28,7 @@ import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
 import { ReturnDetailScreen } from './src/screens/ReturnDetailScreen';
 import { ScanReviewScreen } from './src/screens/ScanReviewScreen';
 import { WatchDetailScreen } from './src/screens/WatchDetailScreen';
+import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { AppStateProvider, useAppState } from './src/store/AppStateContext';
 import { colors, fonts, isDarkMode } from './src/theme/theme';
 
@@ -116,7 +117,13 @@ function Root() {
     >
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Stack.Navigator
-        initialRouteName={settings.hasOnboarded ? 'Tabs' : 'Onboarding'}
+        initialRouteName={
+          !settings.accountEmail
+            ? 'Welcome'
+            : settings.hasOnboarded
+            ? 'Tabs'
+            : 'Onboarding'
+        }
         screenOptions={{
           headerStyle: { backgroundColor: colors.background },
           headerShadowVisible: false,
@@ -129,6 +136,11 @@ function Root() {
           headerBackButtonDisplayMode: 'minimal',
         }}
       >
+        <Stack.Screen
+          name="Welcome"
+          component={WelcomeScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="Onboarding"
           component={OnboardingScreen}

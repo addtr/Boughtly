@@ -21,17 +21,22 @@ target — impossible in Expo Go, requires a development build via
 
 ## Also parked (buildable in Expo Go, not yet done)
 
-- Dark mode — full theme refactor; every screen imports the static `colors`
-  token object from `src/theme/theme.ts`, so this needs a theme context
-  threaded through all screens. Do as a dedicated pass.
-- Undo / trash for deletes — soft-delete with a brief Undo instead of
-  instant permanent removal.
-- Onboarding permission priming — explain notifications/camera before the
-  iOS system prompt so users don't reflexively deny.
-- Barcode scan to auto-fill item name/brand.
 - Bring-your-own Claude API key UI for premium OCR (the `claudeApiKey`
   setting already exists in `AppSettings`, no UI sets it).
-- Extended-warranty / protection-plan tracking (AppleCare, Asurion, store
-  plans) — provider, coverage end, claim contact, deductible.
-- Attach warranty documents/manuals (PDFs) to an item.
-- Spending analytics — monthly spend, by store, by tag, trend chart.
+- Live dark-mode switching — the palette currently follows the system theme
+  at app launch (tokens are baked into module-level StyleSheets); reacting to
+  a mid-session theme change needs the full theme-context refactor.
+- Real auth — the Welcome screen's create-account/sign-in stores a local
+  profile (`accountName`/`accountEmail` in settings); swap in server auth
+  when cloud sync lands.
+
+## Done since this file was created
+
+- ~~Dark mode~~ (system theme at launch)
+- ~~Undo for deletes~~
+- ~~Onboarding permission priming~~
+- ~~Barcode scan to auto-fill~~ (UPCitemdb + Open Food Facts)
+- ~~Protection-plan tracking~~
+- ~~Document attachments~~
+- ~~Spending analytics~~ (Insights screen)
+- ~~Welcome / account screen~~ (local profile)

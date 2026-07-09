@@ -52,6 +52,9 @@ export interface TrackedItem {
 }
 
 export interface AppSettings {
+  /** Local profile (no server yet — ready to hook up to real auth later) */
+  accountName: string;
+  accountEmail: string;
   /** True once the user has finished the welcome screens */
   hasOnboarded: boolean;
   notificationsEnabled: boolean;
@@ -84,6 +87,8 @@ export const PRICE_CHECK_OPTIONS: { key: PriceCheckCadence; label: string; days:
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  accountName: '',
+  accountEmail: '',
   hasOnboarded: false,
   notificationsEnabled: true,
   returnReminderDays: 3,

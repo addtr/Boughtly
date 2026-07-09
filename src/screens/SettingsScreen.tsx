@@ -167,8 +167,50 @@ export function SettingsScreen() {
     );
   }
 
+  function signOut() {
+    warningFeedback();
+    Alert.alert(
+      'Sign out?',
+      'Your items stay safely on this device — you’ll just see the welcome screen next time.',
+      [
+        { text: 'Stay signed in', style: 'cancel' },
+        {
+          text: 'Sign out',
+          style: 'destructive',
+          onPress: async () => {
+            await updateSettings({ accountName: '', accountEmail: '' });
+            navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+          },
+        },
+      ]
+    );
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Account */}
+      {settings.accountEmail ? (
+        <>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <Card>
+            <View style={styles.row}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {(settings.accountName || settings.accountEmail)[0]?.toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.itemInfo}>
+                <Text style={styles.rowLabel}>{settings.accountName || 'You'}</Text>
+                <Text style={styles.itemMeta}>{settings.accountEmail}</Text>
+              </View>
+              <Pressable onPress={signOut} hitSlop={8}>
+                <Text style={styles.deleteText}>Sign out</Text>
+              </Pressable>
+            </View>
+          </Card>
+        </>
+      ) : null}
+
       {/* Notifications */}
       <Text style={styles.sectionTitle}>Reminders</Text>
       <Card>
@@ -513,6 +555,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontFamily: fonts.displayBold,
+    fontSize: 18,
+    color: '#FFFFFF',
   },
   emptyText: {
     fontFamily: fonts.body,
