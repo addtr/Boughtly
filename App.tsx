@@ -20,6 +20,7 @@ import { RootStackParamList } from './src/navigation/types';
 import { AddChooserScreen } from './src/screens/AddChooserScreen';
 import { AddItemScreen } from './src/screens/AddItemScreen';
 import { AddWatchScreen } from './src/screens/AddWatchScreen';
+import { BarcodeScanScreen } from './src/screens/BarcodeScanScreen';
 import { InsightsScreen } from './src/screens/InsightsScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
@@ -157,6 +158,11 @@ function Root() {
           name="PasteReceipt"
           component={PasteReceiptScreen}
           options={{ title: 'Paste a receipt' }}
+        />
+        <Stack.Screen
+          name="BarcodeScan"
+          component={BarcodeScanScreen}
+          options={{ title: 'Scan a barcode' }}
         />
         <Stack.Screen
           name="ScanReview"

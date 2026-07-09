@@ -13,6 +13,7 @@ export type RootStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   AddChooser: undefined;
   PasteReceipt: undefined;
+  BarcodeScan: undefined;
   AddItem: { mode?: 'scan' | 'manual' | 'photo'; itemId?: string; scanText?: string } | undefined;
   ScanReview: {
     storeName: string;

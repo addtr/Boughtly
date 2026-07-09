@@ -23,6 +23,7 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { OcrWebView } from '../components/OcrWebView';
 import { Button, Card, ChipRow, Field } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { consumePendingBarcodeItemName } from '../services/barcode';
 import {
   correctStore,
   learnStoreCorrection,
@@ -228,6 +229,19 @@ export function AddItemScreen({ navigation, route }: Props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A barcode scan finished — pick up the product name it found.
+  useEffect(() => {
+    const unsub = navigation.addListener('focus', () => {
+      const name = consumePendingBarcodeItemName();
+      if (name) {
+        setItemName((prev) => (prev.trim() ? prev : name));
+        void applyPolicySuggestions(name, storeName);
+      }
+    });
+    return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation]);
 
   // Pasted receipt/email text: parse it and route just like a scan would.
   const pastedProcessed = useRef(false);
@@ -640,6 +654,16 @@ export function AddItemScreen({ navigation, route }: Props) {
           onBlur={() => void applyPolicySuggestions(itemName, storeName)}
           placeholder="Noise-cancelling headphones"
         />
+        {!editing && Platform.OS !== 'web' && (
+          <Pressable
+            style={styles.barcodeBtn}
+            onPress={() => navigation.navigate('BarcodeScan')}
+            hitSlop={6}
+          >
+            <Ionicons name="barcode-outline" size={18} color={colors.primary} />
+            <Text style={styles.barcodeBtnText}>Scan the product barcode instead</Text>
+          </Pressable>
+        )}
         <Field
           label="Where from?"
           value={storeName}
@@ -1133,6 +1157,18 @@ const styles = StyleSheet.create({
   photoAddText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
+    color: colors.primary,
+  },
+  barcodeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
+  },
+  barcodeBtnText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
     color: colors.primary,
   },
   docRow: {
