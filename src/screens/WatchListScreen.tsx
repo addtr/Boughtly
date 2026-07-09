@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   scanInput: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,

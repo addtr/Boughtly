@@ -17,7 +17,7 @@ const STATUS_COLOR: Record<ReturnCase['status'], { bg: string; fg: string }> = {
   started: { bg: colors.primarySoft, fg: colors.primary },
   sent: { bg: colors.primarySoft, fg: colors.primary },
   refund_pending: { bg: colors.coralSoft, fg: colors.coral },
-  refunded: { bg: '#DFF3E9', fg: '#20744E' },
+  refunded: { bg: colors.successSoft, fg: colors.success },
 };
 
 function ReturnRow({ ret, onPress }: { ret: ReturnCase; onPress: () => void }) {

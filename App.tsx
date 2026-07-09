@@ -29,19 +29,21 @@ import { ReturnDetailScreen } from './src/screens/ReturnDetailScreen';
 import { ScanReviewScreen } from './src/screens/ScanReviewScreen';
 import { WatchDetailScreen } from './src/screens/WatchDetailScreen';
 import { AppStateProvider, useAppState } from './src/store/AppStateContext';
-import { colors, fonts } from './src/theme/theme';
+import { colors, fonts, isDarkMode } from './src/theme/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 const navTheme = {
   ...DefaultTheme,
+  dark: isDarkMode,
   colors: {
     ...DefaultTheme.colors,
     background: colors.background,
     card: colors.background,
     text: colors.deepBlue,
     primary: colors.primary,
+    border: colors.divider,
   },
 };
 
@@ -112,7 +114,7 @@ function Root() {
       theme={navTheme}
       onReady={flushPendingNotificationNav}
     >
-      <StatusBar style="dark" />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Stack.Navigator
         initialRouteName={settings.hasOnboarded ? 'Tabs' : 'Onboarding'}
         screenOptions={{

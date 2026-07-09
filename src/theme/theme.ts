@@ -2,12 +2,35 @@
  * Boughtly design tokens.
  * These values are the single source of truth for color, type, spacing,
  * and radii across the app — do not hardcode hex values in screens.
+ *
+ * Dark mode: the palette is selected from the SYSTEM color scheme once, at
+ * app launch (screens bake tokens into StyleSheet.create at module load, so
+ * a mid-session system-theme change applies on the next launch).
  */
 
-export const colors = {
+import { Appearance } from 'react-native';
+
+interface Palette {
+  primary: string;
+  deepBlue: string;
+  coral: string;
+  background: string;
+  card: string;
+  text: string;
+  muted: string;
+  primarySoft: string;
+  coralSoft: string;
+  ringTrack: string;
+  danger: string;
+  divider: string;
+  success: string;
+  successSoft: string;
+}
+
+const lightPalette: Palette = {
   /** Headers, primary buttons, calm/plenty-of-time states */
   primary: '#4C7EF3',
-  /** Text/contrast on light backgrounds */
+  /** Headings / strong text (light on dark surfaces in dark mode) */
   deepBlue: '#1F2A44',
   /** Urgent deadlines, CTAs, key alerts */
   coral: '#FF6B54',
@@ -19,14 +42,39 @@ export const colors = {
   text: '#2B2E33',
   /** Secondary info */
   muted: '#7A7F8A',
-
-  // Derived tints (kept few and purposeful)
   primarySoft: '#E4ECFD',
   coralSoft: '#FFE7E2',
   ringTrack: '#ECEAE4',
   danger: '#E04E36',
   divider: '#F0EDE6',
-} as const;
+  /** Good news: refunds landed, deals, open opportunity windows */
+  success: '#20744E',
+  successSoft: '#DFF3E9',
+};
+
+// Dark steps of the same hues — chosen for contrast on the dark surfaces,
+// not a mechanical inversion.
+const darkPalette: Palette = {
+  primary: '#6E97F6',
+  deepBlue: '#E7EAF2',
+  coral: '#FF7E68',
+  background: '#14161C',
+  card: '#1E222B',
+  text: '#D9DCE3',
+  muted: '#9098A8',
+  primarySoft: '#263455',
+  coralSoft: '#412823',
+  ringTrack: '#2A2F3A',
+  danger: '#F0604A',
+  divider: '#2B303B',
+  success: '#5FBE8C',
+  successSoft: '#1E3529',
+};
+
+/** True when the app launched with the system in dark mode. */
+export const isDarkMode = Appearance.getColorScheme() === 'dark';
+
+export const colors: Palette = isDarkMode ? darkPalette : lightPalette;
 
 export const fonts = {
   /** Display face — screen titles, day-count numerals */

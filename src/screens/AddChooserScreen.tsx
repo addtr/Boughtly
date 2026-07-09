@@ -73,8 +73,8 @@ export function AddChooserScreen({ navigation }: Props) {
         style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
         onPress={() => navigation.replace('AddWatch')}
       >
-        <View style={[styles.optionIcon, { backgroundColor: '#DFF3E9' }]}>
-          <Ionicons name="pricetags" size={24} color="#20744E" />
+        <View style={[styles.optionIcon, { backgroundColor: colors.successSoft }]}>
+          <Ionicons name="pricetags" size={24} color={colors.success} />
         </View>
         <View style={styles.optionText}>
           <Text style={styles.optionTitle}>Watch a price</Text>

@@ -1139,7 +1139,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: colors.deepBlue,
+    backgroundColor: 'rgba(15,18,28,0.8)', // dark badge over any photo, both themes
     alignItems: 'center',
     justifyContent: 'center',
   },

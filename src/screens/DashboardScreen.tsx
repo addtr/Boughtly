@@ -217,7 +217,7 @@ export function DashboardScreen() {
               {!query.trim() && urgent.length === 0 && (
                 <View style={styles.caughtUpCard}>
                   <View style={styles.caughtUpHeader}>
-                    <Ionicons name="checkmark-circle" size={18} color="#20744E" />
+                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                     <Text style={styles.caughtUpTitle}>You’re all caught up ✨</Text>
                   </View>
                   {nextDeadline ? (
@@ -283,7 +283,7 @@ export function DashboardScreen() {
               {!query.trim() && priceAdjustOpps.length > 0 && (
                 <View style={styles.oppCard}>
                   <View style={styles.oppHeader}>
-                    <Ionicons name="cash-outline" size={18} color="#20744E" />
+                    <Ionicons name="cash-outline" size={18} color={colors.success} />
                     <Text style={styles.oppTitle}>
                       Price adjustments available ({priceAdjustOpps.length})
                     </Text>
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     color: colors.deepBlue,
   },
   statValueGood: {
-    color: '#20744E',
+    color: colors.success,
   },
   statValuePending: {
     color: colors.coral,
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   caughtUpCard: {
-    backgroundColor: '#DFF3E9',
+    backgroundColor: colors.successSoft,
     borderRadius: radii.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -556,17 +556,17 @@ const styles = StyleSheet.create({
   caughtUpTitle: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
-    color: '#20744E',
+    color: colors.success,
   },
   caughtUpNext: {
     fontFamily: fonts.body,
     fontSize: 13,
-    color: '#20744E',
+    color: colors.success,
     marginTop: 6,
     lineHeight: 18,
   },
   oppCard: {
-    backgroundColor: '#DFF3E9',
+    backgroundColor: colors.successSoft,
     borderRadius: radii.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -579,12 +579,12 @@ const styles = StyleSheet.create({
   oppTitle: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
-    color: '#20744E',
+    color: colors.success,
   },
   oppSub: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: '#20744E',
+    color: colors.success,
     marginTop: 3,
     marginBottom: 4,
     lineHeight: 17,
@@ -609,18 +609,18 @@ const styles = StyleSheet.create({
   oppPill: {
     minWidth: 52,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 100,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   oppPillHot: {
-    backgroundColor: '#20744E',
+    backgroundColor: colors.success,
   },
   oppPillText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
-    color: '#20744E',
+    color: colors.success,
   },
   oppPillTextHot: {
     color: '#FFFFFF',
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
   attentionPill: {
     minWidth: 40,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 100,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-    backgroundColor: colors.deepBlue,
+    backgroundColor: '#1F2A44', // fixed dark snackbar — readable over both themes
     borderRadius: radii.lg,
     paddingVertical: 14,
     paddingHorizontal: spacing.md,

@@ -26,8 +26,8 @@ import { openPriceScan } from '../utils/priceScan';
 type Props = NativeStackScreenProps<RootStackParamList, 'WatchDetail'>;
 
 const VERDICT_STYLE: Record<DealVerdict['level'], { bg: string; fg: string; icon: string }> = {
-  great: { bg: '#DFF3E9', fg: '#20744E', icon: 'trophy' },
-  good: { bg: '#DFF3E9', fg: '#20744E', icon: 'thumbs-up' },
+  great: { bg: colors.successSoft, fg: colors.success, icon: 'trophy' },
+  good: { bg: colors.successSoft, fg: colors.success, icon: 'thumbs-up' },
   meh: { bg: '#F0EDE6', fg: '#6B7080', icon: 'remove-circle' },
   suspicious: { bg: '#FFE7E2', fg: '#C24534', icon: 'warning' },
   unknown: { bg: '#E4ECFD', fg: '#3556C9', icon: 'help-circle' },
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   targetHit: {
-    color: '#20744E',
+    color: colors.success,
   },
   chartWrap: {
     alignItems: 'center',

@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     color: colors.deepBlue,
   },
   heroValueGood: {
-    color: '#20744E',
+    color: colors.success,
   },
   heroLabel: {
     fontFamily: fonts.body,

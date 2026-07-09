@@ -244,7 +244,7 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
           />
         ) : (
           <View style={styles.doneBanner}>
-            <Ionicons name="checkmark-circle" size={20} color="#20744E" />
+            <Ionicons name="checkmark-circle" size={20} color={colors.success} />
             <Text style={styles.doneText}>
               {formatPrice(ret.refundAmount)} back in your pocket
             </Text>
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: '#DFF3E9',
+    backgroundColor: colors.successSoft,
     borderRadius: radii.md,
     padding: spacing.md,
     marginTop: spacing.xs,
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   doneText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 15,
-    color: '#20744E',
+    color: colors.success,
   },
   undoBtn: {
     alignSelf: 'center',

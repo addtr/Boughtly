@@ -279,7 +279,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
       {inAdjustWindow && (
         <View style={styles.adjustCard}>
           <View style={styles.adjustHeader}>
-            <Ionicons name="cash-outline" size={18} color="#20744E" />
+            <Ionicons name="cash-outline" size={18} color={colors.success} />
             <Text style={styles.adjustTitle}>Price-adjustment window open</Text>
             <View style={styles.adjustBadge}>
               <Text style={styles.adjustBadgeText}>
@@ -296,7 +296,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             onPress={() => scanForCheaper(primaryScan.name, primaryScan.price)}
             style={({ pressed }) => [styles.adjustBtn, pressed && { opacity: 0.9 }]}
           >
-            <Ionicons name="search" size={16} color="#20744E" />
+            <Ionicons name="search" size={16} color={colors.success} />
             <Text style={styles.adjustBtnText}>Check for a lower price</Text>
           </Pressable>
         </View>
@@ -734,7 +734,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   adjustCard: {
-    backgroundColor: '#DFF3E9',
+    backgroundColor: colors.successSoft,
     borderRadius: radii.lg,
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -749,10 +749,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
-    color: '#20744E',
+    color: colors.success,
   },
   adjustBadge: {
-    backgroundColor: '#20744E',
+    backgroundColor: colors.success,
     borderRadius: 100,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
   adjustBody: {
     fontFamily: fonts.body,
     fontSize: 13,
-    color: '#20744E',
+    color: colors.success,
     lineHeight: 19,
     marginBottom: spacing.sm,
   },
@@ -774,14 +774,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: radii.md,
     paddingVertical: 10,
   },
   adjustBtnText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
-    color: '#20744E',
+    color: colors.success,
   },
   ringsRow: {
     flexDirection: 'row',
