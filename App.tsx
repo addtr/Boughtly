@@ -20,6 +20,7 @@ import { RootStackParamList } from './src/navigation/types';
 import { AddChooserScreen } from './src/screens/AddChooserScreen';
 import { AddItemScreen } from './src/screens/AddItemScreen';
 import { AddWatchScreen } from './src/screens/AddWatchScreen';
+import { InsightsScreen } from './src/screens/InsightsScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
@@ -163,6 +164,11 @@ function Root() {
           options={{ title: 'Review your receipt' }}
         />
         <Stack.Screen name="ItemDetail" component={ItemDetailScreen} options={{ title: '' }} />
+        <Stack.Screen
+          name="Insights"
+          component={InsightsScreen}
+          options={{ title: 'Your spending' }}
+        />
         <Stack.Screen
           name="AddWatch"
           component={AddWatchScreen}

@@ -236,7 +236,10 @@ export function DashboardScreen() {
                   )}
                 </View>
               )}
-              <View style={styles.statCard}>
+              <Pressable
+                style={({ pressed }) => [styles.statCard, pressed && { opacity: 0.92 }]}
+                onPress={() => navigation.navigate('Insights')}
+              >
                 <View style={styles.statRow}>
                   <View style={styles.stat}>
                     <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
@@ -276,7 +279,7 @@ export function DashboardScreen() {
                     <Text style={styles.statLabel}>recovered</Text>
                   </View>
                 </View>
-              </View>
+              </Pressable>
               {!query.trim() && priceAdjustOpps.length > 0 && (
                 <View style={styles.oppCard}>
                   <View style={styles.oppHeader}>

@@ -23,6 +23,7 @@ export type RootStackParamList = {
     items: { name: string; price: number }[];
   };
   ItemDetail: { itemId: string };
+  Insights: undefined;
   AddWatch: { prefillName?: string } | undefined;
   WatchDetail: { watchId: string };
   ReturnDetail: { returnId: string };
