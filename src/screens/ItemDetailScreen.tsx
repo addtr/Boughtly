@@ -21,6 +21,7 @@ import {
 import { CountdownRing } from '../components/CountdownRing';
 import { Button, Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { lookupWarrantyByCategory } from '../services/policyLookup';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { resolveWarrantyPage } from '../services/warrantyUrl';
 import { useAppState } from '../store/AppStateContext';
@@ -116,6 +117,17 @@ export function ItemDetailScreen({ navigation, route }: Props) {
   }
 
   const warrantyPage = resolveWarrantyPage(item.itemName);
+
+  // Registration nudge: real manufacturer-warranty categories, recent
+  // purchase, not yet marked registered.
+  const warrantyCategory = lookupWarrantyByCategory(item.itemName);
+  const purchaseAgeDays = -daysUntil(item.purchaseDate);
+  const showRegister =
+    !!warrantyCategory &&
+    warrantyCategory.days > 0 &&
+    !item.productRegistered &&
+    purchaseAgeDays <= 90 &&
+    daysUntil(item.warrantyExpirationDate) >= 0;
 
   /** Open the manufacturer's warranty/support page. */
   async function fileWarrantyClaim() {
@@ -413,6 +425,34 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             <Ionicons name="share-outline" size={15} color={colors.primary} />
             <Text style={styles.warrantyShareText}>Share claim details</Text>
           </Pressable>
+
+          {showRegister && (
+            <View style={styles.registerBox}>
+              <Text style={styles.registerText}>
+                New purchase? Registering it with{' '}
+                {warrantyPage.known ? warrantyPage.label : 'the maker'} locks in the
+                full warranty.
+              </Text>
+              <View style={styles.registerActions}>
+                <Pressable
+                  style={styles.registerBtn}
+                  onPress={() => void openUrl(warrantyPage.url)}
+                >
+                  <Text style={styles.registerBtnText}>Register now</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.registerDone}
+                  onPress={() => void patchItem(item!.id, { productRegistered: true })}
+                  hitSlop={6}
+                >
+                  <Text style={styles.registerDoneText}>Already did ✓</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+          {item.productRegistered && (
+            <Text style={styles.registeredNote}>✓ Registered with the manufacturer</Text>
+          )}
         </View>
       )}
 
@@ -1023,6 +1063,47 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.deepBlue,
     lineHeight: 19,
+  },
+  registerBox: {
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+    gap: spacing.sm,
+  },
+  registerText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
+  },
+  registerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  registerBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radii.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  registerBtnText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: '#FFFFFF',
+  },
+  registerDone: {
+    paddingVertical: 8,
+  },
+  registerDoneText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.muted,
+  },
+  registeredNote: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.success,
   },
   planCard: {
     backgroundColor: colors.card,

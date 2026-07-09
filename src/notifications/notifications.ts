@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { lookupWarrantyByCategory } from '../services/policyLookup';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { AppSettings, PRICE_CHECK_OPTIONS, TrackedItem } from '../types/item';
 import { addDays, parseISODate } from '../utils/dates';
@@ -90,6 +91,20 @@ export async function scheduleItemReminders(
     item.id
   );
   if (warrantyId) ids.push(warrantyId);
+
+  // Product registration: many manufacturer warranties want the product
+  // registered soon after purchase. Nudge once, two weeks in, for categories
+  // that carry a real manufacturer warranty — until it's marked registered.
+  const category = lookupWarrantyByCategory(item.itemName);
+  if (category && category.days > 0 && !item.productRegistered) {
+    const registerId = await scheduleAt(
+      'Register your product',
+      `Registering ${item.itemName} with the manufacturer locks in its warranty — takes two minutes.`,
+      reminderDate(addDays(item.purchaseDate, 14), 0, hour),
+      item.id
+    );
+    if (registerId) ids.push(registerId);
+  }
 
   // User-set custom reminder for this item.
   if (item.customReminder) {

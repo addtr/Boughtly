@@ -22,6 +22,7 @@ import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { ensureNotificationSetup, sendTestReminder } from '../notifications/notifications';
 import { backupFileName, buildBackup, parseBackup } from '../services/backup';
+import { csvFileName, itemsToCsv } from '../utils/csv';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, spacing } from '../theme/theme';
 import { CURRENCY_OPTIONS, PRICE_CHECK_OPTIONS, REMINDER_TIME_OPTIONS } from '../types/item';
@@ -90,6 +91,32 @@ export function SettingsScreen() {
       }
     } catch {
       // share sheet dismissed or write failed — nothing to do
+    }
+  }
+
+  /** Write a spreadsheet (CSV) of the items and open the share sheet. */
+  async function exportCsv() {
+    const csv = itemsToCsv(items);
+    try {
+      if (Platform.OS === 'web') {
+        await Share.share({ title: 'Boughtly items', message: csv });
+        return;
+      }
+      const file = new File(Paths.cache, csvFileName());
+      if (file.exists) file.delete();
+      file.create();
+      file.write(csv);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Export Boughtly spreadsheet',
+          UTI: 'public.comma-separated-values-text',
+        });
+      } else {
+        await Share.share({ title: 'Boughtly items', message: csv });
+      }
+    } catch {
+      // dismissed or write failed
     }
   }
 
@@ -468,6 +495,21 @@ export function SettingsScreen() {
             <Text style={styles.itemMeta}>
               Save a full backup file — items, returns, and watchlist — to Files or
               email it to yourself.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+        </Pressable>
+        <View style={styles.divider} />
+        <Pressable style={styles.row} onPress={exportCsv} disabled={items.length === 0}>
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="grid-outline" size={19} color={colors.primary} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={[styles.rowLabel, items.length === 0 && styles.rowDisabled]}>
+              Export a spreadsheet (CSV)
+            </Text>
+            <Text style={styles.itemMeta}>
+              Items, prices, and deadlines — opens in Excel, Numbers, or Sheets.
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={17} color={colors.muted} />
