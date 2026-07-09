@@ -212,12 +212,17 @@ export function AddItemScreen({ navigation, route }: Props) {
   const autoScanned = useRef(false);
   useEffect(() => {
     const mode = route.params?.mode;
-    if ((mode !== 'scan' && mode !== 'photo') || editing || autoScanned.current) return;
-    const fromCamera = mode === 'scan'; // 'photo' opens the library (e.g. a screenshot)
+    if ((mode !== 'scan' && mode !== 'photo' && mode !== 'barcode') || editing || autoScanned.current)
+      return;
     const launch = () => {
       if (autoScanned.current) return;
       autoScanned.current = true;
-      void pickImage(fromCamera);
+      if (mode === 'barcode') {
+        navigation.navigate('BarcodeScan');
+      } else {
+        // 'scan' opens the camera; 'photo' the library (e.g. a screenshot)
+        void pickImage(mode === 'scan');
+      }
     };
     // Fires once the push/replace transition settles.
     const unsub = navigation.addListener('transitionEnd', launch);

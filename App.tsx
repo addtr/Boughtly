@@ -165,6 +165,8 @@ function Root() {
               ? 'Scan a receipt'
               : route.params?.mode === 'photo'
               ? 'Upload a receipt'
+              : route.params?.mode === 'barcode'
+              ? 'Scan a barcode'
               : 'Add an item',
           })}
         />

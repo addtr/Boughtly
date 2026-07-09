@@ -15,7 +15,11 @@ export type RootStackParamList = {
   AddChooser: undefined;
   PasteReceipt: undefined;
   BarcodeScan: undefined;
-  AddItem: { mode?: 'scan' | 'manual' | 'photo'; itemId?: string; scanText?: string } | undefined;
+  AddItem: {
+    mode?: 'scan' | 'manual' | 'photo' | 'barcode';
+    itemId?: string;
+    scanText?: string;
+  } | undefined;
   ScanReview: {
     storeName: string;
     purchaseDate: string;

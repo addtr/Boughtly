@@ -9,7 +9,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'AddChooser'>;
 
 /** Modal asking how the user wants to add a purchase. */
 export function AddChooserScreen({ navigation }: Props) {
-  function choose(mode: 'scan' | 'manual') {
+  function choose(mode: 'scan' | 'manual' | 'barcode') {
     navigation.replace('AddItem', { mode });
   }
 
@@ -32,6 +32,22 @@ export function AddChooserScreen({ navigation }: Props) {
           <Text style={styles.optionTitle}>Scan the receipt</Text>
           <Text style={styles.optionBody}>
             Snap a photo — the details fill in for you.
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+        onPress={() => choose('barcode')}
+      >
+        <View style={[styles.optionIcon, { backgroundColor: colors.primarySoft }]}>
+          <Ionicons name="barcode" size={26} color={colors.primary} />
+        </View>
+        <View style={styles.optionText}>
+          <Text style={styles.optionTitle}>Scan a barcode</Text>
+          <Text style={styles.optionBody}>
+            No receipt? Point at the product’s barcode and track just that item.
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />
