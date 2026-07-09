@@ -237,30 +237,44 @@ export function DashboardScreen() {
                 </View>
               )}
               <View style={styles.statCard}>
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>{formatPrice(insights.protectedValue)}</Text>
-                  <Text style={styles.statLabel}>protected</Text>
+                <View style={styles.statRow}>
+                  <View style={styles.stat}>
+                    <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+                      {formatPrice(insights.protectedValue)}
+                    </Text>
+                    <Text style={styles.statLabel}>protected</Text>
+                  </View>
+                  <View style={styles.statVDivider} />
+                  <View style={styles.stat}>
+                    <Text style={styles.statValue}>{insights.activeProtections}</Text>
+                    <Text style={styles.statLabel}>
+                      active {insights.activeProtections === 1 ? 'cover' : 'covers'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.statDivider} />
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>{insights.activeProtections}</Text>
-                  <Text style={styles.statLabel}>
-                    active {insights.activeProtections === 1 ? 'cover' : 'covers'}
-                  </Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.stat}>
-                  <Text style={[styles.statValue, insights.pending > 0 && styles.statValuePending]}>
-                    {formatPrice(insights.pending)}
-                  </Text>
-                  <Text style={styles.statLabel}>coming back</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.stat}>
-                  <Text style={[styles.statValue, insights.recovered > 0 && styles.statValueGood]}>
-                    {formatPrice(insights.recovered)}
-                  </Text>
-                  <Text style={styles.statLabel}>recovered</Text>
+                <View style={styles.statHDivider} />
+                <View style={styles.statRow}>
+                  <View style={styles.stat}>
+                    <Text
+                      style={[styles.statValue, insights.pending > 0 && styles.statValuePending]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {formatPrice(insights.pending)}
+                    </Text>
+                    <Text style={styles.statLabel}>coming back</Text>
+                  </View>
+                  <View style={styles.statVDivider} />
+                  <View style={styles.stat}>
+                    <Text
+                      style={[styles.statValue, insights.recovered > 0 && styles.statValueGood]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {formatPrice(insights.recovered)}
+                    </Text>
+                    <Text style={styles.statLabel}>recovered</Text>
+                  </View>
                 </View>
               </View>
               {!query.trim() && priceAdjustOpps.length > 0 && (
@@ -447,21 +461,25 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   statCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: colors.card,
     borderRadius: radii.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.xs,
     marginBottom: spacing.md,
     ...cardShadow,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   stat: {
     flex: 1,
     alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
   statValue: {
     fontFamily: fonts.displayBold,
-    fontSize: 17,
+    fontSize: 22,
     color: colors.deepBlue,
   },
   statValueGood: {
@@ -472,15 +490,20 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: fonts.body,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.muted,
-    marginTop: 2,
+    marginTop: 3,
     textAlign: 'center',
   },
-  statDivider: {
+  statVDivider: {
     width: 1,
-    height: 32,
+    height: 40,
     backgroundColor: colors.divider,
+  },
+  statHDivider: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginHorizontal: spacing.md,
   },
   attentionCard: {
     backgroundColor: colors.coralSoft,
