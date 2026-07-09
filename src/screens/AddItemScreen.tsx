@@ -96,6 +96,11 @@ export function AddItemScreen({ navigation, route }: Props) {
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [isGift, setIsGift] = useState(editing?.isGift ?? false);
   const [serialNumber, setSerialNumber] = useState(editing?.serialNumber ?? '');
+  // Extended warranty / protection plan
+  const [hasPlan, setHasPlan] = useState(!!editing?.protectionPlan);
+  const [planProvider, setPlanProvider] = useState(editing?.protectionPlan?.provider ?? '');
+  const [planDays, setPlanDays] = useState<number>(editing?.protectionPlan?.lengthDays ?? 730);
+  const [planContact, setPlanContact] = useState(editing?.protectionPlan?.contact ?? '');
   const [productPhotos, setProductPhotos] = useState<string[]>(editing?.productPhotos ?? []);
   const [tags, setTags] = useState<string[]>(editing?.tags ?? []);
   const [tagDraft, setTagDraft] = useState('');
@@ -507,6 +512,14 @@ export function AddItemScreen({ navigation, route }: Props) {
         tags: tags.length > 0 ? tags : undefined,
         serialNumber: serialNumber.trim() || undefined,
         productPhotos: storedPhotos.length > 0 ? storedPhotos : undefined,
+        protectionPlan:
+          hasPlan && planProvider.trim()
+            ? {
+                provider: planProvider.trim(),
+                lengthDays: planDays,
+                contact: planContact.trim() || undefined,
+              }
+            : undefined,
       };
       // Learn a store-name correction from a fresh scan the user edited.
       if (!editing && extractedStoreRaw.current && storeName.trim()) {
@@ -740,6 +753,61 @@ export function AddItemScreen({ navigation, route }: Props) {
               onChangeText={(t) => setWarrantyDays(Number(t.replace(/[^0-9]/g, '')) || 0)}
               keyboardType="number-pad"
               placeholder="180"
+            />
+          </View>
+        )}
+
+        {/* Extended warranty / protection plan */}
+        <View style={styles.giftRow}>
+          <View style={styles.giftText}>
+            <Text style={styles.giftLabel}>Covered by a protection plan</Text>
+            <Text style={styles.giftHint}>
+              AppleCare, Asurion, a store plan — track its coverage separately.
+            </Text>
+          </View>
+          <Switch
+            value={hasPlan}
+            onValueChange={setHasPlan}
+            trackColor={{ true: colors.primary, false: colors.divider }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+        {hasPlan && (
+          <View style={styles.planBox}>
+            <Field
+              label="Plan provider"
+              value={planProvider}
+              onChangeText={setPlanProvider}
+              placeholder="AppleCare+, Asurion, Best Buy Total…"
+            />
+            <Text style={styles.planLabel}>Coverage length (from purchase)</Text>
+            <View style={styles.planChips}>
+              {[
+                { label: '1 year', days: 365 },
+                { label: '2 years', days: 730 },
+                { label: '3 years', days: 1095 },
+              ].map((o) => {
+                const active = planDays === o.days;
+                return (
+                  <Pressable
+                    key={o.days}
+                    onPress={() => setPlanDays(o.days)}
+                    style={[styles.planChip, active && styles.planChipActive]}
+                  >
+                    <Text style={[styles.planChipText, active && styles.planChipTextActive]}>
+                      {o.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Field
+              label="Claim phone or website (optional)"
+              value={planContact}
+              onChangeText={setPlanContact}
+              placeholder="1-800-… or https://…"
+              autoCapitalize="none"
+              autoCorrect={false}
             />
           </View>
         )}
@@ -1059,6 +1127,40 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: 2,
     lineHeight: 17,
+  },
+  planBox: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    padding: spacing.md,
+  },
+  planLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: 6,
+  },
+  planChips: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  planChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: colors.background,
+  },
+  planChipActive: {
+    backgroundColor: colors.primary,
+  },
+  planChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.text,
+  },
+  planChipTextActive: {
+    color: '#FFFFFF',
   },
   policyCard: {
     backgroundColor: colors.primarySoft,

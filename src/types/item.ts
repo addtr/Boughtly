@@ -4,6 +4,17 @@ export interface ReceiptLineItem {
   price: number;
 }
 
+/** An extended warranty / protection plan bought with an item (AppleCare, Asurion…). */
+export interface ProtectionPlan {
+  provider: string;
+  /** Coverage length from the purchase date */
+  lengthDays: number;
+  /** Calculated: purchaseDate + lengthDays (ISO date string) */
+  endDate: string;
+  /** Claim phone number or URL */
+  contact?: string;
+}
+
 /** A purchase the user is protecting. Dates are ISO 8601 strings (date-only semantics). */
 export interface TrackedItem {
   id: string;
@@ -29,6 +40,10 @@ export interface TrackedItem {
   serialNumber?: string;
   /** Local file URIs of product photos (condition, serial plate, box) */
   productPhotos?: string[];
+  /** Extended warranty / protection plan, if one was purchased */
+  protectionPlan?: ProtectionPlan;
+  /** Attached documents (warranty card PDF, manual…) as local file URIs */
+  documents?: { name: string; uri: string }[];
   /** The individual products on this receipt (empty for a single-item purchase) */
   lineItems?: ReceiptLineItem[];
   /** Scheduled local notification ids, so they can be cancelled on edit/delete */

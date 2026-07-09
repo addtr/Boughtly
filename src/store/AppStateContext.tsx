@@ -43,6 +43,8 @@ export interface NewItemInput {
   tags?: string[];
   serialNumber?: string;
   productPhotos?: string[];
+  protectionPlan?: { provider: string; lengthDays: number; contact?: string };
+  documents?: { name: string; uri: string }[];
   lineItems?: { name: string; price: number }[];
 }
 
@@ -101,6 +103,12 @@ function withCalculatedDates(input: NewItemInput) {
     ...input,
     warrantyExpirationDate: addDays(input.purchaseDate, input.warrantyLengthDays),
     returnDeadlineDate: addDays(input.purchaseDate, input.returnWindowDays),
+    protectionPlan: input.protectionPlan
+      ? {
+          ...input.protectionPlan,
+          endDate: addDays(input.purchaseDate, input.protectionPlan.lengthDays),
+        }
+      : undefined,
   };
 }
 

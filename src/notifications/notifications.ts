@@ -91,6 +91,18 @@ export async function scheduleItemReminders(
   );
   if (warrantyId) ids.push(warrantyId);
 
+  // Protection plan: nudge before the paid coverage ends, same lead time as
+  // the warranty reminder.
+  if (item.protectionPlan) {
+    const planId = await scheduleAt(
+      'Protection plan ending soon',
+      `${item.protectionPlan.provider} coverage on ${item.itemName} ends in ${settings.warrantyReminderDays} days — file any claim before it lapses.`,
+      reminderDate(item.protectionPlan.endDate, settings.warrantyReminderDays, hour),
+      item.id
+    );
+    if (planId) ids.push(planId);
+  }
+
   // Price-adjustment window: if the store refunds price drops after purchase,
   // nudge the day before it closes to go check for a lower price.
   const adjust = lookupPriceAdjustment(item.storeName);

@@ -21,7 +21,7 @@ import { RootStackParamList } from '../navigation/types';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { resolveWarrantyPage } from '../services/warrantyUrl';
 import { useAppState } from '../store/AppStateContext';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 import { addDeadlineToCalendar } from '../utils/calendar';
 import { addDays, daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
 import { tapFeedback, warningFeedback } from '../utils/haptics';
@@ -360,6 +360,39 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             <Ionicons name="share-outline" size={15} color={colors.primary} />
             <Text style={styles.warrantyShareText}>Share claim details</Text>
           </Pressable>
+        </View>
+      )}
+
+      {/* Protection plan (extended warranty) */}
+      {item.protectionPlan && (
+        <View style={styles.planCard}>
+          <View style={styles.warrantyHeader}>
+            <Ionicons name="umbrella-outline" size={18} color={colors.primary} />
+            <Text style={styles.warrantyTitle}>
+              {item.protectionPlan.provider} protection plan
+            </Text>
+          </View>
+          <Text style={styles.warrantyBody}>
+            {daysUntil(item.protectionPlan.endDate) < 0
+              ? `Coverage ended ${formatDate(item.protectionPlan.endDate)}.`
+              : `Covered through ${formatDate(item.protectionPlan.endDate)} — ${daysUntil(
+                  item.protectionPlan.endDate
+                )} days left.`}
+          </Text>
+          {item.protectionPlan.contact ? (
+            <Button
+              title="Contact the plan"
+              onPress={() => {
+                const c = item.protectionPlan!.contact!;
+                const url = /^https?:/i.test(c)
+                  ? c
+                  : /[a-z]/i.test(c)
+                  ? `https://${c}`
+                  : `tel:${c.replace(/[^0-9+]/g, '')}`;
+                Linking.openURL(url).catch(() => {});
+              }}
+            />
+          ) : null}
         </View>
       )}
 
@@ -770,6 +803,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.deepBlue,
     lineHeight: 19,
+  },
+  planCard: {
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginTop: spacing.md,
+    gap: spacing.sm,
+    ...cardShadow,
   },
   warrantyShare: {
     flexDirection: 'row',
