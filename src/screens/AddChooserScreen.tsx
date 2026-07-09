@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { RootStackParamList } from '../navigation/types';
 import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
 
@@ -14,7 +14,12 @@ export function AddChooserScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      bounces={false}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.grabber} />
       <Text style={styles.title}>Add something you bought</Text>
       <Text style={styles.subtitle}>
@@ -26,7 +31,7 @@ export function AddChooserScreen({ navigation }: Props) {
         onPress={() => choose('scan')}
       >
         <View style={[styles.optionIcon, { backgroundColor: colors.primarySoft }]}>
-          <Ionicons name="camera" size={26} color={colors.primary} />
+          <Ionicons name="camera" size={20} color={colors.primary} />
         </View>
         <View style={styles.optionText}>
           <Text style={styles.optionTitle}>Scan the receipt</Text>
@@ -34,7 +39,7 @@ export function AddChooserScreen({ navigation }: Props) {
             Snap a photo — the details fill in for you.
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        <Ionicons name="chevron-forward" size={16} color={colors.muted} />
       </Pressable>
 
       <Pressable
@@ -42,15 +47,15 @@ export function AddChooserScreen({ navigation }: Props) {
         onPress={() => choose('barcode')}
       >
         <View style={[styles.optionIcon, { backgroundColor: colors.primarySoft }]}>
-          <Ionicons name="barcode" size={26} color={colors.primary} />
+          <Ionicons name="barcode" size={20} color={colors.primary} />
         </View>
         <View style={styles.optionText}>
           <Text style={styles.optionTitle}>Scan a barcode</Text>
           <Text style={styles.optionBody}>
-            No receipt? Point at the product’s barcode and track just that item.
+            No receipt? Track a single item from its barcode.
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        <Ionicons name="chevron-forward" size={16} color={colors.muted} />
       </Pressable>
 
       <Pressable
@@ -58,7 +63,7 @@ export function AddChooserScreen({ navigation }: Props) {
         onPress={() => choose('manual')}
       >
         <View style={[styles.optionIcon, { backgroundColor: colors.coralSoft }]}>
-          <Ionicons name="create" size={26} color={colors.coral} />
+          <Ionicons name="create" size={20} color={colors.coral} />
         </View>
         <View style={styles.optionText}>
           <Text style={styles.optionTitle}>Enter it manually</Text>
@@ -66,7 +71,7 @@ export function AddChooserScreen({ navigation }: Props) {
             No receipt handy? Type in the details yourself.
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        <Ionicons name="chevron-forward" size={16} color={colors.muted} />
       </Pressable>
 
       <Pressable
@@ -74,7 +79,7 @@ export function AddChooserScreen({ navigation }: Props) {
         onPress={() => navigation.replace('PasteReceipt')}
       >
         <View style={[styles.optionIcon, { backgroundColor: colors.primarySoft }]}>
-          <Ionicons name="clipboard" size={24} color={colors.primary} />
+          <Ionicons name="clipboard" size={20} color={colors.primary} />
         </View>
         <View style={styles.optionText}>
           <Text style={styles.optionTitle}>Paste or screenshot a receipt</Text>
@@ -82,7 +87,7 @@ export function AddChooserScreen({ navigation }: Props) {
             Bought online? Paste the order email or upload a screenshot.
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        <Ionicons name="chevron-forward" size={16} color={colors.muted} />
       </Pressable>
 
       <Pressable
@@ -90,7 +95,7 @@ export function AddChooserScreen({ navigation }: Props) {
         onPress={() => navigation.replace('AddWatch')}
       >
         <View style={[styles.optionIcon, { backgroundColor: colors.successSoft }]}>
-          <Ionicons name="pricetags" size={24} color={colors.success} />
+          <Ionicons name="pricetags" size={20} color={colors.success} />
         </View>
         <View style={styles.optionText}>
           <Text style={styles.optionTitle}>Watch a price</Text>
@@ -98,13 +103,13 @@ export function AddChooserScreen({ navigation }: Props) {
             Not buying yet? Track the price and catch the real deal.
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        <Ionicons name="chevron-forward" size={16} color={colors.muted} />
       </Pressable>
 
       <Pressable style={styles.cancel} onPress={() => navigation.goBack()} hitSlop={8}>
         <Text style={styles.cancelText}>Cancel</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -112,8 +117,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  content: {
     padding: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
   grabber: {
     alignSelf: 'center',
@@ -121,38 +129,41 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 3,
     backgroundColor: colors.divider,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   title: {
     fontFamily: fonts.displayBold,
-    fontSize: 22,
+    fontSize: 20,
     color: colors.deepBlue,
   },
   subtitle: {
     fontFamily: fonts.body,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.muted,
-    marginTop: 6,
-    marginBottom: spacing.lg,
-    lineHeight: 20,
+    marginTop: 4,
+    marginBottom: spacing.md,
+    lineHeight: 18,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    gap: spacing.md,
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
     ...cardShadow,
+    shadowOpacity: 0.06,
+    elevation: 2,
   },
   optionPressed: {
     opacity: 0.85,
   },
   optionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.md,
+    width: 38,
+    height: 38,
+    borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -161,19 +172,19 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.deepBlue,
   },
   optionBody: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.muted,
-    marginTop: 2,
-    lineHeight: 18,
+    marginTop: 1,
+    lineHeight: 16,
   },
   cancel: {
     alignSelf: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     padding: spacing.sm,
   },
   cancelText: {

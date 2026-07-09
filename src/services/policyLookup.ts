@@ -120,8 +120,9 @@ const WARRANTY_CATEGORIES: WarrantyCategory[] = [
  */
 function containsWord(haystack: string, fragment: string): boolean {
   const esc = fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  // \b is unreliable around & and ' — bound with "not a letter/digit"
-  const re = new RegExp(`(^|[^a-z0-9])${esc}([^a-z0-9]|$)`, 'i');
+  // \b is unreliable around & and ' — bound with "not a letter/digit".
+  // Allow a plural suffix so "headphones"/"toys" match the singular keyword.
+  const re = new RegExp(`(^|[^a-z0-9])${esc}(s|es)?([^a-z0-9]|$)`, 'i');
   return re.test(haystack);
 }
 
