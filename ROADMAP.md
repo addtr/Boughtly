@@ -19,6 +19,31 @@ target — impossible in Expo Go, requires a development build via
 `expo prebuild` + Xcode (e.g. the `@bacons/apple-targets` or
 `expo-apple-targets` route). Data handoff via an App Group shared container.
 
+### Share extension — "Share to Boughtly"
+From Mail / Photos / Safari / Files: share sheet → Boughtly, receipt lands
+in the app already parsed. Needs a native share-extension target (Expo
+config plugins: `expo-share-intent` or `expo-share-extension` + prebuild).
+Cheap to wire: the app already ingests images (OCR pipeline via
+`handleExtracted`), text (paste parser), and PDFs (document attachments) —
+the extension just hands one of those in via the App Group / URL scheme.
+Highest-impact dev-build feature after ML Kit OCR.
+
+### Email-in address (forward receipts to you@…)
+Forward an order-confirmation email; it appears in the app automatically.
+NOT an Xcode feature — needs the backend: an inbound-mail service
+(Mailgun/Postmark/Cloudflare Email Workers) + accounts + push/sync, so it
+rides on the cloud-sync milestone. The paste parser already handles order
+email text, so parsing is done; this is delivery plumbing.
+
+### In-app purchases (Boughtly Plus)
+Freemium scaffold can be built in Expo Go (isPremium flag, paywall screen,
+feature gates), but real payments need StoreKit → RevenueCat at dev-build
+time. Agreed pricing structure: $5.99/mo (decoy) · $39.99/yr (hero, "save
+44%") · $79.99 lifetime. Gates: AI receipt scanning, unlimited items &
+watches, price-adjustment alerts, insights/recap, multi-page receipts +
+attachments, CSV. Keep free: core scan/track/remind loop, backup/restore,
+app lock, warranty claim assistant.
+
 ## Also parked (buildable in Expo Go, not yet done)
 
 - Bring-your-own Claude API key UI for premium OCR (the `claudeApiKey`
