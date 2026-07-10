@@ -7,6 +7,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -68,6 +69,7 @@ export function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('deadline');
   const [hideExpired, setHideExpired] = useState(false);
+  const [menuOpen, setMenuOpen] = useState<'sort' | 'stores' | null>(null);
 
   // Sort/filter choices stick between sessions.
   useEffect(() => {
@@ -538,83 +540,39 @@ export function DashboardScreen() {
                 </ScrollView>
               )}
               {(activeItems.length >= 2 || topStores.length > 0) && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.sortRow}
-                  keyboardShouldPersistTaps="handled"
-                >
+                <View style={styles.dropdownRow}>
                   {activeItems.length >= 2 && (
-                    <>
-                      <Text style={styles.sortLabel}>Sort</Text>
-                      {SORT_OPTIONS.map((o) => {
-                        const active = sortMode === o.key;
-                        return (
-                          <Pressable
-                            key={o.key}
-                            onPress={() => {
-                              setSortMode(o.key);
-                              savePrefs({ sortMode: o.key });
-                            }}
-                            style={[styles.tagFilter, active && styles.tagFilterActive]}
-                          >
-                            <Text
-                              style={[
-                                styles.tagFilterText,
-                                active && styles.tagFilterTextActive,
-                              ]}
-                            >
-                              {o.label}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                      <Pressable
-                        onPress={() => {
-                          setHideExpired(!hideExpired);
-                          savePrefs({ hideExpired: !hideExpired });
-                        }}
-                        style={[styles.tagFilter, hideExpired && styles.tagFilterActive]}
-                      >
-                        <Text
-                          style={[
-                            styles.tagFilterText,
-                            hideExpired && styles.tagFilterTextActive,
-                          ]}
-                        >
-                          Hide expired
-                        </Text>
-                      </Pressable>
-                      {topStores.length > 0 && <View style={styles.sortDivider} />}
-                    </>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.dropdownBtn,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      onPress={() => setMenuOpen('sort')}
+                    >
+                      <Ionicons name="swap-vertical" size={14} color={colors.primary} />
+                      <Text style={styles.dropdownText} numberOfLines={1}>
+                        Sort: {SORT_OPTIONS.find((o) => o.key === sortMode)?.label}
+                        {hideExpired ? ' · no expired' : ''}
+                      </Text>
+                      <Ionicons name="chevron-down" size={14} color={colors.muted} />
+                    </Pressable>
                   )}
                   {topStores.length > 0 && (
-                    <>
-                      <Text style={styles.sortLabel}>Stores</Text>
-                      {topStores.map((s) => (
-                        <Pressable
-                          key={s.name}
-                          style={({ pressed }) => [
-                            styles.storeChip,
-                            pressed && { opacity: 0.85 },
-                          ]}
-                          onPress={() =>
-                            navigation.navigate('StoreProfile', { storeName: s.name })
-                          }
-                        >
-                          <Ionicons
-                            name="storefront-outline"
-                            size={13}
-                            color={colors.primary}
-                          />
-                          <Text style={styles.storeChipText} numberOfLines={1}>
-                            {s.name}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.dropdownBtn,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      onPress={() => setMenuOpen('stores')}
+                    >
+                      <Ionicons name="storefront-outline" size={14} color={colors.primary} />
+                      <Text style={styles.dropdownText} numberOfLines={1}>
+                        Stores ({topStores.length})
+                      </Text>
+                      <Ionicons name="chevron-down" size={14} color={colors.muted} />
+                    </Pressable>
                   )}
-                </ScrollView>
+                </View>
               )}
               {(watchStats.count > 0 || underWarranty > 0) && (
                 <View style={styles.quickRow}>
@@ -699,6 +657,92 @@ export function DashboardScreen() {
         visible={tourVisible}
         onDone={() => void updateSettings({ tourSeen: true })}
       />
+
+      {/* Sort / Stores dropdown menus */}
+      <Modal
+        visible={menuOpen !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setMenuOpen(null)}
+      >
+        <Pressable style={styles.menuBackdrop} onPress={() => setMenuOpen(null)}>
+          <Pressable style={styles.menuSheet} onPress={() => {}}>
+            <View style={styles.menuGrabber} />
+            {menuOpen === 'sort' && (
+              <>
+                <Text style={styles.menuTitle}>Sort your items</Text>
+                {SORT_OPTIONS.map((o) => {
+                  const active = sortMode === o.key;
+                  return (
+                    <Pressable
+                      key={o.key}
+                      style={styles.menuRow}
+                      onPress={() => {
+                        setSortMode(o.key);
+                        savePrefs({ sortMode: o.key });
+                        setMenuOpen(null);
+                      }}
+                    >
+                      <Text style={[styles.menuRowText, active && styles.menuRowActive]}>
+                        {o.label}
+                      </Text>
+                      {active && (
+                        <Ionicons name="checkmark" size={18} color={colors.primary} />
+                      )}
+                    </Pressable>
+                  );
+                })}
+                <View style={styles.menuDivider} />
+                <Pressable
+                  style={styles.menuRow}
+                  onPress={() => {
+                    setHideExpired(!hideExpired);
+                    savePrefs({ hideExpired: !hideExpired });
+                    setMenuOpen(null);
+                  }}
+                >
+                  <Text style={[styles.menuRowText, hideExpired && styles.menuRowActive]}>
+                    Hide expired items
+                  </Text>
+                  <Ionicons
+                    name={hideExpired ? 'checkbox' : 'square-outline'}
+                    size={18}
+                    color={hideExpired ? colors.primary : colors.muted}
+                  />
+                </Pressable>
+              </>
+            )}
+            {menuOpen === 'stores' && (
+              <>
+                <Text style={styles.menuTitle}>Your stores</Text>
+                <ScrollView style={styles.menuScroll}>
+                  {topStores.map((s) => (
+                    <Pressable
+                      key={s.name}
+                      style={styles.menuRow}
+                      onPress={() => {
+                        setMenuOpen(null);
+                        navigation.navigate('StoreProfile', { storeName: s.name });
+                      }}
+                    >
+                      <Ionicons
+                        name="storefront-outline"
+                        size={16}
+                        color={colors.primary}
+                      />
+                      <Text style={[styles.menuRowText, styles.menuStoreName]} numberOfLines={1}>
+                        {s.name}
+                      </Text>
+                      <Text style={styles.menuStoreTotal}>{formatPrice(s.total)}</Text>
+                      <Ionicons name="chevron-forward" size={15} color={colors.muted} />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
       {recentlyDeleted && (
         <View style={styles.undoBar}>
           <Text style={styles.undoText} numberOfLines={1}>
@@ -975,41 +1019,89 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
   },
-  storeChip: {
+  dropdownRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  dropdownBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    justifyContent: 'center',
+    gap: 6,
     backgroundColor: colors.card,
-    borderRadius: 100,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    maxWidth: 170,
+    borderRadius: radii.md,
+    paddingVertical: 9,
+    paddingHorizontal: spacing.sm,
     ...cardShadow,
     shadowOpacity: 0.05,
     elevation: 1,
   },
-  storeChipText: {
+  dropdownText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
     color: colors.deepBlue,
+    flexShrink: 1,
   },
-  sortRow: {
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 18, 28, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  menuSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+    maxHeight: '70%',
+  },
+  menuGrabber: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.divider,
+    marginBottom: spacing.md,
+  },
+  menuTitle: {
+    fontFamily: fonts.displayBold,
+    fontSize: 18,
+    color: colors.deepBlue,
+    marginBottom: spacing.sm,
+  },
+  menuRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingBottom: spacing.sm,
-    paddingRight: spacing.md,
+    paddingVertical: 13,
   },
-  sortLabel: {
+  menuRowText: {
+    flex: 1,
     fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    color: colors.muted,
-    marginRight: 2,
+    fontSize: 15,
+    color: colors.text,
   },
-  sortDivider: {
-    width: 1,
-    height: 18,
+  menuRowActive: {
+    color: colors.primary,
+    fontFamily: fonts.bodySemiBold,
+  },
+  menuDivider: {
+    height: 1,
     backgroundColor: colors.divider,
-    marginHorizontal: 4,
+    marginVertical: 4,
+  },
+  menuScroll: {
+    flexGrow: 0,
+  },
+  menuStoreName: {
+    flex: 1,
+  },
+  menuStoreTotal: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.deepBlue,
   },
   quickRow: {
     flexDirection: 'row',
