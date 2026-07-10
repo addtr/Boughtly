@@ -539,34 +539,6 @@ export function DashboardScreen() {
                   })}
                 </ScrollView>
               )}
-              {(watchStats.count > 0 || underWarranty > 0) && (
-                <View style={styles.quickRow}>
-                  {watchStats.count > 0 && (
-                    <Pressable
-                      style={styles.quickTile}
-                      onPress={() => navigation.navigate('Tabs', { screen: 'WatchTab' })}
-                    >
-                      <Ionicons name="pricetags-outline" size={15} color={colors.primary} />
-                      <Text style={styles.quickValue} numberOfLines={1}>
-                        {watchStats.count} watched
-                        {watchStats.atTarget > 0 ? ` · ${watchStats.atTarget} at target` : ''}
-                      </Text>
-                    </Pressable>
-                  )}
-                  {underWarranty > 0 && (
-                    <View style={styles.quickTile}>
-                      <Ionicons
-                        name="shield-checkmark-outline"
-                        size={15}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.quickValue} numberOfLines={1}>
-                        {underWarranty} under warranty
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
               {(activeItems.length >= 2 || topStores.length > 0) && (
                 <View style={styles.dropdownRow}>
                   {activeItems.length >= 2 && (
@@ -602,6 +574,34 @@ export function DashboardScreen() {
                       </Text>
                       <Ionicons name="chevron-down" size={14} color={colors.muted} />
                     </Pressable>
+                  )}
+                </View>
+              )}
+              {(watchStats.count > 0 || underWarranty > 0) && (
+                <View style={styles.quickRow}>
+                  {watchStats.count > 0 && (
+                    <Pressable
+                      style={styles.quickTile}
+                      onPress={() => navigation.navigate('Tabs', { screen: 'WatchTab' })}
+                    >
+                      <Ionicons name="pricetags-outline" size={15} color={colors.primary} />
+                      <Text style={styles.quickValue} numberOfLines={1}>
+                        {watchStats.count} watched
+                        {watchStats.atTarget > 0 ? ` · ${watchStats.atTarget} at target` : ''}
+                      </Text>
+                    </Pressable>
+                  )}
+                  {underWarranty > 0 && (
+                    <View style={styles.quickTile}>
+                      <Ionicons
+                        name="shield-checkmark-outline"
+                        size={15}
+                        color={colors.primary}
+                      />
+                      <Text style={styles.quickValue} numberOfLines={1}>
+                        {underWarranty} under warranty
+                      </Text>
+                    </View>
                   )}
                 </View>
               )}
@@ -964,7 +964,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 15,
     color: colors.text,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     ...cardShadow,
     shadowOpacity: 0.05,
     elevation: 1,
@@ -1125,7 +1125,7 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: colors.card,
     borderRadius: radii.md,
-    paddingVertical: 9,
+    paddingVertical: 10,
     paddingHorizontal: spacing.sm,
     ...cardShadow,
     shadowOpacity: 0.05,
