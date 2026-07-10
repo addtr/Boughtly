@@ -27,6 +27,7 @@ import { InsightsScreen } from './src/screens/InsightsScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
+import { RegisterProductScreen } from './src/screens/RegisterProductScreen';
 import { RemindersScreen } from './src/screens/RemindersScreen';
 import { ReturnDetailScreen } from './src/screens/ReturnDetailScreen';
 import { ScanReviewScreen } from './src/screens/ScanReviewScreen';
@@ -231,6 +232,11 @@ function Root() {
           options={{ title: 'Review your receipt' }}
         />
         <Stack.Screen name="ItemDetail" component={ItemDetailScreen} options={{ title: '' }} />
+        <Stack.Screen
+          name="RegisterProduct"
+          component={RegisterProductScreen}
+          options={{ title: 'Register product' }}
+        />
         <Stack.Screen
           name="Insights"
           component={InsightsScreen}

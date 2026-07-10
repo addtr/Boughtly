@@ -30,6 +30,7 @@ export type RootStackParamList = {
     items: { name: string; price: number }[];
   };
   ItemDetail: { itemId: string };
+  RegisterProduct: { itemId: string };
   Insights: undefined;
   Reminders: undefined;
   StoreProfile: { storeName: string };

@@ -105,3 +105,32 @@ export function resolveWarrantyPage(itemName: string): ResolvedWarrantyPage {
   }
   return { url: warrantySearchUrl(itemName), known: false, label: itemName.trim() };
 }
+
+/**
+ * Resolve where to REGISTER a product with its maker. Same brand matching as
+ * claims, but pointed at the manufacturer's product-registration page — via a
+ * site-pinned search, so it never 404s as makers move their forms around.
+ */
+export function resolveRegistrationPage(itemName: string): ResolvedWarrantyPage {
+  const s = itemName.trim().toLowerCase();
+  if (s.length >= 2) {
+    for (const b of BRAND_WARRANTIES) {
+      if (b.match.some((m) => containsWord(s, m))) {
+        return {
+          url: `https://www.google.com/search?q=${encodeURIComponent(
+            `product registration site:${b.domain}`
+          )}`,
+          known: true,
+          label: b.label,
+        };
+      }
+    }
+  }
+  return {
+    url: `https://www.google.com/search?q=${encodeURIComponent(
+      `${itemName.trim()} product registration`
+    )}`,
+    known: false,
+    label: itemName.trim(),
+  };
+}

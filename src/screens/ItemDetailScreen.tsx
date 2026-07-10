@@ -468,12 +468,12 @@ export function ItemDetailScreen({ navigation, route }: Props) {
               <Text style={styles.registerText}>
                 New purchase? Registering it with{' '}
                 {warrantyPage.known ? warrantyPage.label : 'the maker'} locks in the
-                full warranty.
+                full warranty — Boughtly can fill in the form for you.
               </Text>
               <View style={styles.registerActions}>
                 <Pressable
                   style={styles.registerBtn}
-                  onPress={() => void openUrl(warrantyPage.url)}
+                  onPress={() => navigation.navigate('RegisterProduct', { itemId: item!.id })}
                 >
                   <Text style={styles.registerBtnText}>Register now</Text>
                 </Pressable>
