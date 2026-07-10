@@ -553,6 +553,23 @@ export function SettingsScreen() {
         <Text style={styles.aboutVersion}>
           Version {Constants.expoConfig?.version ?? '1.0.0'} · All data stays on your device.
         </Text>
+        <View style={styles.divider} />
+        <Pressable
+          style={styles.row}
+          onPress={async () => {
+            await updateSettings({ tourSeen: false });
+            navigation.navigate('Tabs', { screen: 'Home' });
+          }}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="sparkles-outline" size={19} color={colors.primary} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={styles.rowLabel}>Replay the feature tour</Text>
+            <Text style={styles.itemMeta}>A quick reminder of everything Boughtly can do.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+        </Pressable>
       </Card>
     </ScrollView>
   );

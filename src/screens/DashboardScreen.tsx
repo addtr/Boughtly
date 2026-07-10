@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { FeatureTour } from '../components/FeatureTour';
 import { ItemCard } from '../components/ItemCard';
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
@@ -45,8 +46,22 @@ const DASH_PREFS_KEY = 'boughtly.dashPrefs.v1';
 
 export function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { items, returns, watches, recentlyDeleted, undoDelete, deleteItem, startReturn } =
-    useAppState();
+  const {
+    items,
+    returns,
+    watches,
+    recentlyDeleted,
+    undoDelete,
+    deleteItem,
+    startReturn,
+    settings,
+    isLoaded,
+    updateSettings,
+  } = useAppState();
+
+  // First landing on the dashboard → one-time feature tour (replayable from
+  // Settings, which flips tourSeen back to false).
+  const tourVisible = isLoaded && settings.hasOnboarded && !settings.tourSeen;
   const [query, setQuery] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
@@ -69,6 +84,23 @@ export function DashboardScreen() {
     const merged = { sortMode, hideExpired, ...next };
     AsyncStorage.setItem(DASH_PREFS_KEY, JSON.stringify(merged)).catch(() => {});
   }
+
+  // The X on the attention/price-adjustment cards clears them for the rest of
+  // the day — they're time-sensitive, so they come back tomorrow.
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const [dismissed, setDismissed] = useState<{ attention?: string; priceAdj?: string }>({});
+  useEffect(() => {
+    AsyncStorage.getItem('boughtly.dismissed.v1')
+      .then((raw) => raw && setDismissed(JSON.parse(raw)))
+      .catch(() => {});
+  }, []);
+  function dismissCard(key: 'attention' | 'priceAdj') {
+    const next = { ...dismissed, [key]: todayISO };
+    setDismissed(next);
+    AsyncStorage.setItem('boughtly.dismissed.v1', JSON.stringify(next)).catch(() => {});
+  }
+  const attentionHidden = dismissed.attention === todayISO;
+  const priceAdjHidden = dismissed.priceAdj === todayISO;
 
   // Pull-to-refresh recomputes every countdown and replays the ring animations
   const onRefresh = useCallback(() => {
@@ -210,7 +242,7 @@ export function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       void fetchUpcomingReminders().then((all) =>
-        setUpcoming(all.filter((r) => r.fireAt !== null).slice(0, 3))
+        setUpcoming(all.filter((r) => r.fireAt !== null).slice(0, 2))
       );
     }, [])
   );
@@ -274,20 +306,25 @@ export function DashboardScreen() {
         ListHeaderComponent={
           activeItems.length > 0 ? (
             <View>
-              {!query.trim() && urgent.length > 0 && (
+              {!query.trim() && urgent.length > 0 && !attentionHidden && (
                 <View style={styles.attentionCard}>
                   <View style={styles.attentionHeader}>
-                    <Ionicons name="alert-circle" size={18} color={colors.coral} />
+                    <Ionicons name="alert-circle" size={16} color={colors.coral} />
                     <Text style={styles.attentionTitle}>
                       Needs attention ({urgent.length})
+                      {valueClosing > 0
+                        ? ` · ${formatPrice(valueClosing)} closing this week`
+                        : ''}
                     </Text>
+                    <Pressable
+                      onPress={() => dismissCard('attention')}
+                      hitSlop={10}
+                      accessibilityLabel="Dismiss for today"
+                    >
+                      <Ionicons name="close" size={17} color={colors.coral} />
+                    </Pressable>
                   </View>
-                  {valueClosing > 0 && (
-                    <Text style={styles.attentionValue}>
-                      {formatPrice(valueClosing)} in return windows close this week
-                    </Text>
-                  )}
-                  {urgent.map(({ item, deadline }) => (
+                  {urgent.slice(0, 3).map(({ item, deadline }) => (
                     <Pressable
                       key={item.id}
                       style={styles.attentionRow}
@@ -318,28 +355,73 @@ export function DashboardScreen() {
                       </View>
                     </Pressable>
                   ))}
+                  {urgent.length > 3 && (
+                    <Text style={styles.attentionMore}>
+                      + {urgent.length - 3} more in your list below
+                    </Text>
+                  )}
                 </View>
               )}
               {!query.trim() && urgent.length === 0 && (
-                <View style={styles.caughtUpCard}>
-                  <View style={styles.caughtUpHeader}>
-                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                    <Text style={styles.caughtUpTitle}>You’re all caught up ✨</Text>
-                  </View>
-                  {nextDeadline ? (
+                <Pressable
+                  style={styles.caughtUpCard}
+                  onPress={() =>
+                    nextDeadline &&
+                    navigation.navigate('ItemDetail', { itemId: nextDeadline.item.id })
+                  }
+                >
+                  <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                  <Text style={styles.caughtUpText} numberOfLines={1}>
+                    All caught up ✨{' '}
+                    {nextDeadline
+                      ? `Next: ${nextDeadline.item.itemName} — ${formatDate(
+                          nextDeadline.deadline.date
+                        )}`
+                      : 'Nothing closing soon.'}
+                  </Text>
+                </Pressable>
+              )}
+              {!query.trim() && priceAdjustOpps.length > 0 && !priceAdjHidden && (
+                <View style={styles.oppCard}>
+                  <View style={styles.oppHeader}>
+                    <Ionicons name="cash-outline" size={16} color={colors.success} />
+                    <Text style={styles.oppTitle}>
+                      Price adjustments available ({priceAdjustOpps.length})
+                    </Text>
                     <Pressable
-                      onPress={() =>
-                        navigation.navigate('ItemDetail', { itemId: nextDeadline.item.id })
-                      }
+                      onPress={() => dismissCard('priceAdj')}
+                      hitSlop={10}
+                      accessibilityLabel="Dismiss for today"
                     >
-                      <Text style={styles.caughtUpNext}>
-                        Next up: {nextDeadline.deadline.kind === 'return' ? 'return' : 'warranty'}{' '}
-                        for {nextDeadline.item.itemName} — {formatDate(nextDeadline.deadline.date)}
-                      </Text>
+                      <Ionicons name="close" size={17} color={colors.success} />
                     </Pressable>
-                  ) : (
-                    <Text style={styles.caughtUpNext}>Nothing closing soon. Nicely done.</Text>
-                  )}
+                  </View>
+                  {priceAdjustOpps.slice(0, 2).map(({ item, daysLeft }) => (
+                    <Pressable
+                      key={item.id}
+                      style={styles.oppRow}
+                      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+                    >
+                      <View style={styles.attentionInfo}>
+                        <Text style={styles.oppName} numberOfLines={1}>
+                          {item.itemName}
+                        </Text>
+                        <Text style={styles.oppMeta} numberOfLines={1}>
+                          {item.storeName} · refunds the difference if it dropped
+                        </Text>
+                      </View>
+                      <View style={[styles.oppPill, daysLeft <= URGENT_DAYS && styles.oppPillHot]}>
+                        <Text
+                          style={[
+                            styles.oppPillText,
+                            daysLeft <= URGENT_DAYS && styles.oppPillTextHot,
+                          ]}
+                        >
+                          {daysLeft === 0 ? 'last day' : `${daysLeft}d left`}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
                 </View>
               )}
               <Pressable
@@ -408,45 +490,6 @@ export function DashboardScreen() {
                   ))}
                 </View>
               )}
-              {!query.trim() && priceAdjustOpps.length > 0 && (
-                <View style={styles.oppCard}>
-                  <View style={styles.oppHeader}>
-                    <Ionicons name="cash-outline" size={18} color={colors.success} />
-                    <Text style={styles.oppTitle}>
-                      Price adjustments available ({priceAdjustOpps.length})
-                    </Text>
-                  </View>
-                  <Text style={styles.oppSub}>
-                    These stores refund the difference if the price dropped — worth a check.
-                  </Text>
-                  {priceAdjustOpps.slice(0, 4).map(({ item, daysLeft }) => (
-                    <Pressable
-                      key={item.id}
-                      style={styles.oppRow}
-                      onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
-                    >
-                      <View style={styles.attentionInfo}>
-                        <Text style={styles.oppName} numberOfLines={1}>
-                          {item.itemName}
-                        </Text>
-                        <Text style={styles.oppMeta} numberOfLines={1}>
-                          {item.storeName} · check for a lower price
-                        </Text>
-                      </View>
-                      <View style={[styles.oppPill, daysLeft <= URGENT_DAYS && styles.oppPillHot]}>
-                        <Text
-                          style={[
-                            styles.oppPillText,
-                            daysLeft <= URGENT_DAYS && styles.oppPillTextHot,
-                          ]}
-                        >
-                          {daysLeft === 0 ? 'last day' : `${daysLeft}d left`}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
               {activeItems.length >= 4 && (
                 <TextInput
                   value={query}
@@ -494,74 +537,83 @@ export function DashboardScreen() {
                   })}
                 </ScrollView>
               )}
-              {topStores.length > 0 && (
-                <View>
-                  <Text style={styles.storesTitle}>Your stores</Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.storesRow}
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    {topStores.map((s) => (
-                      <Pressable
-                        key={s.name}
-                        style={({ pressed }) => [styles.storeChip, pressed && { opacity: 0.85 }]}
-                        onPress={() =>
-                          navigation.navigate('StoreProfile', { storeName: s.name })
-                        }
-                      >
-                        <Ionicons name="storefront-outline" size={15} color={colors.primary} />
-                        <Text style={styles.storeChipText} numberOfLines={1}>
-                          {s.name}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={13} color={colors.muted} />
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-              {activeItems.length >= 2 && (
+              {(activeItems.length >= 2 || topStores.length > 0) && (
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.sortRow}
                   keyboardShouldPersistTaps="handled"
                 >
-                  <Text style={styles.sortLabel}>Sort</Text>
-                  {SORT_OPTIONS.map((o) => {
-                    const active = sortMode === o.key;
-                    return (
+                  {activeItems.length >= 2 && (
+                    <>
+                      <Text style={styles.sortLabel}>Sort</Text>
+                      {SORT_OPTIONS.map((o) => {
+                        const active = sortMode === o.key;
+                        return (
+                          <Pressable
+                            key={o.key}
+                            onPress={() => {
+                              setSortMode(o.key);
+                              savePrefs({ sortMode: o.key });
+                            }}
+                            style={[styles.tagFilter, active && styles.tagFilterActive]}
+                          >
+                            <Text
+                              style={[
+                                styles.tagFilterText,
+                                active && styles.tagFilterTextActive,
+                              ]}
+                            >
+                              {o.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
                       <Pressable
-                        key={o.key}
                         onPress={() => {
-                          setSortMode(o.key);
-                          savePrefs({ sortMode: o.key });
+                          setHideExpired(!hideExpired);
+                          savePrefs({ hideExpired: !hideExpired });
                         }}
-                        style={[styles.tagFilter, active && styles.tagFilterActive]}
+                        style={[styles.tagFilter, hideExpired && styles.tagFilterActive]}
                       >
                         <Text
-                          style={[styles.tagFilterText, active && styles.tagFilterTextActive]}
+                          style={[
+                            styles.tagFilterText,
+                            hideExpired && styles.tagFilterTextActive,
+                          ]}
                         >
-                          {o.label}
+                          Hide expired
                         </Text>
                       </Pressable>
-                    );
-                  })}
-                  <View style={styles.sortDivider} />
-                  <Pressable
-                    onPress={() => {
-                      setHideExpired(!hideExpired);
-                      savePrefs({ hideExpired: !hideExpired });
-                    }}
-                    style={[styles.tagFilter, hideExpired && styles.tagFilterActive]}
-                  >
-                    <Text
-                      style={[styles.tagFilterText, hideExpired && styles.tagFilterTextActive]}
-                    >
-                      Hide expired
-                    </Text>
-                  </Pressable>
+                      {topStores.length > 0 && <View style={styles.sortDivider} />}
+                    </>
+                  )}
+                  {topStores.length > 0 && (
+                    <>
+                      <Text style={styles.sortLabel}>Stores</Text>
+                      {topStores.map((s) => (
+                        <Pressable
+                          key={s.name}
+                          style={({ pressed }) => [
+                            styles.storeChip,
+                            pressed && { opacity: 0.85 },
+                          ]}
+                          onPress={() =>
+                            navigation.navigate('StoreProfile', { storeName: s.name })
+                          }
+                        >
+                          <Ionicons
+                            name="storefront-outline"
+                            size={13}
+                            color={colors.primary}
+                          />
+                          <Text style={styles.storeChipText} numberOfLines={1}>
+                            {s.name}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </>
+                  )}
                 </ScrollView>
               )}
               {(watchStats.count > 0 || underWarranty > 0) && (
@@ -571,14 +623,10 @@ export function DashboardScreen() {
                       style={styles.quickTile}
                       onPress={() => navigation.navigate('Tabs', { screen: 'WatchTab' })}
                     >
-                      <Ionicons name="pricetags-outline" size={18} color={colors.primary} />
-                      <Text style={styles.quickValue}>
+                      <Ionicons name="pricetags-outline" size={15} color={colors.primary} />
+                      <Text style={styles.quickValue} numberOfLines={1}>
                         {watchStats.count} watched
-                      </Text>
-                      <Text style={styles.quickLabel}>
-                        {watchStats.atTarget > 0
-                          ? `${watchStats.atTarget} at your target`
-                          : 'tracking prices'}
+                        {watchStats.atTarget > 0 ? ` · ${watchStats.atTarget} at target` : ''}
                       </Text>
                     </Pressable>
                   )}
@@ -586,11 +634,12 @@ export function DashboardScreen() {
                     <View style={styles.quickTile}>
                       <Ionicons
                         name="shield-checkmark-outline"
-                        size={18}
+                        size={15}
                         color={colors.primary}
                       />
-                      <Text style={styles.quickValue}>{underWarranty} under</Text>
-                      <Text style={styles.quickLabel}>warranty</Text>
+                      <Text style={styles.quickValue} numberOfLines={1}>
+                        {underWarranty} under warranty
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -646,6 +695,10 @@ export function DashboardScreen() {
           )
         }
       />
+      <FeatureTour
+        visible={tourVisible}
+        onDone={() => void updateSettings({ tourSeen: true })}
+      />
       {recentlyDeleted && (
         <View style={styles.undoBar}>
           <Text style={styles.undoText} numberOfLines={1}>
@@ -679,9 +732,9 @@ const styles = StyleSheet.create({
   },
   statCard: {
     backgroundColor: colors.card,
-    borderRadius: radii.lg,
-    paddingVertical: spacing.xs,
-    marginBottom: spacing.md,
+    borderRadius: radii.md,
+    paddingVertical: 2,
+    marginBottom: spacing.sm,
     ...cardShadow,
   },
   statRow: {
@@ -691,12 +744,12 @@ const styles = StyleSheet.create({
   stat: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: 10,
     paddingHorizontal: spacing.sm,
   },
   statValue: {
     fontFamily: fonts.displayBold,
-    fontSize: 22,
+    fontSize: 18,
     color: colors.deepBlue,
   },
   statValueGood: {
@@ -707,14 +760,14 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: fonts.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.muted,
-    marginTop: 3,
+    marginTop: 2,
     textAlign: 'center',
   },
   statVDivider: {
     width: 1,
-    height: 40,
+    height: 32,
     backgroundColor: colors.divider,
   },
   statHDivider: {
@@ -724,56 +777,51 @@ const styles = StyleSheet.create({
   },
   attentionCard: {
     backgroundColor: colors.coralSoft,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
   },
   attentionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: spacing.sm,
+    marginBottom: 2,
   },
   attentionTitle: {
+    flex: 1,
     fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.coral,
   },
-  attentionValue: {
+  attentionMore: {
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
     color: colors.coral,
-    marginTop: -2,
-    marginBottom: spacing.sm,
+    marginTop: 2,
   },
   caughtUpCard: {
-    backgroundColor: colors.successSoft,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  caughtUpHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: colors.successSoft,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
   },
-  caughtUpTitle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-    color: colors.success,
-  },
-  caughtUpNext: {
-    fontFamily: fonts.body,
+  caughtUpText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
     fontSize: 13,
     color: colors.success,
-    marginTop: 6,
-    lineHeight: 18,
   },
   oppCard: {
     backgroundColor: colors.successSoft,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
   },
   oppHeader: {
     flexDirection: 'row',
@@ -781,27 +829,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   oppTitle: {
+    flex: 1,
     fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.success,
-  },
-  oppSub: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.success,
-    marginTop: 3,
-    marginBottom: 4,
-    lineHeight: 17,
   },
   oppRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: 8,
+    paddingVertical: 5,
   },
   oppName: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.deepBlue,
   },
   oppMeta: {
@@ -833,14 +874,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: 8,
+    paddingVertical: 5,
   },
   attentionInfo: {
     flex: 1,
   },
   attentionName: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.deepBlue,
   },
   attentionMeta: {
@@ -872,7 +913,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: 10,
+    paddingVertical: 8,
     fontFamily: fonts.body,
     fontSize: 15,
     color: colors.text,
@@ -891,21 +932,24 @@ const styles = StyleSheet.create({
   },
   remindersCard: {
     backgroundColor: colors.card,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
     ...cardShadow,
+    shadowOpacity: 0.05,
+    elevation: 1,
   },
   remindersHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: spacing.sm,
+    marginBottom: 2,
   },
   remindersTitle: {
     flex: 1,
     fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.deepBlue,
   },
   remindersSeeAll: {
@@ -917,7 +961,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: 5,
+    paddingVertical: 3,
   },
   reminderWhen: {
     width: 118,
@@ -931,27 +975,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
   },
-  storesTitle: {
-    fontFamily: fonts.display,
-    fontSize: 14,
-    color: colors.muted,
-    marginBottom: spacing.sm,
-    marginLeft: 2,
-  },
-  storesRow: {
-    gap: spacing.sm,
-    paddingBottom: spacing.md,
-    paddingRight: spacing.md,
-  },
   storeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: colors.card,
     borderRadius: 100,
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 12,
-    maxWidth: 200,
+    maxWidth: 170,
     ...cardShadow,
     shadowOpacity: 0.05,
     elevation: 1,
@@ -964,7 +996,7 @@ const styles = StyleSheet.create({
   sortRow: {
     alignItems: 'center',
     gap: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
     paddingRight: spacing.md,
   },
   sortLabel: {
@@ -981,25 +1013,27 @@ const styles = StyleSheet.create({
   },
   quickRow: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   quickTile: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radii.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    paddingVertical: 9,
+    paddingHorizontal: spacing.sm,
     ...cardShadow,
     shadowOpacity: 0.05,
     elevation: 1,
   },
   quickValue: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
     color: colors.deepBlue,
-    marginTop: 6,
   },
   quickLabel: {
     fontFamily: fonts.body,
@@ -1009,7 +1043,7 @@ const styles = StyleSheet.create({
   },
   tagFilterRow: {
     gap: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
     paddingRight: spacing.md,
   },
   tagFilter: {

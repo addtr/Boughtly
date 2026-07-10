@@ -63,6 +63,8 @@ export interface AppSettings {
   accountEmail: string;
   /** True once the user has finished the welcome screens */
   hasOnboarded: boolean;
+  /** True once the one-time feature tour has been shown on the dashboard */
+  tourSeen: boolean;
   notificationsEnabled: boolean;
   /** Days before the return deadline to remind the user */
   returnReminderDays: number;
@@ -98,6 +100,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accountName: '',
   accountEmail: '',
   hasOnboarded: false,
+  tourSeen: false,
   notificationsEnabled: true,
   returnReminderDays: 3,
   warrantyReminderDays: 7,
