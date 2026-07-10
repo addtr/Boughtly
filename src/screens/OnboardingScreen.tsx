@@ -15,7 +15,8 @@ import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { ensureNotificationSetup } from '../notifications/notifications';
 import { useAppState } from '../store/AppStateContext';
-import { colors, fonts, spacing } from '../theme/theme';
+import { Palette, fonts, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { successFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
@@ -27,7 +28,6 @@ const styles_art = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: colors.coralSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -37,7 +37,8 @@ interface Slide {
   key: string;
   title: string;
   body: string;
-  art: React.ReactNode;
+  /** Rendered with the active palette so theme switches restyle the art */
+  art: (colors: Palette) => React.ReactNode;
 }
 
 const SLIDES: Slide[] = [
@@ -45,7 +46,7 @@ const SLIDES: Slide[] = [
     key: 'protect',
     title: 'Protect everything you buy',
     body: 'Snap a receipt and Boughtly keeps the proof, the deadlines, and the coverage in one place.',
-    art: (
+    art: () => (
       <Image
         source={require('../../assets/splash-icon.png')}
         style={{ width: 190, height: 190 }}
@@ -57,14 +58,14 @@ const SLIDES: Slide[] = [
     key: 'ring',
     title: 'Never miss a return window',
     body: 'Countdown rings show exactly how long you have to change your mind — blue when there’s time, coral when it’s urgent.',
-    art: <CountdownRing daysLeft={12} totalDays={30} size={160} label="days" />,
+    art: () => <CountdownRing daysLeft={12} totalDays={30} size={160} label="days" />,
   },
   {
     key: 'remind',
     title: 'Reminded before it’s too late',
     body: 'Boughtly nudges you before a return window closes and before a warranty expires — that’s the whole point. On the next screen, iOS will ask permission to send those reminders.',
-    art: (
-      <View style={styles_art.bell}>
+    art: (colors) => (
+      <View style={[styles_art.bell, { backgroundColor: colors.coralSoft }]}>
         <Ionicons name="notifications" size={72} color={colors.coral} />
       </View>
     ),
@@ -72,6 +73,8 @@ const SLIDES: Slide[] = [
 ];
 
 export function OnboardingScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { updateSettings } = useAppState();
   const [page, setPage] = useState(0);
   const listRef = useRef<FlatList<Slide>>(null);
@@ -118,7 +121,7 @@ export function OnboardingScreen({ navigation }: Props) {
         }
         renderItem={({ item }) => (
           <View style={[styles.slide, { width }]}>
-            <View style={styles.art}>{item.art}</View>
+            <View style={styles.art}>{item.art(colors)}</View>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.body}>{item.body}</Text>
           </View>
@@ -146,7 +149,7 @@ export function OnboardingScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

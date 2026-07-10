@@ -24,8 +24,14 @@ import { ensureNotificationSetup, sendTestReminder } from '../notifications/noti
 import { backupFileName, buildBackup, parseBackup } from '../services/backup';
 import { csvFileName, itemsToCsv } from '../utils/csv';
 import { useAppState } from '../store/AppStateContext';
-import { colors, fonts, spacing } from '../theme/theme';
-import { CURRENCY_OPTIONS, PRICE_CHECK_OPTIONS, REMINDER_TIME_OPTIONS } from '../types/item';
+import { Palette, fonts, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
+import {
+  CURRENCY_OPTIONS,
+  PRICE_CHECK_OPTIONS,
+  REMINDER_TIME_OPTIONS,
+  THEME_MODE_OPTIONS,
+} from '../types/item';
 import { formatPrice, nearestDeadline } from '../utils/dates';
 import { successFeedback, warningFeedback } from '../utils/haptics';
 
@@ -33,6 +39,8 @@ const RETURN_REMINDER_OPTIONS = [1, 3, 7];
 const WARRANTY_REMINDER_OPTIONS = [3, 7, 14];
 
 export function SettingsScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const {
     items,
@@ -421,6 +429,42 @@ export function SettingsScreen() {
         </View>
       </Card>
 
+      {/* Appearance */}
+      <Text style={styles.sectionTitle}>Appearance</Text>
+      <Card>
+        <Text style={styles.optionLabel}>Theme</Text>
+        <View style={styles.optionRow}>
+          {THEME_MODE_OPTIONS.map((o) => {
+            const active = (settings.themeMode ?? 'system') === o.mode;
+            return (
+              <Pressable
+                key={o.mode}
+                onPress={() => updateSettings({ themeMode: o.mode })}
+                style={[styles.option, styles.themeOption, active && styles.optionActive]}
+              >
+                <Ionicons
+                  name={
+                    o.mode === 'system'
+                      ? 'phone-portrait-outline'
+                      : o.mode === 'light'
+                      ? 'sunny-outline'
+                      : 'moon-outline'
+                  }
+                  size={14}
+                  color={active ? '#FFFFFF' : colors.muted}
+                />
+                <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                  {o.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.itemMeta}>
+          System follows your iPhone’s light/dark setting. Changes apply instantly.
+        </Text>
+      </Card>
+
       {/* Currency */}
       <Text style={styles.sectionTitle}>Currency</Text>
       <Card>
@@ -575,7 +619,7 @@ export function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -649,6 +693,11 @@ const styles = StyleSheet.create({
   },
   optionActive: {
     backgroundColor: colors.primary,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   optionText: {
     fontFamily: fonts.bodyMedium,

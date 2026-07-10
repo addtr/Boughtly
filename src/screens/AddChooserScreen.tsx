@@ -3,12 +3,15 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { RootStackParamList } from '../navigation/types';
-import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddChooser'>;
 
 /** Modal asking how the user wants to add a purchase. */
 export function AddChooserScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   function choose(mode: 'scan' | 'manual' | 'barcode') {
     navigation.replace('AddItem', { mode });
   }
@@ -113,7 +116,7 @@ export function AddChooserScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

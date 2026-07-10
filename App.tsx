@@ -34,23 +34,11 @@ import { StoreProfileScreen } from './src/screens/StoreProfileScreen';
 import { WatchDetailScreen } from './src/screens/WatchDetailScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { AppStateProvider, useAppState } from './src/store/AppStateContext';
-import { colors, fonts, isDarkMode } from './src/theme/theme';
+import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { fonts } from './src/theme/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
-
-const navTheme = {
-  ...DefaultTheme,
-  dark: isDarkMode,
-  colors: {
-    ...DefaultTheme.colors,
-    background: colors.background,
-    card: colors.background,
-    text: colors.deepBlue,
-    primary: colors.primary,
-    border: colors.divider,
-  },
-};
 
 // If a notification is tapped before navigation is mounted (cold start),
 // hold the jump until the container reports ready.
@@ -97,6 +85,24 @@ function useNotificationTaps() {
 function Root() {
   useNotificationTaps();
   const { isLoaded, settings } = useAppState();
+  const { colors, isDark } = useTheme();
+  // Rebuilt on theme change so navigator chrome (headers, backgrounds,
+  // transitions) restyles instantly along with the screens.
+  const navTheme = React.useMemo(
+    () => ({
+      ...DefaultTheme,
+      dark: isDark,
+      colors: {
+        ...DefaultTheme.colors,
+        background: colors.background,
+        card: colors.background,
+        text: colors.deepBlue,
+        primary: colors.primary,
+        border: colors.divider,
+      },
+    }),
+    [colors, isDark]
+  );
   const [fontsLoaded] = useFonts({
     Sora_600SemiBold,
     Sora_700Bold,
@@ -138,7 +144,7 @@ function Root() {
 
   if (!fontsLoaded || !isLoaded) {
     return (
-      <View style={styles.loading}>
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
@@ -154,7 +160,7 @@ function Root() {
       theme={navTheme}
       onReady={flushPendingNotificationNav}
     >
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack.Navigator
         initialRouteName={
           !settings.accountEmail
@@ -264,7 +270,9 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.flex}>
       <AppStateProvider>
-        <Root />
+        <ThemeProvider>
+          <Root />
+        </ThemeProvider>
       </AppStateProvider>
     </GestureHandlerRootView>
   );
@@ -274,7 +282,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   loading: {
     flex: 1,
-    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },

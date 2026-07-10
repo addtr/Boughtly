@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { colors, fonts, URGENT_DAYS_THRESHOLD } from '../theme/theme';
+import { Palette, fonts, URGENT_DAYS_THRESHOLD } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -28,6 +29,8 @@ export function CountdownRing({
   strokeWidth = 6,
   label = 'days',
 }: CountdownRingProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const expired = daysLeft < 0;
   const clampedDays = Math.max(daysLeft, 0);
   const fraction =
@@ -111,7 +114,7 @@ export function CountdownRing({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   center: {
     position: 'absolute',
     top: 0,

@@ -17,7 +17,8 @@ import { Sparkline } from '../components/Sparkline';
 import { Button, Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatDate, formatPrice, toISODate } from '../utils/dates';
 import { analyzeDeal, DealVerdict } from '../utils/deals';
 import { successFeedback, tapFeedback, warningFeedback } from '../utils/haptics';
@@ -25,12 +26,13 @@ import { openPriceScan } from '../utils/priceScan';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WatchDetail'>;
 
-const VERDICT_STYLE: Record<DealVerdict['level'], { bg: string; fg: string; icon: string }> = {
-  great: { bg: colors.successSoft, fg: colors.success, icon: 'trophy' },
-  good: { bg: colors.successSoft, fg: colors.success, icon: 'thumbs-up' },
-  meh: { bg: '#F0EDE6', fg: '#6B7080', icon: 'remove-circle' },
-  suspicious: { bg: '#FFE7E2', fg: '#C24534', icon: 'warning' },
-  unknown: { bg: '#E4ECFD', fg: '#3556C9', icon: 'help-circle' },
+// Palette keys, resolved against the active theme at render
+const VERDICT_STYLE: Record<DealVerdict['level'], { bg: keyof Palette; fg: keyof Palette; icon: string }> = {
+  great: { bg: 'successSoft', fg: 'success', icon: 'trophy' },
+  good: { bg: 'successSoft', fg: 'success', icon: 'thumbs-up' },
+  meh: { bg: 'ringTrack', fg: 'muted', icon: 'remove-circle' },
+  suspicious: { bg: 'coralSoft', fg: 'danger', icon: 'warning' },
+  unknown: { bg: 'primarySoft', fg: 'primary', icon: 'help-circle' },
 };
 
 function parsePrice(raw: string): number | null {
@@ -41,6 +43,8 @@ function parsePrice(raw: string): number | null {
 }
 
 export function WatchDetailScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { watches, logWatchPrice, deleteWatch } = useAppState();
   const watch = useMemo(
     () => watches.find((w) => w.id === route.params.watchId),
@@ -226,11 +230,11 @@ export function WatchDetailScreen({ navigation, route }: Props) {
 
       {/* Deal verdict */}
       {verdict && vStyle && (
-        <View style={[styles.verdict, { backgroundColor: vStyle.bg }]}>
-          <Ionicons name={vStyle.icon as any} size={22} color={vStyle.fg} />
+        <View style={[styles.verdict, { backgroundColor: colors[vStyle.bg] }]}>
+          <Ionicons name={vStyle.icon as any} size={22} color={colors[vStyle.fg]} />
           <View style={styles.verdictText}>
-            <Text style={[styles.verdictTitle, { color: vStyle.fg }]}>{verdict.title}</Text>
-            <Text style={[styles.verdictBody, { color: vStyle.fg }]}>{verdict.detail}</Text>
+            <Text style={[styles.verdictTitle, { color: colors[vStyle.fg] }]}>{verdict.title}</Text>
+            <Text style={[styles.verdictBody, { color: colors[vStyle.fg] }]}>{verdict.detail}</Text>
           </View>
         </View>
       )}
@@ -240,7 +244,7 @@ export function WatchDetailScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

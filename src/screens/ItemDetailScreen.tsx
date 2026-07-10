@@ -25,7 +25,8 @@ import { lookupWarrantyByCategory } from '../services/policyLookup';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { resolveWarrantyPage } from '../services/warrantyUrl';
 import { useAppState } from '../store/AppStateContext';
-import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { addDeadlineToCalendar } from '../utils/calendar';
 import {
   addDays,
@@ -42,6 +43,8 @@ import { openPriceScan } from '../utils/priceScan';
 type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
 export function ItemDetailScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { items, returns, deleteItem, startReturn, patchItem } = useAppState();
   const [viewerUri, setViewerUri] = useState<string | null>(null);
   const [returnPickerOpen, setReturnPickerOpen] = useState(false);
@@ -877,7 +880,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

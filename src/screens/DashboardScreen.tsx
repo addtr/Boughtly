@@ -23,7 +23,8 @@ import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { useAppState } from '../store/AppStateContext';
-import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { addDays, daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
 import { computeInsights } from '../utils/insights';
 import { spendByStore } from '../utils/spending';
@@ -46,6 +47,8 @@ const SORT_OPTIONS: { key: SortMode; label: string }[] = [
 const DASH_PREFS_KEY = 'boughtly.dashPrefs.v1';
 
 export function DashboardScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const {
     items,
@@ -760,7 +763,7 @@ export function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

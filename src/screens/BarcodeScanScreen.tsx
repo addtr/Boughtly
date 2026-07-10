@@ -6,12 +6,15 @@ import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-nativ
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { lookupBarcode, setPendingBarcodeItemName } from '../services/barcode';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { successFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BarcodeScan'>;
 
 export function BarcodeScanScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [permission, requestPermission] = useCameraPermissions();
   const [looking, setLooking] = useState(false);
   const [notFound, setNotFound] = useState<string | null>(null);
@@ -95,7 +98,7 @@ export function BarcodeScanScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',

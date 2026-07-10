@@ -48,16 +48,14 @@ app lock, warranty claim assistant.
 
 - Bring-your-own Claude API key UI for premium OCR (the `claudeApiKey`
   setting already exists in `AppSettings`, no UI sets it).
-- Live dark-mode switching — the palette currently follows the system theme
-  at app launch (tokens are baked into module-level StyleSheets); reacting to
-  a mid-session theme change needs the full theme-context refactor.
 - Real auth — the Welcome screen's create-account/sign-in stores a local
   profile (`accountName`/`accountEmail` in settings); swap in server auth
   when cloud sync lands.
 
 ## Done since this file was created
 
-- ~~Dark mode~~ (system theme at launch)
+- ~~Dark mode~~ (live theme switching: System / Light / Dark in Settings,
+  applies instantly via ThemeContext)
 - ~~Undo for deletes~~
 - ~~Onboarding permission priming~~
 - ~~Barcode scan to auto-fill~~ (UPCitemdb + Open Food Facts)

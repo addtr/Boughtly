@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PasteReceipt'>;
 
@@ -24,6 +25,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PasteReceipt'>;
  * same parser as a scanned receipt.
  */
 export function PasteReceiptScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [text, setText] = useState('');
 
   function readIt() {
@@ -108,7 +111,7 @@ export function PasteReceiptScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },

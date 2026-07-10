@@ -9,7 +9,8 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 
 /* ---------- Buttons ---------- */
 
@@ -22,6 +23,8 @@ interface ButtonProps {
 }
 
 export function Button({ title, onPress, variant = 'primary', disabled, style }: ButtonProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const bg =
     variant === 'primary'
       ? colors.primary
@@ -54,6 +57,8 @@ interface FieldProps extends TextInputProps {
 }
 
 export function Field({ label, style, ...inputProps }: FieldProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -78,6 +83,7 @@ interface ChipRowProps {
 }
 
 export function ChipRow({ options, selectedDays, onSelect, onCustom, customActive }: ChipRowProps) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.chipRow}>
       {options.map((opt) => {
@@ -108,10 +114,11 @@ export function Card({
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   button: {
     borderRadius: radii.md,
     paddingVertical: 14,

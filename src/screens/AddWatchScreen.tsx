@@ -11,7 +11,8 @@ import {
 import { Button, Field } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
-import { colors, fonts, spacing } from '../theme/theme';
+import { Palette, fonts, spacing } from '../theme/theme';
+import { useThemedStyles } from '../theme/ThemeContext';
 import { successFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddWatch'>;
@@ -24,6 +25,7 @@ function parsePrice(raw: string): number | null {
 }
 
 export function AddWatchScreen({ navigation, route }: Props) {
+  const styles = useThemedStyles(makeStyles);
   const { addWatch } = useAppState();
   const [name, setName] = useState(route.params?.prefillName ?? '');
   const [store, setStore] = useState('');
@@ -115,7 +117,7 @@ export function AddWatchScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   flex: { flex: 1 },
   container: {
     flex: 1,

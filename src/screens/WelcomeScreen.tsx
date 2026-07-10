@@ -15,7 +15,8 @@ import {
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { successFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
@@ -29,6 +30,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  * up to real auth later.
  */
 export function WelcomeScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { settings, updateSettings } = useAppState();
   const [mode, setMode] = useState<'create' | 'signin'>('create');
   const [name, setName] = useState('');
@@ -143,7 +146,7 @@ export function WelcomeScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.background },
   content: {

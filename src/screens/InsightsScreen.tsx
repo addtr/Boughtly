@@ -5,7 +5,8 @@ import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-nati
 import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatPrice } from '../utils/dates';
 import { computeYearRecap, recapShareText } from '../utils/recap';
 import { monthlySpend, spendByStore, spendByTag } from '../utils/spending';
@@ -15,6 +16,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Insights'>;
 const CHART_HEIGHT = 120;
 
 export function InsightsScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { items, returns } = useAppState();
 
   const months = useMemo(() => monthlySpend(items), [items]);
@@ -193,7 +196,7 @@ export function InsightsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
   heroRow: {

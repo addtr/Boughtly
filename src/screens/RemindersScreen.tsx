@@ -5,7 +5,8 @@ import React, { useCallback, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
-import { colors, fonts, spacing } from '../theme/theme';
+import { Palette, fonts, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import {
   fetchUpcomingReminders,
   formatFireAt,
@@ -15,6 +16,8 @@ import {
 type Props = NativeStackScreenProps<RootStackParamList, 'Reminders'>;
 
 export function RemindersScreen(_props: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [reminders, setReminders] = useState<UpcomingReminder[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -83,7 +86,7 @@ export function RemindersScreen(_props: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
   intro: {

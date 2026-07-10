@@ -85,7 +85,18 @@ export interface AppSettings {
   claudeApiKey: string;
   /** How often to nudge the user to price-check their watchlist */
   priceCheckCadence: PriceCheckCadence;
+  /** Appearance: follow the system, or force light/dark. Applies instantly. */
+  themeMode: ThemeMode;
 }
+
+export type ThemeMode = 'system' | 'light' | 'dark';
+
+/** Appearance choices shown in Settings. */
+export const THEME_MODE_OPTIONS: { mode: ThemeMode; label: string }[] = [
+  { mode: 'system', label: 'System' },
+  { mode: 'light', label: 'Light' },
+  { mode: 'dark', label: 'Dark' },
+];
 
 export type PriceCheckCadence = 'off' | 'daily' | 'every2d' | 'weekly' | 'biweekly' | 'monthly';
 
@@ -111,6 +122,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   appLockEnabled: false,
   claudeApiKey: '',
   priceCheckCadence: 'weekly',
+  themeMode: 'system',
 };
 
 /** Reminder time-of-day presets shown in Settings. */

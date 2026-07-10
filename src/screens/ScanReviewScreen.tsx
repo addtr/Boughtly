@@ -23,7 +23,8 @@ import {
   ReviewRow,
 } from '../services/reviewBuild';
 import { useAppState } from '../store/AppStateContext';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { RETURN_PRESETS } from '../types/item';
 import { formatDate, formatPrice } from '../utils/dates';
 import { findDuplicateItem } from '../utils/duplicates';
@@ -34,6 +35,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ScanReview'>;
 const RETURN_PRESET_DAYS: number[] = RETURN_PRESETS.map((p) => p.days);
 
 export function ScanReviewScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { addItem, items } = useAppState();
   const params = route.params;
 
@@ -277,7 +280,7 @@ export function ScanReviewScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },

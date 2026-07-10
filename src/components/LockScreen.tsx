@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as LocalAuthentication from 'expo-local-authentication';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, spacing } from '../theme/theme';
+import { Palette, fonts, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { Button } from './ui';
 
 /**
@@ -10,6 +11,8 @@ import { Button } from './ui';
  * automatically on mount; the button retries after a cancel or failure.
  */
 export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [trying, setTrying] = useState(false);
 
   const tryUnlock = useCallback(async () => {
@@ -54,7 +57,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

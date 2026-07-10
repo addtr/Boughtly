@@ -1,6 +1,6 @@
 import React from 'react';
 import Svg, { Circle, Polyline } from 'react-native-svg';
-import { colors } from '../theme/theme';
+import { useTheme } from '../theme/ThemeContext';
 
 interface SparklineProps {
   values: number[];
@@ -16,10 +16,12 @@ export function Sparkline({
   values,
   width,
   height,
-  color = colors.primary,
+  color,
   showDots = false,
   strokeWidth = 2.5,
 }: SparklineProps) {
+  const { colors } = useTheme();
+  const stroke = color ?? colors.primary;
   if (values.length === 0) return null;
   const pad = strokeWidth * 2 + (showDots ? 3 : 0);
   const min = Math.min(...values);
@@ -38,7 +40,7 @@ export function Sparkline({
       <Polyline
         points={pts.map((p) => `${p.x},${p.y}`).join(' ')}
         fill="none"
-        stroke={color}
+        stroke={stroke}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -50,7 +52,7 @@ export function Sparkline({
             cx={p.x}
             cy={p.y}
             r={i === pts.length - 1 ? 5 : 3.5}
-            fill={i === pts.length - 1 ? colors.coral : color}
+            fill={i === pts.length - 1 ? colors.coral : stroke}
           />
         ))}
     </Svg>

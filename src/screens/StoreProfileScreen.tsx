@@ -17,7 +17,8 @@ import { lookupStoreReturnPolicy } from '../services/policyLookup';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { resolveReturnPage } from '../services/returnUrl';
 import { useAppState } from '../store/AppStateContext';
-import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { daysUntil, formatDate, formatPrice } from '../utils/dates';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'StoreProfile'>;
@@ -37,6 +38,8 @@ function sameStore(a: string, b: string): boolean {
 }
 
 export function StoreProfileScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { items } = useAppState();
   const storeName = route.params.storeName;
 
@@ -148,7 +151,7 @@ export function StoreProfileScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
   name: {

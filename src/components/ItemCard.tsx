@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { TrackedItem } from '../types/item';
 import { formatDate, formatPrice, nearestDeadline } from '../utils/dates';
 import { CountdownRing } from './CountdownRing';
@@ -14,6 +15,8 @@ interface ItemCardProps {
 }
 
 export function ItemCard({ item, onPress, index = 0 }: ItemCardProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   // Gentle fade-and-rise entrance, staggered down the list
   const entrance = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -95,7 +98,7 @@ export function ItemCard({ item, onPress, index = 0 }: ItemCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',

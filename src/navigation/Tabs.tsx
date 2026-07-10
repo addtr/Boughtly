@@ -8,7 +8,8 @@ import { DashboardScreen } from '../screens/DashboardScreen';
 import { ReturnsScreen } from '../screens/ReturnsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { WatchListScreen } from '../screens/WatchListScreen';
-import { cardShadow, colors, fonts } from '../theme/theme';
+import { Palette, cardShadow, fonts } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { tapFeedback } from '../utils/haptics';
 import { RootStackParamList, TabParamList } from './types';
 
@@ -20,6 +21,7 @@ function NullScreen() {
 }
 
 function AddButton() {
+  const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   return (
     <View style={styles.addWrap} pointerEvents="box-none">
@@ -38,6 +40,8 @@ function AddButton() {
 }
 
 export function Tabs() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <Tab.Navigator
       screenOptions={{
@@ -126,7 +130,7 @@ export function Tabs() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   tabBar: {
     backgroundColor: colors.card,
     borderTopWidth: 0,

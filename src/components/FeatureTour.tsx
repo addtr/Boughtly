@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { Button } from './ui';
 
 interface TourSlide {
   icon: keyof typeof Ionicons.glyphMap;
-  tint: string;
-  tintSoft: string;
+  /** Palette keys, resolved against the active theme at render */
+  tint: keyof Palette;
+  tintSoft: keyof Palette;
   title: string;
   body: string;
 }
@@ -15,43 +17,43 @@ interface TourSlide {
 const SLIDES: TourSlide[] = [
   {
     icon: 'add-circle',
-    tint: colors.coral,
-    tintSoft: colors.coralSoft,
+    tint: 'coral',
+    tintSoft: 'coralSoft',
     title: 'Add anything with +',
     body: 'Scan a paper receipt, point at a product barcode, or paste an order email / screenshot — Boughtly reads the details for you.',
   },
   {
     icon: 'hand-left',
-    tint: colors.primary,
-    tintSoft: colors.primarySoft,
+    tint: 'primary',
+    tintSoft: 'primarySoft',
     title: 'Swipe a card',
     body: 'Swipe any item on your home list to start a return or delete it — no digging through menus.',
   },
   {
     icon: 'stats-chart',
-    tint: colors.primary,
-    tintSoft: colors.primarySoft,
+    tint: 'primary',
+    tintSoft: 'primarySoft',
     title: 'Tap your stats',
     body: 'The numbers at the top open your spending insights — monthly totals, top stores, and your yearly recap.',
   },
   {
     icon: 'storefront',
-    tint: colors.primary,
-    tintSoft: colors.primarySoft,
+    tint: 'primary',
+    tintSoft: 'primarySoft',
     title: 'Store pages',
     body: 'Tap a store chip to see everything you bought there, its return policy, and a shortcut to its returns page.',
   },
   {
     icon: 'cash',
-    tint: colors.success,
-    tintSoft: colors.successSoft,
+    tint: 'success',
+    tintSoft: 'successSoft',
     title: 'Free money alerts',
     body: 'A green card means a store will refund the difference if the price dropped after you bought — most people never claim it.',
   },
   {
     icon: 'notifications',
-    tint: colors.coral,
-    tintSoft: colors.coralSoft,
+    tint: 'coral',
+    tintSoft: 'coralSoft',
     title: 'Never miss a deadline',
     body: 'Reminders fire before return windows and warranties close. Add your own on any item, and see every scheduled nudge right on Home.',
   },
@@ -68,6 +70,8 @@ export function FeatureTour({
   visible: boolean;
   onDone: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [page, setPage] = useState(0);
   const slide = SLIDES[page];
   const isLast = page === SLIDES.length - 1;
@@ -85,8 +89,8 @@ export function FeatureTour({
             <Text style={styles.skipText}>Skip</Text>
           </Pressable>
 
-          <View style={[styles.iconDisk, { backgroundColor: slide.tintSoft }]}>
-            <Ionicons name={slide.icon} size={44} color={slide.tint} />
+          <View style={[styles.iconDisk, { backgroundColor: colors[slide.tintSoft] }]}>
+            <Ionicons name={slide.icon} size={44} color={colors[slide.tint]} />
           </View>
           <Text style={styles.title}>{slide.title}</Text>
           <Text style={styles.body}>{slide.body}</Text>
@@ -116,7 +120,7 @@ export function FeatureTour({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 18, 28, 0.55)',

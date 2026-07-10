@@ -3,14 +3,13 @@
  * These values are the single source of truth for color, type, spacing,
  * and radii across the app — do not hardcode hex values in screens.
  *
- * Dark mode: the palette is selected from the SYSTEM color scheme once, at
- * app launch (screens bake tokens into StyleSheet.create at module load, so
- * a mid-session system-theme change applies on the next launch).
+ * Dark mode: the active palette is provided reactively by ThemeContext
+ * (System / Light / Dark, switchable in Settings, applies instantly).
+ * Screens get colors via useTheme()/useThemedStyles() — never import a
+ * palette directly.
  */
 
-import { Appearance } from 'react-native';
-
-interface Palette {
+export interface Palette {
   primary: string;
   deepBlue: string;
   coral: string;
@@ -27,7 +26,7 @@ interface Palette {
   successSoft: string;
 }
 
-const lightPalette: Palette = {
+export const lightPalette: Palette = {
   /** Headers, primary buttons, calm/plenty-of-time states */
   primary: '#4C7EF3',
   /** Headings / strong text (light on dark surfaces in dark mode) */
@@ -54,7 +53,7 @@ const lightPalette: Palette = {
 
 // Dark steps of the same hues — chosen for contrast on the dark surfaces,
 // not a mechanical inversion.
-const darkPalette: Palette = {
+export const darkPalette: Palette = {
   primary: '#6E97F6',
   deepBlue: '#E7EAF2',
   coral: '#FF7E68',
@@ -70,11 +69,6 @@ const darkPalette: Palette = {
   success: '#5FBE8C',
   successSoft: '#1E3529',
 };
-
-/** True when the app launched with the system in dark mode. */
-export const isDarkMode = Appearance.getColorScheme() === 'dark';
-
-export const colors: Palette = isDarkMode ? darkPalette : lightPalette;
 
 export const fonts = {
   /** Display face — screen titles, day-count numerals */

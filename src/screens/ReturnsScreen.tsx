@@ -5,7 +5,8 @@ import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
-import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { RETURN_STEPS, ReturnCase } from '../types/tracking';
 import { formatPrice } from '../utils/dates';
 
@@ -13,14 +14,17 @@ function daysSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
 }
 
-const STATUS_COLOR: Record<ReturnCase['status'], { bg: string; fg: string }> = {
-  started: { bg: colors.primarySoft, fg: colors.primary },
-  sent: { bg: colors.primarySoft, fg: colors.primary },
-  refund_pending: { bg: colors.coralSoft, fg: colors.coral },
-  refunded: { bg: colors.successSoft, fg: colors.success },
+// Palette keys, resolved against the active theme at render
+const STATUS_COLOR: Record<ReturnCase['status'], { bg: keyof Palette; fg: keyof Palette }> = {
+  started: { bg: 'primarySoft', fg: 'primary' },
+  sent: { bg: 'primarySoft', fg: 'primary' },
+  refund_pending: { bg: 'coralSoft', fg: 'coral' },
+  refunded: { bg: 'successSoft', fg: 'success' },
 };
 
 function ReturnRow({ ret, onPress }: { ret: ReturnCase; onPress: () => void }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const stepLabel = RETURN_STEPS.find((s) => s.key === ret.status)?.label ?? ret.status;
   const c = STATUS_COLOR[ret.status];
   const age = daysSince(ret.startedAt);
@@ -34,8 +38,8 @@ function ReturnRow({ ret, onPress }: { ret: ReturnCase; onPress: () => void }) {
           {ret.storeName} · {formatPrice(ret.refundAmount)} back
         </Text>
         <View style={styles.badgeRow}>
-          <View style={[styles.badge, { backgroundColor: c.bg }]}>
-            <Text style={[styles.badgeText, { color: c.fg }]}>{stepLabel}</Text>
+          <View style={[styles.badge, { backgroundColor: colors[c.bg] }]}>
+            <Text style={[styles.badgeText, { color: colors[c.fg] }]}>{stepLabel}</Text>
           </View>
           {ret.status !== 'refunded' && (
             <Text style={styles.age}>
@@ -50,6 +54,8 @@ function ReturnRow({ ret, onPress }: { ret: ReturnCase; onPress: () => void }) {
 }
 
 export function ReturnsScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { returns } = useAppState();
 
@@ -113,7 +119,7 @@ export function ReturnsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

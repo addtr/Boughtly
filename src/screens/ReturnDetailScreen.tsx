@@ -18,7 +18,8 @@ import { Button, Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { resolveReturnPage } from '../services/returnUrl';
 import { useAppState } from '../store/AppStateContext';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { RETURN_STEPS } from '../types/tracking';
 import { trackingLink } from '../utils/carrierTracking';
 import { formatDate, formatPrice } from '../utils/dates';
@@ -27,6 +28,8 @@ import { successFeedback, tapFeedback, warningFeedback } from '../utils/haptics'
 type Props = NativeStackScreenProps<RootStackParamList, 'ReturnDetail'>;
 
 export function ReturnDetailScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { returns, items, updateReturn, setReturnStatus, deleteReturn } = useAppState();
   const ret = useMemo(
     () => returns.find((r) => r.id === route.params.returnId),
@@ -360,7 +363,7 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

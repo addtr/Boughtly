@@ -41,7 +41,8 @@ import { ExtractedReceipt } from '../services/receiptOcr';
 import { parseReceiptText } from '../services/receiptParser';
 import { scanReceipt } from '../services/receiptScanner';
 import { NewItemInput, useAppState } from '../store/AppStateContext';
-import { colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { RETURN_PRESETS, WARRANTY_PRESETS } from '../types/item';
 import { formatDate, formatPrice, parseISODate, toISODate } from '../utils/dates';
 import { findDuplicateItem } from '../utils/duplicates';
@@ -69,6 +70,8 @@ function isValidISODate(raw: string): boolean {
 }
 
 export function AddItemScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { items, settings, addItem, updateItem } = useAppState();
   const editingId = route.params?.itemId;
   const editing = useMemo(
@@ -1019,7 +1022,7 @@ export function AddItemScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   flex: { flex: 1 },
   container: {
     flex: 1,

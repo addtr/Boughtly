@@ -7,13 +7,16 @@ import { Sparkline } from '../components/Sparkline';
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
-import { cardShadow, colors, fonts, radii, spacing } from '../theme/theme';
+import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatPrice } from '../utils/dates';
 import { trendVsTypical } from '../utils/deals';
 import { tapFeedback } from '../utils/haptics';
 import { openPriceScan } from '../utils/priceScan';
 
 export function WatchListScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { watches } = useAppState();
   const [quickQuery, setQuickQuery] = useState('');
@@ -173,7 +176,7 @@ export function WatchListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
