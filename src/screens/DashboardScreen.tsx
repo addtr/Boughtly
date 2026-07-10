@@ -539,41 +539,6 @@ export function DashboardScreen() {
                   })}
                 </ScrollView>
               )}
-              {(activeItems.length >= 2 || topStores.length > 0) && (
-                <View style={styles.dropdownRow}>
-                  {activeItems.length >= 2 && (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.dropdownBtn,
-                        pressed && { opacity: 0.85 },
-                      ]}
-                      onPress={() => setMenuOpen('sort')}
-                    >
-                      <Ionicons name="swap-vertical" size={14} color={colors.primary} />
-                      <Text style={styles.dropdownText} numberOfLines={1}>
-                        Sort: {SORT_OPTIONS.find((o) => o.key === sortMode)?.label}
-                        {hideExpired ? ' · no expired' : ''}
-                      </Text>
-                      <Ionicons name="chevron-down" size={14} color={colors.muted} />
-                    </Pressable>
-                  )}
-                  {topStores.length > 0 && (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.dropdownBtn,
-                        pressed && { opacity: 0.85 },
-                      ]}
-                      onPress={() => setMenuOpen('stores')}
-                    >
-                      <Ionicons name="storefront-outline" size={14} color={colors.primary} />
-                      <Text style={styles.dropdownText} numberOfLines={1}>
-                        Stores ({topStores.length})
-                      </Text>
-                      <Ionicons name="chevron-down" size={14} color={colors.muted} />
-                    </Pressable>
-                  )}
-                </View>
-              )}
               {(watchStats.count > 0 || underWarranty > 0) && (
                 <View style={styles.quickRow}>
                   {watchStats.count > 0 && (
@@ -599,6 +564,44 @@ export function DashboardScreen() {
                         {underWarranty} under warranty
                       </Text>
                     </View>
+                  )}
+                </View>
+              )}
+              {(activeItems.length >= 2 || topStores.length > 0) && (
+                <View style={styles.dropdownRow}>
+                  {activeItems.length >= 2 && (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.dropdownBtn,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      onPress={() => setMenuOpen('sort')}
+                    >
+                      <Ionicons name="swap-vertical" size={14} color={colors.primary} />
+                      <Text style={styles.dropdownText} numberOfLines={1}>
+                        Sort: {SORT_OPTIONS.find((o) => o.key === sortMode)?.label}
+                        {hideExpired ? ' · no expired' : ''}
+                      </Text>
+                      <Ionicons name="chevron-down" size={14} color={colors.muted} />
+                    </Pressable>
+                  )}
+                  {activeItems.length >= 2 && topStores.length > 0 && (
+                    <View style={styles.dropdownDivider} />
+                  )}
+                  {topStores.length > 0 && (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.dropdownBtn,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      onPress={() => setMenuOpen('stores')}
+                    >
+                      <Ionicons name="storefront-outline" size={14} color={colors.primary} />
+                      <Text style={styles.dropdownText} numberOfLines={1}>
+                        Stores ({topStores.length})
+                      </Text>
+                      <Ionicons name="chevron-down" size={14} color={colors.muted} />
+                    </Pressable>
                   )}
                 </View>
               )}
@@ -1021,8 +1024,13 @@ const styles = StyleSheet.create({
   },
   dropdownRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'stretch',
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
     marginBottom: spacing.sm,
+    ...cardShadow,
+    shadowOpacity: 0.05,
+    elevation: 1,
   },
   dropdownBtn: {
     flex: 1,
@@ -1030,13 +1038,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.card,
-    borderRadius: radii.md,
-    paddingVertical: 9,
+    paddingVertical: 10,
     paddingHorizontal: spacing.sm,
-    ...cardShadow,
-    shadowOpacity: 0.05,
-    elevation: 1,
+  },
+  dropdownDivider: {
+    width: 1,
+    alignSelf: 'center',
+    height: 20,
+    backgroundColor: colors.divider,
   },
   dropdownText: {
     fontFamily: fonts.bodyMedium,
