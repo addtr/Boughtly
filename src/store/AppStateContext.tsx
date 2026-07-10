@@ -14,6 +14,7 @@ import {
   scheduleRefundFollowUp,
   sendRecallNotification,
   syncPriceCheckReminder,
+  syncWeeklyDigest,
 } from '../notifications/notifications';
 import { BoughtlyBackup } from '../services/backup';
 import { makeReceiptThumb } from '../services/imageStore';
@@ -193,6 +194,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const persistItems = useCallback(async (next: TrackedItem[]) => {
     setItems(next);
     await AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(next));
+    // Items changed → the Sunday week-ahead digest needs rebuilding
+    void syncWeeklyDigest(next, settingsRef.current).catch(() => {});
   }, []);
 
   // Reschedule every item's reminders once per launch. Scheduled local
@@ -219,6 +222,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }
       setItems(updated);
       await AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(updated));
+      await syncWeeklyDigest(updated, settingsRef.current);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded]);
@@ -383,6 +387,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
       const nextSettings = { ...DEFAULT_SETTINGS, ...backup.settings };
       setSettings(nextSettings);
+      settingsRef.current = nextSettings; // restored reminders use these below
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(nextSettings));
 
       // Reschedule reminders for each restored item under the restored settings.
@@ -562,8 +567,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const prev = settingsRef.current;
       const next = { ...prev, ...patch };
       setSettings(next);
+      settingsRef.current = next; // async work below must see the new settings
       if (next.currencyCode !== prev.currencyCode) setActiveCurrency(next.currencyCode);
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+
+      if (
+        next.weeklyDigestEnabled !== prev.weeklyDigestEnabled ||
+        next.notificationsEnabled !== prev.notificationsEnabled ||
+        next.reminderHour !== prev.reminderHour
+      ) {
+        await syncWeeklyDigest(itemsRef.current, next);
+      }
 
       // Keep the repeating price-check reminder in sync with its settings
       if (

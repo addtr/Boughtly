@@ -6,7 +6,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Sharing from 'expo-sharing';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Platform,
@@ -22,6 +22,7 @@ import { Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { ensureNotificationSetup, sendTestReminder } from '../notifications/notifications';
 import { backupFileName, buildBackup, parseBackup } from '../services/backup';
+import { exportInventoryReport } from '../services/inventoryReport';
 import { csvFileName, itemsToCsv } from '../utils/csv';
 import { useAppState } from '../store/AppStateContext';
 import { Palette, fonts, spacing } from '../theme/theme';
@@ -54,6 +55,7 @@ export function SettingsScreen() {
   } = useAppState();
 
   const hasData = items.length > 0 || watches.length > 0 || returns.length > 0;
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   function confirmDelete(id: string, name: string) {
     warningFeedback();
@@ -125,6 +127,22 @@ export function SettingsScreen() {
       }
     } catch {
       // dismissed or write failed
+    }
+  }
+
+  /** Build the insurance-ready home-inventory PDF and open the share sheet. */
+  async function exportInventoryPdf() {
+    if (Platform.OS === 'web') {
+      Alert.alert('iPhone only', 'PDF reports are generated on your phone — open Boughtly there.');
+      return;
+    }
+    setExportingPdf(true);
+    try {
+      await exportInventoryReport(items, settings);
+    } catch {
+      Alert.alert('Couldn’t build the report', 'Something went wrong generating the PDF — try again.');
+    } finally {
+      setExportingPdf(false);
     }
   }
 
@@ -345,6 +363,23 @@ export function SettingsScreen() {
           })}
         </View>
 
+        <View style={styles.divider} />
+        <View style={styles.row}>
+          <View style={styles.itemInfo}>
+            <Text style={styles.rowLabel}>Weekly digest</Text>
+            <Text style={styles.itemMeta}>
+              A Sunday summary of the week ahead — windows closing, warranties ending.
+            </Text>
+          </View>
+          <Switch
+            value={settings.weeklyDigestEnabled}
+            onValueChange={(v) => void updateSettings({ weeklyDigestEnabled: v })}
+            disabled={!settings.notificationsEnabled}
+            trackColor={{ true: colors.primary, false: colors.divider }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+
         <Pressable
           style={styles.testRow}
           onPress={testReminder}
@@ -554,6 +589,26 @@ export function SettingsScreen() {
             </Text>
             <Text style={styles.itemMeta}>
               Items, prices, and deadlines — opens in Excel, Numbers, or Sheets.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+        </Pressable>
+        <View style={styles.divider} />
+        <Pressable
+          style={styles.row}
+          onPress={() => void exportInventoryPdf()}
+          disabled={items.length === 0 || exportingPdf}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: colors.successSoft }]}>
+            <Ionicons name="document-text-outline" size={19} color={colors.success} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={[styles.rowLabel, items.length === 0 && styles.rowDisabled]}>
+              {exportingPdf ? 'Building your report…' : 'Home inventory report (PDF)'}
+            </Text>
+            <Text style={styles.itemMeta}>
+              Every item with prices, serials, and receipt photos — ready for renters or
+              home insurance.
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={17} color={colors.muted} />

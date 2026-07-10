@@ -5,6 +5,7 @@ import { lookupWarrantyByCategory } from '../services/policyLookup';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { AppSettings, PRICE_CHECK_OPTIONS, TrackedItem } from '../types/item';
 import { addDays, parseISODate } from '../utils/dates';
+import { buildDigestBody, nextDigestDate } from '../utils/digest';
 
 const PRICE_CHECK_NOTIF_KEY = 'boughtly.priceCheckNotif.v1';
 
@@ -279,4 +280,42 @@ export async function sendRecallNotification(
       channelId: 'deadlines',
     },
   });
+}
+
+const DIGEST_NOTIF_KEY = 'boughtly.digestNotif.v1';
+
+/**
+ * (Re)schedule the Sunday-morning week-ahead digest. One-shot, rebuilt every
+ * time the data changes, so the summary is always current as of the last time
+ * the app ran. Weeks with nothing due get no notification at all.
+ */
+export async function syncWeeklyDigest(
+  items: TrackedItem[],
+  settings: AppSettings
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  const prevId = await AsyncStorage.getItem(DIGEST_NOTIF_KEY);
+  if (prevId) {
+    await Notifications.cancelScheduledNotificationAsync(prevId).catch(() => {});
+    await AsyncStorage.removeItem(DIGEST_NOTIF_KEY);
+  }
+  if (!settings.notificationsEnabled || !settings.weeklyDigestEnabled) return;
+  const fireAt = nextDigestDate(settings.reminderHour ?? DEFAULT_REMINDER_HOUR);
+  const body = buildDigestBody(items, fireAt);
+  if (!body) return;
+  const granted = await ensureNotificationSetup();
+  if (!granted) return;
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Your week ahead 🗓️',
+      body,
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: fireAt,
+      channelId: 'deadlines',
+    },
+  });
+  await AsyncStorage.setItem(DIGEST_NOTIF_KEY, id);
 }

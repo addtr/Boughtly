@@ -89,6 +89,8 @@ export interface AppSettings {
   priceCheckCadence: PriceCheckCadence;
   /** Appearance: follow the system, or force light/dark. Applies instantly. */
   themeMode: ThemeMode;
+  /** Sunday-morning summary of the week's deadlines */
+  weeklyDigestEnabled: boolean;
 }
 
 export type ThemeMode = 'system' | 'light' | 'dark';
@@ -157,6 +159,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   claudeApiKey: '',
   priceCheckCadence: 'weekly',
   themeMode: 'system',
+  weeklyDigestEnabled: true,
 };
 
 /** Reminder time-of-day presets shown in Settings. */
