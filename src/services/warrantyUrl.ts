@@ -9,10 +9,8 @@ interface BrandWarranty {
   /** Lowercased brand fragments matched (whole-word) against the item name */
   match: string[];
   label: string;
-  /** A stable warranty/support page, when we're confident of it */
-  url?: string;
-  /** Official domain — used for a site-scoped warranty search otherwise */
-  domain?: string;
+  /** Official domain — the claim search is pinned to this site (never 404s) */
+  domain: string;
 }
 
 function siteSearch(domain: string): string {
@@ -21,7 +19,7 @@ function siteSearch(domain: string): string {
 
 // Order: multi-word/more-specific brands before shorter ones they contain.
 const BRAND_WARRANTIES: BrandWarranty[] = [
-  { match: ['apple', 'macbook', 'iphone', 'ipad', 'airpods', 'imac'], label: 'Apple', url: 'https://support.apple.com/' },
+  { match: ['apple', 'macbook', 'iphone', 'ipad', 'airpods', 'imac'], label: 'Apple', domain: 'support.apple.com' },
   { match: ['samsung', 'galaxy'], label: 'Samsung', domain: 'samsung.com' },
   { match: ['sony', 'playstation', 'ps5', 'ps4'], label: 'Sony', domain: 'sony.com' },
   { match: ['lg'], label: 'LG', domain: 'lg.com' },
@@ -101,7 +99,7 @@ export function resolveWarrantyPage(itemName: string): ResolvedWarrantyPage {
   if (s.length >= 2) {
     for (const b of BRAND_WARRANTIES) {
       if (b.match.some((m) => containsWord(s, m))) {
-        return { url: b.url ?? siteSearch(b.domain!), known: true, label: b.label };
+        return { url: siteSearch(b.domain), known: true, label: b.label };
       }
     }
   }
