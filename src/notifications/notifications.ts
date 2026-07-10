@@ -255,3 +255,28 @@ export async function cancelItemReminders(notificationIds: string[]): Promise<vo
     )
   );
 }
+
+/** Immediate heads-up that a possible product recall matched a tracked item. */
+export async function sendRecallNotification(
+  itemName: string,
+  extraCount: number
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  const granted = await ensureNotificationSetup();
+  if (!granted) return;
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '⚠️ Possible product recall',
+      body:
+        extraCount > 0
+          ? `${itemName} and ${extraCount} more of your items may be recalled. Open Boughtly to check.`
+          : `${itemName} may have been recalled. Open Boughtly to check the official notice.`,
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 3,
+      channelId: 'deadlines',
+    },
+  });
+}

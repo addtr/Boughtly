@@ -61,6 +61,7 @@ export function DashboardScreen() {
     settings,
     isLoaded,
     updateSettings,
+    recallAlerts,
   } = useAppState();
 
   // First landing on the dashboard → one-time feature tour (replayable from
@@ -93,19 +94,31 @@ export function DashboardScreen() {
   // The X on the attention/price-adjustment cards clears them for the rest of
   // the day — they're time-sensitive, so they come back tomorrow.
   const todayISO = new Date().toISOString().slice(0, 10);
-  const [dismissed, setDismissed] = useState<{ attention?: string; priceAdj?: string }>({});
+  const [dismissed, setDismissed] = useState<{
+    attention?: string;
+    priceAdj?: string;
+    recall?: string;
+  }>({});
   useEffect(() => {
     AsyncStorage.getItem('boughtly.dismissed.v1')
       .then((raw) => raw && setDismissed(JSON.parse(raw)))
       .catch(() => {});
   }, []);
-  function dismissCard(key: 'attention' | 'priceAdj') {
+  function dismissCard(key: 'attention' | 'priceAdj' | 'recall') {
     const next = { ...dismissed, [key]: todayISO };
     setDismissed(next);
     AsyncStorage.setItem('boughtly.dismissed.v1', JSON.stringify(next)).catch(() => {});
   }
   const attentionHidden = dismissed.attention === todayISO;
   const priceAdjHidden = dismissed.priceAdj === todayISO;
+  const recallHidden = dismissed.recall === todayISO;
+
+  // Possible recalls for items still on the dashboard ("not my product"
+  // dismissals are permanent and handled on the item's detail screen).
+  const activeRecalls = useMemo(() => {
+    const ids = new Set(items.map((i) => i.id));
+    return recallAlerts.filter((a) => !a.dismissed && ids.has(a.itemId));
+  }, [recallAlerts, items]);
 
   // Pull-to-refresh recomputes every countdown and replays the ring animations
   const onRefresh = useCallback(() => {
@@ -311,6 +324,47 @@ export function DashboardScreen() {
         ListHeaderComponent={
           activeItems.length > 0 ? (
             <View>
+              {!query.trim() && activeRecalls.length > 0 && !recallHidden && (
+                <View style={styles.recallCard}>
+                  <View style={styles.attentionHeader}>
+                    <Ionicons name="warning" size={16} color={colors.danger} />
+                    <Text style={styles.recallTitle}>
+                      Possible recall{activeRecalls.length === 1 ? '' : 's'} (
+                      {activeRecalls.length})
+                    </Text>
+                    <Pressable
+                      onPress={() => dismissCard('recall')}
+                      hitSlop={10}
+                      accessibilityLabel="Dismiss for today"
+                    >
+                      <Ionicons name="close" size={17} color={colors.danger} />
+                    </Pressable>
+                  </View>
+                  {activeRecalls.slice(0, 3).map((alert) => (
+                    <Pressable
+                      key={alert.id}
+                      style={styles.attentionRow}
+                      onPress={() =>
+                        navigation.navigate('ItemDetail', { itemId: alert.itemId })
+                      }
+                    >
+                      <View style={styles.attentionInfo}>
+                        <Text style={styles.attentionName} numberOfLines={1}>
+                          {alert.itemName}
+                        </Text>
+                        <Text style={styles.attentionMeta} numberOfLines={2}>
+                          {alert.hazard ?? alert.title}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.danger} />
+                    </Pressable>
+                  ))}
+                  <Text style={styles.recallHint}>
+                    Tap to see the official notice — recalled items are usually a free
+                    fix or refund.
+                  </Text>
+                </View>
+              )}
               {!query.trim() && urgent.length > 0 && !attentionHidden && (
                 <View style={styles.attentionCard}>
                   <View style={styles.attentionHeader}>
@@ -831,6 +885,27 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
+  },
+  recallCard: {
+    backgroundColor: colors.coralSoft,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.danger,
+  },
+  recallTitle: {
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.danger,
+  },
+  recallHint: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 4,
   },
   attentionHeader: {
     flexDirection: 'row',

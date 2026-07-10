@@ -22,6 +22,12 @@ import { CountdownRing } from '../components/CountdownRing';
 import { Button, Card } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { lookupWarrantyByCategory } from '../services/policyLookup';
+import {
+  CARD_RETURN_PROTECTION_DAYS,
+  cardExtendedWarranty,
+  cardLabel,
+  cardReturnProtection,
+} from '../utils/cardBenefits';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { resolveWarrantyPage } from '../services/warrantyUrl';
 import { useAppState } from '../store/AppStateContext';
@@ -45,7 +51,17 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 export function ItemDetailScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { items, returns, deleteItem, startReturn, patchItem } = useAppState();
+  const {
+    items,
+    returns,
+    deleteItem,
+    startReturn,
+    patchItem,
+    recallAlerts,
+    dismissRecallAlert,
+    checkItemRecallsNow,
+  } = useAppState();
+  const [checkingRecalls, setCheckingRecalls] = useState(false);
   const [viewerUri, setViewerUri] = useState<string | null>(null);
   const [returnPickerOpen, setReturnPickerOpen] = useState(false);
   // Custom reminder editor
@@ -68,6 +84,10 @@ export function ItemDetailScreen({ navigation, route }: Props) {
       </View>
     );
   }
+
+  const itemRecalls = recallAlerts.filter((a) => a.itemId === item.id && !a.dismissed);
+  const warrantyBoost = cardExtendedWarranty(item);
+  const returnRescue = cardReturnProtection(item);
 
   const returnDaysLeft = daysUntil(item.returnDeadlineDate);
   const warrantyDaysLeft = daysUntil(item.warrantyExpirationDate);
@@ -136,6 +156,31 @@ export function ItemDetailScreen({ navigation, route }: Props) {
   async function fileWarrantyClaim() {
     tapFeedback();
     await openUrl(warrantyPage.url);
+  }
+
+  /** On-demand CPSC recall check; matches show as banners at the top. */
+  async function checkRecalls() {
+    tapFeedback();
+    setCheckingRecalls(true);
+    try {
+      const matches = await checkItemRecallsNow(item!);
+      const active = matches.filter((a) => !a.dismissed);
+      if (active.length === 0) {
+        Alert.alert(
+          'No recalls found',
+          `The CPSC has nothing on file matching “${item!.itemName}” since you bought it. Boughtly re-checks automatically every few days.`
+        );
+      } else {
+        Alert.alert(
+          'Possible recall found',
+          'See the notice at the top of this screen and check the official CPSC page.'
+        );
+      }
+    } catch {
+      Alert.alert('Couldn’t check', 'The recall database didn’t respond — try again later.');
+    } finally {
+      setCheckingRecalls(false);
+    }
   }
 
   /** Share a prefilled claim summary (serial, purchase details, photo count). */
@@ -311,6 +356,35 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </Text>
       </View>
 
+      {itemRecalls.map((alert) => (
+        <View key={alert.id} style={styles.recallBanner}>
+          <View style={styles.recallBannerHeader}>
+            <Ionicons name="warning" size={16} color={colors.danger} />
+            <Text style={styles.recallBannerTitle}>Possible recall match</Text>
+          </View>
+          <Text style={styles.recallBannerBody} numberOfLines={3}>
+            {alert.title}
+          </Text>
+          {alert.hazard ? (
+            <Text style={styles.recallBannerHazard} numberOfLines={2}>
+              {alert.hazard}
+            </Text>
+          ) : null}
+          <View style={styles.recallBannerActions}>
+            <Pressable style={styles.recallViewBtn} onPress={() => void openUrl(alert.url)}>
+              <Text style={styles.recallViewBtnText}>View official notice</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => void dismissRecallAlert(alert.id)}
+              hitSlop={6}
+              style={styles.recallDismiss}
+            >
+              <Text style={styles.recallDismissText}>Not my product</Text>
+            </Pressable>
+          </View>
+        </View>
+      ))}
+
       {item.isGift ? (
         <View style={styles.giftBadge}>
           <Text style={styles.giftBadgeText}>🎁 Gift — likely store credit on return</Text>
@@ -409,6 +483,42 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         </Card>
       </View>
 
+      {/* Card benefits: the free protection hiding in how they paid */}
+      {(warrantyBoost || returnRescue) && (
+        <View style={styles.cardPerkBox}>
+          <View style={styles.cardPerkHeader}>
+            <Ionicons name="card-outline" size={16} color={colors.success} />
+            <Text style={styles.cardPerkTitle}>
+              Paid with {cardLabel(item.paymentMethod)} — extra protection likely
+            </Text>
+          </View>
+          {returnRescue && (
+            <Text style={styles.cardPerkLine}>
+              The store’s window closed, but many {cardLabel(item.paymentMethod)} cards
+              refund items the store won’t take back for {CARD_RETURN_PROTECTION_DAYS}{' '}
+              days after purchase —{' '}
+              {returnRescue.daysLeft === 0
+                ? 'today is likely the last day to claim'
+                : `about ${returnRescue.daysLeft} day${
+                    returnRescue.daysLeft === 1 ? '' : 's'
+                  } left to claim`}
+              .
+            </Text>
+          )}
+          {warrantyBoost && (
+            <Text style={styles.cardPerkLine}>
+              Many {cardLabel(item.paymentMethod)} cards double the maker’s warranty (up
+              to an extra year) — coverage could run to{' '}
+              {formatDate(warrantyBoost.effectiveEndDate)}.
+            </Text>
+          )}
+          <Text style={styles.cardPerkFootnote}>
+            Benefits vary by card — check your card’s benefits guide or call the number
+            on the back.
+          </Text>
+        </View>
+      )}
+
       {/* Custom reminder — right under the deadlines so it can't be missed */}
       <Pressable
         style={({ pressed }) => [styles.reminderRow, pressed && { opacity: 0.9 }]}
@@ -461,6 +571,17 @@ export function ItemDetailScreen({ navigation, route }: Props) {
           <Pressable onPress={shareWarrantyClaim} style={styles.warrantyShare} hitSlop={6}>
             <Ionicons name="share-outline" size={15} color={colors.primary} />
             <Text style={styles.warrantyShareText}>Share claim details</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void checkRecalls()}
+            style={styles.warrantyShare}
+            hitSlop={6}
+            disabled={checkingRecalls}
+          >
+            <Ionicons name="shield-checkmark-outline" size={15} color={colors.primary} />
+            <Text style={styles.warrantyShareText}>
+              {checkingRecalls ? 'Checking the CPSC recall database…' : 'Check for recalls'}
+            </Text>
           </Pressable>
 
           {showRegister && (
@@ -915,6 +1036,94 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   statusPillText: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
+  },
+  cardPerkBox: {
+    backgroundColor: colors.successSoft,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  cardPerkHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  cardPerkTitle: {
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.success,
+  },
+  cardPerkLine: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 19,
+    marginTop: 4,
+  },
+  cardPerkFootnote: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 6,
+  },
+  recallBanner: {
+    backgroundColor: colors.coralSoft,
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.danger,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  recallBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  recallBannerTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.danger,
+  },
+  recallBannerBody: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 19,
+  },
+  recallBannerHazard: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 4,
+    lineHeight: 17,
+  },
+  recallBannerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  recallViewBtn: {
+    backgroundColor: colors.danger,
+    borderRadius: radii.sm,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+  },
+  recallViewBtnText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: '#FFFFFF',
+  },
+  recallDismiss: {
+    padding: 4,
+  },
+  recallDismissText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.muted,
   },
   giftBadge: {
     alignSelf: 'flex-start',

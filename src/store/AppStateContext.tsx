@@ -12,11 +12,19 @@ import {
   cancelItemReminders,
   scheduleItemReminders,
   scheduleRefundFollowUp,
+  sendRecallNotification,
   syncPriceCheckReminder,
 } from '../notifications/notifications';
 import { BoughtlyBackup } from '../services/backup';
 import { makeReceiptThumb } from '../services/imageStore';
-import { AppSettings, DEFAULT_SETTINGS, TrackedItem } from '../types/item';
+import { checkAllItemsForRecalls, checkItemForRecalls } from '../services/recalls';
+import {
+  AppSettings,
+  DEFAULT_SETTINGS,
+  PaymentMethod,
+  RecallAlert,
+  TrackedItem,
+} from '../types/item';
 import {
   PricePoint,
   RETURN_STEPS,
@@ -30,6 +38,10 @@ const ITEMS_KEY = 'boughtly.items.v1';
 const SETTINGS_KEY = 'boughtly.settings.v1';
 const WATCHES_KEY = 'boughtly.watches.v1';
 const RETURNS_KEY = 'boughtly.returns.v1';
+const RECALLS_KEY = 'boughtly.recalls.v1';
+
+/** Recall sweeps run at most this often (per device). */
+const RECALL_CHECK_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
 
 export interface NewItemInput {
   itemName: string;
@@ -47,6 +59,7 @@ export interface NewItemInput {
   serialNumber?: string;
   productPhotos?: string[];
   protectionPlan?: { provider: string; lengthDays: number; contact?: string };
+  paymentMethod?: PaymentMethod;
   documents?: { name: string; uri: string }[];
   lineItems?: { name: string; price: number }[];
 }
@@ -79,6 +92,12 @@ interface AppState {
   deleteAllItems: () => Promise<void>;
   restoreBackup: (backup: BoughtlyBackup) => Promise<{ items: number; watches: number; returns: number }>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<void>;
+  // Recall alerts
+  recallAlerts: RecallAlert[];
+  /** "Not my product" — hides the alert and never re-alerts for this pair */
+  dismissRecallAlert: (id: string) => Promise<void>;
+  /** On-demand CPSC check for one item; returns every current match for it */
+  checkItemRecallsNow: (item: TrackedItem) => Promise<RecallAlert[]>;
   // Price watching
   addWatch: (input: NewWatchInput) => Promise<WatchedProduct>;
   logWatchPrice: (id: string, point: PricePoint) => Promise<void>;
@@ -125,10 +144,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [watches, setWatches] = useState<WatchedProduct[]>([]);
   const [returns, setReturns] = useState<ReturnCase[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [recallAlerts, setRecallAlerts] = useState<RecallAlert[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   // Always-current snapshots for async callbacks
   const itemsRef = useRef(items);
   itemsRef.current = items;
+  const recallAlertsRef = useRef(recallAlerts);
+  recallAlertsRef.current = recallAlerts;
+  const lastRecallCheckRef = useRef<string>('');
   const watchesRef = useRef(watches);
   watchesRef.current = watches;
   const returnsRef = useRef(returns);
@@ -139,13 +162,19 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [rawItems, rawSettings, rawWatches, rawReturns] = await Promise.all([
+        const [rawItems, rawSettings, rawWatches, rawReturns, rawRecalls] = await Promise.all([
           AsyncStorage.getItem(ITEMS_KEY),
           AsyncStorage.getItem(SETTINGS_KEY),
           AsyncStorage.getItem(WATCHES_KEY),
           AsyncStorage.getItem(RETURNS_KEY),
+          AsyncStorage.getItem(RECALLS_KEY),
         ]);
         if (rawItems) setItems(JSON.parse(rawItems));
+        if (rawRecalls) {
+          const parsed = JSON.parse(rawRecalls);
+          setRecallAlerts(parsed.alerts ?? []);
+          lastRecallCheckRef.current = parsed.lastCheckedAt ?? '';
+        }
         if (rawSettings) {
           const loaded = { ...DEFAULT_SETTINGS, ...JSON.parse(rawSettings) };
           setSettings(loaded);
@@ -193,6 +222,54 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded]);
+
+  const persistRecalls = useCallback(async (alerts: RecallAlert[]) => {
+    setRecallAlerts(alerts);
+    await AsyncStorage.setItem(
+      RECALLS_KEY,
+      JSON.stringify({ alerts, lastCheckedAt: lastRecallCheckRef.current })
+    );
+  }, []);
+
+  // Recall sweep: check tracked items against new CPSC recalls at most every
+  // few days. Silent and best-effort — no network, no problem, try next time.
+  const recallSweepRef = useRef(false);
+  useEffect(() => {
+    if (!isLoaded || recallSweepRef.current) return;
+    const last = lastRecallCheckRef.current ? Date.parse(lastRecallCheckRef.current) : 0;
+    if (Date.now() - last < RECALL_CHECK_INTERVAL_MS) return;
+    if (itemsRef.current.length === 0) return;
+    recallSweepRef.current = true;
+    (async () => {
+      const fresh = await checkAllItemsForRecalls(itemsRef.current, recallAlertsRef.current);
+      lastRecallCheckRef.current = new Date().toISOString();
+      await persistRecalls([...recallAlertsRef.current, ...fresh]);
+      if (fresh.length > 0) {
+        await sendRecallNotification(fresh[0].itemName, fresh.length - 1);
+      }
+    })().catch(() => {});
+  }, [isLoaded, persistRecalls]);
+
+  const dismissRecallAlert = useCallback(
+    async (id: string) => {
+      await persistRecalls(
+        recallAlertsRef.current.map((a) => (a.id === id ? { ...a, dismissed: true } : a))
+      );
+    },
+    [persistRecalls]
+  );
+
+  const checkItemRecallsNow = useCallback(
+    async (item: TrackedItem) => {
+      const found = await checkItemForRecalls(item);
+      const knownIds = new Set(recallAlertsRef.current.map((a) => a.id));
+      const fresh = found.filter((a) => !knownIds.has(a.id));
+      const merged = fresh.length > 0 ? [...recallAlertsRef.current, ...fresh] : recallAlertsRef.current;
+      if (fresh.length > 0) await persistRecalls(merged);
+      return merged.filter((a) => a.itemId === item.id);
+    },
+    [persistRecalls]
+  );
 
   const persistWatches = useCallback(async (next: WatchedProduct[]) => {
     setWatches(next);
@@ -262,13 +339,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const existing = itemsRef.current.find((i) => i.id === id);
       if (existing) await cancelItemReminders(existing.notificationIds);
       await persistItems(itemsRef.current.filter((i) => i.id !== id));
+      // Recall alerts for a gone item are just noise
+      if (recallAlertsRef.current.some((a) => a.itemId === id)) {
+        await persistRecalls(recallAlertsRef.current.filter((a) => a.itemId !== id));
+      }
       if (existing) {
         setRecentlyDeleted(existing);
         if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
         undoTimerRef.current = setTimeout(() => setRecentlyDeleted(null), 8000);
       }
     },
-    [persistItems]
+    [persistItems, persistRecalls]
   );
 
   const undoDelete = useCallback(async () => {
@@ -286,7 +367,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       await cancelItemReminders(item.notificationIds);
     }
     await persistItems([]);
-  }, [persistItems]);
+    await persistRecalls([]);
+  }, [persistItems, persistRecalls]);
 
   /**
    * Replace all local data with a backup. Existing reminders are cancelled and
@@ -526,6 +608,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       deleteAllItems,
       restoreBackup,
       updateSettings,
+      recallAlerts,
+      dismissRecallAlert,
+      checkItemRecallsNow,
       addWatch,
       logWatchPrice,
       updateWatch,
@@ -550,6 +635,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       deleteAllItems,
       restoreBackup,
       updateSettings,
+      recallAlerts,
+      dismissRecallAlert,
+      checkItemRecallsNow,
       addWatch,
       logWatchPrice,
       updateWatch,

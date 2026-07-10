@@ -41,9 +41,14 @@ import { ExtractedReceipt } from '../services/receiptOcr';
 import { parseReceiptText } from '../services/receiptParser';
 import { scanReceipt } from '../services/receiptScanner';
 import { NewItemInput, useAppState } from '../store/AppStateContext';
-import { Palette, fonts, radii, spacing } from '../theme/theme';
+import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
-import { RETURN_PRESETS, WARRANTY_PRESETS } from '../types/item';
+import {
+  PAYMENT_METHOD_OPTIONS,
+  PaymentMethod,
+  RETURN_PRESETS,
+  WARRANTY_PRESETS,
+} from '../types/item';
 import { formatDate, formatPrice, parseISODate, toISODate } from '../utils/dates';
 import { findDuplicateItem } from '../utils/duplicates';
 import { successFeedback } from '../utils/haptics';
@@ -96,6 +101,9 @@ export function AddItemScreen({ navigation, route }: Props) {
   receiptImagesRef.current = receiptImages;
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [isGift, setIsGift] = useState(editing?.isGift ?? false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | undefined>(
+    editing?.paymentMethod
+  );
   const [serialNumber, setSerialNumber] = useState(editing?.serialNumber ?? '');
   // Extended warranty / protection plan
   const [hasPlan, setHasPlan] = useState(!!editing?.protectionPlan);
@@ -568,6 +576,7 @@ export function AddItemScreen({ navigation, route }: Props) {
         returnWindowDays: returnDays,
         notes: notes.trim() || undefined,
         isGift: isGift || undefined,
+        paymentMethod,
         tags: tags.length > 0 ? tags : undefined,
         serialNumber: serialNumber.trim() || undefined,
         productPhotos: storedPhotos.length > 0 ? storedPhotos : undefined,
@@ -792,6 +801,31 @@ export function AddItemScreen({ navigation, route }: Props) {
             trackColor={{ true: colors.primary, false: colors.divider }}
             thumbColor="#FFFFFF"
           />
+        </View>
+
+        {/* Payment method — unlocks card-benefit nudges on the item screen */}
+        <Text style={styles.sectionTitle}>Paid with</Text>
+        <Text style={styles.paymentHint}>
+          Optional — credit cards often add up to a year of warranty and 90 days of
+          return protection.
+        </Text>
+        <View style={styles.paymentRow}>
+          {PAYMENT_METHOD_OPTIONS.map((o) => {
+            const active = paymentMethod === o.key;
+            return (
+              <Pressable
+                key={o.key}
+                onPress={() => setPaymentMethod(active ? undefined : o.key)}
+                style={[styles.paymentChip, active && styles.paymentChipActive]}
+              >
+                <Text
+                  style={[styles.paymentChipText, active && styles.paymentChipTextActive]}
+                >
+                  {o.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         {/* Return window */}
@@ -1279,6 +1313,39 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     borderRadius: 100,
     paddingVertical: 6,
     paddingHorizontal: 12,
+  },
+  paymentHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: -6,
+    marginBottom: spacing.sm,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  paymentChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: radii.md,
+    backgroundColor: colors.card,
+    ...cardShadow,
+    shadowOpacity: 0.05,
+    elevation: 1,
+  },
+  paymentChipActive: {
+    backgroundColor: colors.primary,
+  },
+  paymentChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.text,
+  },
+  paymentChipTextActive: {
+    color: '#FFFFFF',
   },
   tagChipText: {
     fontFamily: fonts.bodyMedium,

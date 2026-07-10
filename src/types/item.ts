@@ -50,6 +50,8 @@ export interface TrackedItem {
   productRegistered?: boolean;
   /** Extended warranty / protection plan, if one was purchased */
   protectionPlan?: ProtectionPlan;
+  /** How it was paid for — credit cards often add warranty/return protection */
+  paymentMethod?: PaymentMethod;
   /** Attached documents (warranty card PDF, manual…) as local file URIs */
   documents?: { name: string; uri: string }[];
   /** The individual products on this receipt (empty for a single-item purchase) */
@@ -90,6 +92,38 @@ export interface AppSettings {
 }
 
 export type ThemeMode = 'system' | 'light' | 'dark';
+
+export type PaymentMethod = 'visa' | 'mastercard' | 'amex' | 'discover' | 'debit' | 'cash' | 'other';
+
+/** Payment choices shown when adding/editing an item. */
+export const PAYMENT_METHOD_OPTIONS: { key: PaymentMethod; label: string }[] = [
+  { key: 'visa', label: 'Visa' },
+  { key: 'mastercard', label: 'Mastercard' },
+  { key: 'amex', label: 'Amex' },
+  { key: 'discover', label: 'Discover' },
+  { key: 'debit', label: 'Debit' },
+  { key: 'cash', label: 'Cash' },
+  { key: 'other', label: 'Other' },
+];
+
+/** A possible CPSC recall affecting a tracked item. */
+export interface RecallAlert {
+  /** `${recallId}:${itemId}` — one alert per recall per item */
+  id: string;
+  recallId: number;
+  itemId: string;
+  itemName: string;
+  title: string;
+  /** CPSC recall page */
+  url: string;
+  /** ISO date the recall was issued */
+  recallDate: string;
+  hazard?: string;
+  /** ISO datetime Boughtly found the match */
+  foundAt: string;
+  /** User said "not my product" (kept so we never re-alert) */
+  dismissed?: boolean;
+}
 
 /** Appearance choices shown in Settings. */
 export const THEME_MODE_OPTIONS: { mode: ThemeMode; label: string }[] = [
