@@ -20,6 +20,7 @@ import { resolveReturnPage } from '../services/returnUrl';
 import { useAppState } from '../store/AppStateContext';
 import { colors, fonts, radii, spacing } from '../theme/theme';
 import { RETURN_STEPS } from '../types/tracking';
+import { trackingLink } from '../utils/carrierTracking';
 import { formatDate, formatPrice } from '../utils/dates';
 import { successFeedback, tapFeedback, warningFeedback } from '../utils/haptics';
 
@@ -69,6 +70,20 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
     tapFeedback();
   }
 
+  /** In-app browser with a plain-link fallback. */
+  async function openUrl(url: string) {
+    tapFeedback();
+    if (Platform.OS === 'web') {
+      Linking.openURL(url).catch(() => {});
+      return;
+    }
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      await Linking.openURL(url).catch(() => {});
+    }
+  }
+
   /** Open the store's return page (known retailer → its returns page; else a
    *  web search), saving any edit to where they bought it. */
   async function openReturnPage() {
@@ -79,17 +94,7 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
       return;
     }
     if (store !== ret.storeName) updateReturn(ret.id, { storeName: store });
-    const page = resolveReturnPage(store);
-    tapFeedback();
-    if (Platform.OS === 'web') {
-      Linking.openURL(page.url).catch(() => {});
-      return;
-    }
-    try {
-      await WebBrowser.openBrowserAsync(page.url);
-    } catch {
-      await Linking.openURL(page.url).catch(() => {});
-    }
+    await openUrl(resolveReturnPage(store).url);
   }
 
   /** Prefilled return request — share to email/messages, ready to send. */
@@ -301,6 +306,23 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
               autoCorrect={false}
               style={styles.input}
             />
+            {(() => {
+              const link = ret.trackingNumber ? trackingLink(ret.trackingNumber) : null;
+              if (!link) return null;
+              return (
+                <Pressable
+                  style={({ pressed }) => [styles.trackBtn, pressed && { opacity: 0.9 }]}
+                  onPress={() => void openUrl(link.url)}
+                >
+                  <Ionicons name="cube-outline" size={16} color="#FFFFFF" />
+                  <Text style={styles.trackBtnText}>
+                    {link.known
+                      ? `Track this package with ${link.carrier}`
+                      : 'Track this package'}
+                  </Text>
+                </Pressable>
+              );
+            })()}
           </>
         )}
         <Text style={styles.fieldLabel}>Notes (optional)</Text>
@@ -568,6 +590,21 @@ const styles = StyleSheet.create({
   inputMultiline: {
     minHeight: 60,
     textAlignVertical: 'top',
+  },
+  trackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    paddingVertical: 11,
+    marginBottom: spacing.sm,
+  },
+  trackBtnText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
   },
   paperworkBody: {
     fontFamily: fonts.body,
