@@ -3,10 +3,11 @@
  *
  * LESSON LEARNED: hand-curated deep links rot — retailers reorganize their
  * sites and yesterday's /returns URL becomes a 404 (Costco did exactly this).
- * So known stores now open a returns search PINNED TO THE STORE'S OWN SITE
- * (site:costco.com), whose top result is always their *current* returns page.
- * Domains are stable in a way deep URLs never are, so this cannot dead-end.
- * Unknown stores fall back to a plain returns search.
+ * Policy: an entry only gets a direct `url` if it was LIVE-VERIFIED (HTTP 200
+ * at that address — last pass 2026-07-10); everything else opens a returns
+ * search PINNED TO THE STORE'S OWN SITE (site:costco.com), whose top result
+ * is always their current returns page and can never 404. When re-verifying,
+ * promote more entries by adding `url`; never add one unverified.
  */
 
 interface StoreReturnSite {
@@ -16,6 +17,8 @@ interface StoreReturnSite {
   label: string;
   /** Official domain — the search is pinned to this site. */
   domain: string;
+  /** Direct returns page — ONLY set when live-verified (see header). */
+  url?: string;
 }
 
 /** A returns search scoped to one store's own site — always current, never 404s. */
@@ -29,11 +32,11 @@ function siteSearch(domain: string): string {
 // (e.g. "nordstrom rack" before "nordstrom", "old navy" before "gap").
 const STORE_RETURN_SITES: StoreReturnSite[] = [
   // ── Big box / general merchandise ──────────────────────────────────────
-  { match: ['amazon'], label: 'Amazon', domain: 'amazon.com' },
-  { match: ['walmart'], label: 'Walmart', domain: 'walmart.com' },
-  { match: ['target'], label: 'Target', domain: 'target.com' },
+  { match: ['amazon'], label: 'Amazon', domain: 'amazon.com', url: 'https://www.amazon.com/returns' },
+  { match: ['walmart'], label: 'Walmart', domain: 'walmart.com', url: 'https://www.walmart.com/returns' },
+  { match: ['target'], label: 'Target', domain: 'target.com', url: 'https://www.target.com/returns' },
   { match: ['best buy', 'bestbuy'], label: 'Best Buy', domain: 'bestbuy.com' },
-  { match: ['costco'], label: 'Costco', domain: 'costco.com' },
+  { match: ['costco'], label: 'Costco', domain: 'costco.com', url: 'https://customerservice.costco.com/app/answers/answer_view/a_id/1191' },
   { match: ["sam's club", 'sams club', 'samsclub'], label: "Sam's Club", domain: 'samsclub.com' },
   { match: ["bj's", 'bjs wholesale', 'bjs'], label: "BJ's", domain: 'bjs.com' },
   { match: ['dollar general'], label: 'Dollar General', domain: 'dollargeneral.com' },
@@ -52,8 +55,8 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['saks off', 'saks fifth', 'saks'], label: 'Saks', domain: 'saksfifthavenue.com' },
   { match: ['neiman marcus'], label: 'Neiman Marcus', domain: 'neimanmarcus.com' },
   { match: ['nordstrom rack'], label: 'Nordstrom Rack', domain: 'nordstromrack.com' },
-  { match: ['nordstrom'], label: 'Nordstrom', domain: 'nordstrom.com' },
-  { match: ["macy's", 'macy'], label: "Macy's", domain: 'macys.com' },
+  { match: ['nordstrom'], label: 'Nordstrom', domain: 'nordstrom.com', url: 'https://www.nordstrom.com/browse/services/return-policy' },
+  { match: ["macy's", 'macys', 'macy'], label: "Macy's", domain: 'macys.com' },
   { match: ["kohl's", 'kohls'], label: "Kohl's", domain: 'kohls.com' },
   { match: ['ross dress', 'ross stores'], label: 'Ross', domain: 'rossstores.com' },
   { match: ['burlington'], label: 'Burlington', domain: 'burlington.com' },
@@ -67,7 +70,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['sierra trading', 'sierra'], label: 'Sierra', domain: 'sierra.com' },
 
   // ── Electronics & tech ─────────────────────────────────────────────────
-  { match: ['apple'], label: 'Apple', domain: 'apple.com' },
+  { match: ['apple'], label: 'Apple', domain: 'apple.com', url: 'https://www.apple.com/shop/help/returns_refund' },
   { match: ['microsoft store', 'microsoft'], label: 'Microsoft', domain: 'microsoft.com' },
   { match: ['micro center', 'microcenter'], label: 'Micro Center', domain: 'microcenter.com' },
   { match: ['b&h photo', 'b & h', 'bhphoto'], label: 'B&H Photo', domain: 'bhphotovideo.com' },
@@ -88,7 +91,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['t-mobile', 'tmobile'], label: 'T-Mobile', domain: 't-mobile.com' },
 
   // ── Home improvement / hardware / auto ─────────────────────────────────
-  { match: ['home depot', 'homedepot'], label: 'The Home Depot', domain: 'homedepot.com' },
+  { match: ['home depot', 'homedepot'], label: 'The Home Depot', domain: 'homedepot.com', url: 'https://www.homedepot.com/c/Return_Policy' },
   { match: ["lowe's", 'lowes'], label: "Lowe's", domain: 'lowes.com' },
   { match: ['menards'], label: 'Menards', domain: 'menards.com' },
   { match: ['ace hardware'], label: 'Ace Hardware', domain: 'acehardware.com' },
@@ -104,8 +107,8 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['discount tire'], label: 'Discount Tire', domain: 'discounttire.com' },
 
   // ── Furniture & home ───────────────────────────────────────────────────
-  { match: ['ikea'], label: 'IKEA', domain: 'ikea.com' },
-  { match: ['wayfair'], label: 'Wayfair', domain: 'wayfair.com' },
+  { match: ['ikea'], label: 'IKEA', domain: 'ikea.com', url: 'https://www.ikea.com/us/en/customer-service/returns-claims/' },
+  { match: ['wayfair'], label: 'Wayfair', domain: 'wayfair.com', url: 'https://www.wayfair.com/help/article/return_policy' },
   { match: ['west elm'], label: 'West Elm', domain: 'westelm.com' },
   { match: ['pottery barn'], label: 'Pottery Barn', domain: 'potterybarn.com' },
   { match: ['williams sonoma', 'williams-sonoma'], label: 'Williams Sonoma', domain: 'williams-sonoma.com' },
@@ -132,7 +135,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['pc richard', 'p.c. richard'], label: 'P.C. Richard & Son', domain: 'pcrichard.com' },
 
   // ── Apparel & shoes ────────────────────────────────────────────────────
-  { match: ['nike'], label: 'Nike', domain: 'nike.com' },
+  { match: ['nike'], label: 'Nike', domain: 'nike.com', url: 'https://www.nike.com/help/a/returns-policy' },
   { match: ['adidas'], label: 'adidas', domain: 'adidas.com' },
   { match: ['under armour'], label: 'Under Armour', domain: 'underarmour.com' },
   { match: ['lululemon'], label: 'lululemon', domain: 'lululemon.com' },
@@ -160,7 +163,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['north face'], label: 'The North Face', domain: 'thenorthface.com' },
   { match: ['carhartt'], label: 'Carhartt', domain: 'carhartt.com' },
   { match: ['dickies'], label: 'Dickies', domain: 'dickies.com' },
-  { match: ['ll bean', 'l.l. bean', 'l.l.bean', 'llbean'], label: 'L.L.Bean', domain: 'llbean.com' },
+  { match: ['ll bean', 'l.l. bean', 'l.l.bean', 'llbean'], label: 'L.L.Bean', domain: 'llbean.com', url: 'https://www.llbean.com/llb/shop/510624' },
   { match: ["lands' end", 'lands end', 'landsend'], label: "Lands' End", domain: 'landsend.com' },
   { match: ['eddie bauer'], label: 'Eddie Bauer', domain: 'eddiebauer.com' },
   { match: ['duluth trading', 'duluth'], label: 'Duluth Trading', domain: 'duluthtrading.com' },
@@ -206,19 +209,19 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
 
   // ── Beauty & health ────────────────────────────────────────────────────
   { match: ['sephora'], label: 'Sephora', domain: 'sephora.com' },
-  { match: ['ulta'], label: 'Ulta', domain: 'ulta.com' },
+  { match: ['ulta'], label: 'Ulta', domain: 'ulta.com', url: 'https://www.ulta.com/guestservices/returns' },
   { match: ['bath & body', 'bath and body'], label: 'Bath & Body Works', domain: 'bathandbodyworks.com' },
   { match: ['glossier'], label: 'Glossier', domain: 'glossier.com' },
   { match: ['mac cosmetics'], label: 'MAC Cosmetics', domain: 'maccosmetics.com' },
   { match: ['fenty'], label: 'Fenty Beauty', domain: 'fentybeauty.com' },
   { match: ['cvs'], label: 'CVS', domain: 'cvs.com' },
-  { match: ['walgreens', 'walgreen'], label: 'Walgreens', domain: 'walgreens.com' },
+  { match: ['walgreens', 'walgreen'], label: 'Walgreens', domain: 'walgreens.com', url: 'https://www.walgreens.com/topic/help/returnpolicy.jsp' },
   { match: ['rite aid', 'riteaid'], label: 'Rite Aid', domain: 'riteaid.com' },
   { match: ['gnc'], label: 'GNC', domain: 'gnc.com' },
   { match: ['vitamin shoppe'], label: 'The Vitamin Shoppe', domain: 'vitaminshoppe.com' },
 
   // ── Sporting goods & outdoor ───────────────────────────────────────────
-  { match: ["dick's", 'dicks sporting'], label: "Dick's Sporting Goods", domain: 'dickssportinggoods.com' },
+  { match: ["dick's", 'dicks sporting', 'dicks'], label: "Dick's Sporting Goods", domain: 'dickssportinggoods.com' },
   { match: ['rei'], label: 'REI', domain: 'rei.com' },
   { match: ['academy sports', 'academy'], label: 'Academy Sports', domain: 'academy.com' },
   { match: ['bass pro'], label: 'Bass Pro Shops', domain: 'basspro.com' },
@@ -238,7 +241,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['sweetwater'], label: 'Sweetwater', domain: 'sweetwater.com' },
 
   // ── Craft, toys & hobby ────────────────────────────────────────────────
-  { match: ['michaels'], label: 'Michaels', domain: 'michaels.com' },
+  { match: ['michaels'], label: 'Michaels', domain: 'michaels.com', url: 'https://www.michaels.com/returns' },
   { match: ['joann', "jo-ann", 'jo ann'], label: 'JOANN', domain: 'joann.com' },
   { match: ['hobby lobby'], label: 'Hobby Lobby', domain: 'hobbylobby.com' },
   { match: ['lego'], label: 'LEGO', domain: 'lego.com' },
@@ -274,7 +277,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['sprouts'], label: 'Sprouts', domain: 'sprouts.com' },
 
   // ── Online marketplaces & resale ───────────────────────────────────────
-  { match: ['ebay'], label: 'eBay', domain: 'ebay.com' },
+  { match: ['ebay'], label: 'eBay', domain: 'ebay.com', url: 'https://www.ebay.com/help/buying/returns-refunds/returning-item?id=4041' },
   { match: ['etsy'], label: 'Etsy', domain: 'etsy.com' },
   { match: ['temu'], label: 'Temu', domain: 'temu.com' },
   { match: ['aliexpress'], label: 'AliExpress', domain: 'aliexpress.com' },
@@ -320,7 +323,7 @@ export function resolveReturnPage(storeName: string): ResolvedReturnPage {
   if (s.length >= 2) {
     for (const site of STORE_RETURN_SITES) {
       if (site.match.some((m) => containsWord(s, m))) {
-        return { url: siteSearch(site.domain), known: true, label: site.label };
+        return { url: site.url ?? siteSearch(site.domain), known: true, label: site.label };
       }
     }
   }
