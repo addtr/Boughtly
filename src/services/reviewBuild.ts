@@ -7,6 +7,7 @@ export interface ReviewItemInput {
   price: number;
   purchaseDate: string;
   receiptImageUri: string | null;
+  receiptThumbUri?: string;
   warrantyLengthDays: number;
   returnWindowDays: number;
   lineItems?: { name: string; price: number }[];
@@ -22,6 +23,7 @@ export interface ReviewShared {
   purchaseDate: string;
   returnDays: number;
   receiptImageUri: string | null;
+  receiptThumbUri: string | null;
   /** Purchase name, e.g. "CVS Pharmacy purchase" */
   purchaseName: string;
   /** Total paid for the whole receipt */
@@ -84,6 +86,7 @@ export function buildPurchaseItem(rows: ReviewRow[], shared: ReviewShared): Revi
     price: total,
     purchaseDate: shared.purchaseDate,
     receiptImageUri: shared.receiptImageUri,
+    receiptThumbUri: shared.receiptThumbUri ?? undefined,
     warrantyLengthDays: warrantyForPurchase(rows, shared.storeName, shared.returnDays),
     returnWindowDays: shared.returnDays,
     lineItems: cleanRows.length > 0 ? cleanRows : undefined,

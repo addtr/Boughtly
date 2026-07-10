@@ -25,6 +25,7 @@ export type RootStackParamList = {
     purchaseDate: string;
     returnDays: number | null;
     receiptImageUri: string | null;
+    receiptThumbUri: string | null;
     total: number | null;
     items: { name: string; price: number }[];
   };

@@ -27,6 +27,8 @@ export interface TrackedItem {
   receiptImageUri: string | null;
   /** All receipt pages, in order (long receipts, front/back). Includes the first. */
   receiptImageUris?: string[];
+  /** Small thumbnail of the first receipt page, for snappy list rows */
+  receiptThumbUri?: string;
   warrantyLengthDays: number;
   /** Calculated: purchaseDate + warrantyLengthDays (ISO date string) */
   warrantyExpirationDate: string;

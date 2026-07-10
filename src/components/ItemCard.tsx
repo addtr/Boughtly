@@ -80,8 +80,11 @@ export function ItemCard({ item, onPress, index = 0 }: ItemCardProps) {
           </View>
         ) : null}
       </View>
-      {item.receiptImageUri ? (
-        <Image source={{ uri: item.receiptImageUri }} style={styles.thumb} />
+      {item.receiptThumbUri || item.receiptImageUri ? (
+        <Image
+          source={{ uri: item.receiptThumbUri ?? item.receiptImageUri! }}
+          style={styles.thumb}
+        />
       ) : (
         <View style={[styles.thumb, styles.thumbPlaceholder]}>
           <Text style={styles.thumbPlaceholderText}>🧾</Text>

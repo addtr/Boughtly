@@ -116,6 +116,7 @@ export function ScanReviewScreen({ navigation, route }: Props) {
         purchaseDate,
         returnDays,
         receiptImageUri: params.receiptImageUri,
+        receiptThumbUri: params.receiptThumbUri,
         purchaseName,
         totalText,
       });

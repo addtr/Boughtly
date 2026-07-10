@@ -29,6 +29,11 @@ import {
   learnStoreCorrection,
   loadCorrections,
 } from '../services/corrections';
+import {
+  makeReceiptThumb,
+  persistProductImage,
+  persistReceiptImage,
+} from '../services/imageStore';
 import { getOwnerApiKey } from '../services/ownerKey';
 import { lookupPoliciesLive } from '../services/policyLive';
 import { PolicySuggestion, suggestPolicies } from '../services/policyLookup';
@@ -47,22 +52,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'AddItem'>;
 const WARRANTY_PRESET_DAYS: number[] = WARRANTY_PRESETS.map((p) => p.days);
 const RETURN_PRESET_DAYS: number[] = RETURN_PRESETS.map((p) => p.days);
 
-/** Copy a picked photo into the app's documents dir so it survives cache cleanup. */
-function persistReceiptImage(sourceUri: string): string {
-  const ext = sourceUri.split('.').pop()?.split('?')[0] || 'jpg';
-  const dest = new File(Paths.document, `receipt-${Date.now()}.${ext}`);
-  new File(sourceUri).copy(dest);
-  return dest.uri;
-}
-
-/** Same, for product photos (a random suffix avoids same-millisecond clashes). */
-function persistProductImage(sourceUri: string): string {
-  const ext = sourceUri.split('.').pop()?.split('?')[0] || 'jpg';
-  const rand = Math.random().toString(36).slice(2, 7);
-  const dest = new File(Paths.document, `product-${Date.now()}-${rand}.${ext}`);
-  new File(sourceUri).copy(dest);
-  return dest.uri;
-}
+// Photo persistence (capped resolution + list thumbnails) lives in imageStore.
 
 function parsePriceInput(raw: string): number | null {
   const cleaned = raw.replace(/[^0-9.]/g, '');
@@ -260,7 +250,7 @@ export function AddItemScreen({ navigation, route }: Props) {
     const scanText = route.params?.scanText;
     if (!scanText || editing || pastedProcessed.current) return;
     pastedProcessed.current = true;
-    handleExtracted(parseReceiptText(scanText));
+    void handleExtracted(parseReceiptText(scanText));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -269,18 +259,16 @@ export function AddItemScreen({ navigation, route }: Props) {
    * fill this single-item form. Only routes for a fresh scan (not editing,
    * and only when the user hasn't already typed an item name).
    */
-  function handleExtracted(extracted: ExtractedReceipt) {
+  async function handleExtracted(extracted: ExtractedReceipt) {
     if (!editing && extracted.lineItems.length >= 2 && !itemName.trim()) {
       // Persist the receipt photo so every created item shares it.
       // (Read via ref — this runs after an await, where state is stale.)
       let persisted: string | null = receiptImagesRef.current[0] ?? null;
+      let thumb: string | null = null;
       if (persisted && !persisted.includes('receipt-')) {
-        try {
-          persisted = persistReceiptImage(persisted);
-        } catch {
-          /* keep the original uri */
-        }
+        persisted = await persistReceiptImage(persisted);
       }
+      if (persisted) thumb = await makeReceiptThumb(persisted);
       const correctedStore = extracted.storeName
         ? correctStore(extracted.storeName) ?? extracted.storeName
         : '';
@@ -289,6 +277,7 @@ export function AddItemScreen({ navigation, route }: Props) {
         purchaseDate: extracted.purchaseDate ?? toISODate(new Date()),
         returnDays: extracted.returnDays,
         receiptImageUri: persisted,
+        receiptThumbUri: thumb,
         total: extracted.price,
         items: extracted.lineItems.map((li) => ({ name: li.name, price: li.price })),
       });
@@ -351,7 +340,7 @@ export function AddItemScreen({ navigation, route }: Props) {
       const extracted = await scanReceipt(imageUri, settings);
       if (extracted) {
         setScanning(false);
-        handleExtracted(extracted);
+        void handleExtracted(extracted);
         return;
       }
       if (Platform.OS === 'web') {
@@ -378,7 +367,7 @@ export function AddItemScreen({ navigation, route }: Props) {
     setWebOcrImage(null);
     setOcrProgress(null);
     setScanning(false);
-    if (text !== null) handleExtracted(parseReceiptText(text));
+    if (text !== null) void handleExtracted(parseReceiptText(text));
   }
 
   async function pickImage(fromCamera: boolean) {
@@ -539,29 +528,30 @@ export function AddItemScreen({ navigation, route }: Props) {
   async function persistSave(price: number) {
     setSaving(true);
     try {
-      // Persist every receipt page (only newly-picked cache paths get copied).
-      const storedReceipts: string[] = receiptImages.map((uri) => {
-        if (uri.includes('receipt-')) return uri;
-        try {
-          return persistReceiptImage(uri);
-        } catch {
-          return uri; // keep the original rather than blocking the save
-        }
-      });
+      // Persist every receipt page (only newly-picked cache paths get copied;
+      // persistence caps resolution so list rows and disk stay light).
+      const storedReceipts: string[] = await Promise.all(
+        receiptImages.map((uri) =>
+          uri.includes('receipt-') ? Promise.resolve(uri) : persistReceiptImage(uri)
+        )
+      );
       const storedUri = storedReceipts[0] ?? null;
-      // Persist any freshly-picked product photos to the documents dir.
-      const storedPhotos: string[] = [];
-      for (const uri of productPhotos) {
-        if (uri.includes('product-')) {
-          storedPhotos.push(uri); // already persisted
+      // Small thumbnail of page 1 for the dashboard list. Reuse an existing
+      // one only if the first page didn't change.
+      let storedThumb: string | undefined;
+      if (storedUri) {
+        if (editing?.receiptThumbUri && editing.receiptImageUri === storedUri) {
+          storedThumb = editing.receiptThumbUri;
         } else {
-          try {
-            storedPhotos.push(persistProductImage(uri));
-          } catch {
-            storedPhotos.push(uri);
-          }
+          storedThumb = (await makeReceiptThumb(storedUri)) ?? undefined;
         }
       }
+      // Persist any freshly-picked product photos to the documents dir.
+      const storedPhotos: string[] = await Promise.all(
+        productPhotos.map((uri) =>
+          uri.includes('product-') ? Promise.resolve(uri) : persistProductImage(uri)
+        )
+      );
 
       const input: NewItemInput = {
         itemName: itemName.trim(),
@@ -570,6 +560,7 @@ export function AddItemScreen({ navigation, route }: Props) {
         purchaseDate,
         receiptImageUri: storedUri,
         receiptImageUris: storedReceipts.length > 0 ? storedReceipts : undefined,
+        receiptThumbUri: storedThumb,
         warrantyLengthDays: warrantyDays,
         returnWindowDays: returnDays,
         notes: notes.trim() || undefined,

@@ -15,6 +15,7 @@ import {
   syncPriceCheckReminder,
 } from '../notifications/notifications';
 import { BoughtlyBackup } from '../services/backup';
+import { makeReceiptThumb } from '../services/imageStore';
 import { AppSettings, DEFAULT_SETTINGS, TrackedItem } from '../types/item';
 import {
   PricePoint,
@@ -37,6 +38,7 @@ export interface NewItemInput {
   purchaseDate: string;
   receiptImageUri: string | null;
   receiptImageUris?: string[];
+  receiptThumbUri?: string;
   warrantyLengthDays: number;
   returnWindowDays: number;
   notes?: string;
@@ -178,7 +180,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       for (const item of current) {
         await cancelItemReminders(item.notificationIds);
         const notificationIds = await scheduleItemReminders(item, settingsRef.current);
-        updated.push({ ...item, notificationIds });
+        // Backfill a list thumbnail for items saved before thumbnails existed
+        // (best-effort — a missing/odd photo keeps rendering full-size).
+        let receiptThumbUri = item.receiptThumbUri;
+        if (item.receiptImageUri && !receiptThumbUri) {
+          receiptThumbUri = (await makeReceiptThumb(item.receiptImageUri)) ?? undefined;
+        }
+        updated.push({ ...item, notificationIds, receiptThumbUri });
       }
       setItems(updated);
       await AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(updated));
