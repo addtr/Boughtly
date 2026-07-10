@@ -1,11 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import {
+  Dimensions,
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Palette, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
-import { Button } from './ui';
+
+const { width } = Dimensions.get('window');
 
 interface TourSlide {
+  key: string;
   icon: keyof typeof Ionicons.glyphMap;
   /** Palette keys, resolved against the active theme at render */
   tint: keyof Palette;
@@ -14,54 +24,77 @@ interface TourSlide {
   body: string;
 }
 
+// The headline features, in the order a new user should meet them.
 const SLIDES: TourSlide[] = [
   {
+    key: 'add',
     icon: 'add-circle',
     tint: 'coral',
     tintSoft: 'coralSoft',
-    title: 'Add anything with +',
-    body: 'Scan a paper receipt, point at a product barcode, or paste an order email / screenshot — Boughtly reads the details for you.',
+    title: 'Add anything in seconds',
+    body: 'Scan a paper receipt, point at a product barcode, or paste an order email or screenshot — Boughtly reads the store, price, and dates for you.',
   },
   {
-    icon: 'hand-left',
+    key: 'deadlines',
+    icon: 'notifications',
     tint: 'primary',
     tintSoft: 'primarySoft',
-    title: 'Swipe a card',
-    body: 'Swipe any item on your home list to start a return or delete it — no digging through menus.',
+    title: 'Never miss a deadline',
+    body: 'Countdown rings track every return window and warranty. Reminders fire before they close, and a Sunday digest previews your week ahead.',
   },
   {
-    icon: 'stats-chart',
-    tint: 'primary',
-    tintSoft: 'primarySoft',
-    title: 'Tap your stats',
-    body: 'The numbers at the top open your spending insights — monthly totals, top stores, and your yearly recap.',
-  },
-  {
-    icon: 'storefront',
-    tint: 'primary',
-    tintSoft: 'primarySoft',
-    title: 'Store pages',
-    body: 'Tap a store chip to see everything you bought there, its return policy, and a shortcut to its returns page.',
-  },
-  {
+    key: 'money',
     icon: 'cash',
     tint: 'success',
     tintSoft: 'successSoft',
-    title: 'Free money alerts',
-    body: 'A green card means a store will refund the difference if the price dropped after you bought — most people never claim it.',
+    title: 'Price drop? Get paid',
+    body: 'Watch any product’s price, scan every retailer for it cheaper, and get alerted when a store owes you a refund because the price fell after you bought.',
   },
   {
-    icon: 'notifications',
+    key: 'recalls',
+    icon: 'warning',
+    tint: 'danger',
+    tintSoft: 'coralSoft',
+    title: 'Your recall guardian',
+    body: 'Boughtly quietly checks your items against the official US recall database. If something you own is recalled, you’ll know — usually a free fix or refund.',
+  },
+  {
+    key: 'register',
+    icon: 'color-wand',
+    tint: 'primary',
+    tintSoft: 'primarySoft',
+    title: 'Register without the typing',
+    body: 'One tap opens the maker’s registration page and auto-fills your name, serial number, and purchase details — you just review and submit.',
+  },
+  {
+    key: 'card',
+    icon: 'card',
+    tint: 'success',
+    tintSoft: 'successSoft',
+    title: 'Unlock hidden card perks',
+    body: 'Paid by credit card? Many double the warranty and refund items the store won’t take back. Boughtly tells you when those perks apply.',
+  },
+  {
+    key: 'returns',
+    icon: 'hand-left',
     tint: 'coral',
     tintSoft: 'coralSoft',
-    title: 'Never miss a deadline',
-    body: 'Reminders fire before return windows and warranties close. Add your own on any item, and see every scheduled nudge right on Home.',
+    title: 'Returns without the fight',
+    body: 'Swipe any item to start a return, jump straight to the store’s returns page, track the package, and get nudged until the refund actually lands.',
+  },
+  {
+    key: 'safety',
+    icon: 'shield-checkmark',
+    tint: 'primary',
+    tintSoft: 'primarySoft',
+    title: 'Everything, safely yours',
+    body: 'Spending insights, a year-in-review, one-tap insurance PDF of everything you own, backups, and Face ID lock — all stored only on your phone.',
   },
 ];
 
 /**
- * One-time walkthrough of the features people otherwise never find.
- * Replayable from Settings.
+ * Full-screen swipeable walkthrough of the headline features. Shown once on
+ * first landing, replayable from Settings.
  */
 export function FeatureTour({
   visible,
@@ -73,7 +106,7 @@ export function FeatureTour({
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const [page, setPage] = useState(0);
-  const slide = SLIDES[page];
+  const listRef = useRef<FlatList<TourSlide>>(null);
   const isLast = page === SLIDES.length - 1;
 
   function close() {
@@ -81,39 +114,62 @@ export function FeatureTour({
     onDone();
   }
 
+  function next() {
+    if (isLast) {
+      close();
+      return;
+    }
+    const target = page + 1;
+    listRef.current?.scrollToIndex({ index: target, animated: true });
+    setPage(target); // momentum event doesn't fire on programmatic scrolls
+  }
+
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={close}>
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <Pressable style={styles.skip} onPress={close} hitSlop={10}>
-            <Text style={styles.skipText}>Skip</Text>
-          </Pressable>
+    <Modal visible={visible} animationType="slide" onRequestClose={close}>
+      <View style={styles.container}>
+        <Pressable style={styles.skip} onPress={close} hitSlop={12}>
+          <Text style={styles.skipText}>Skip</Text>
+        </Pressable>
 
-          <View style={[styles.iconDisk, { backgroundColor: colors[slide.tintSoft] }]}>
-            <Ionicons name={slide.icon} size={44} color={colors[slide.tint]} />
-          </View>
-          <Text style={styles.title}>{slide.title}</Text>
-          <Text style={styles.body}>{slide.body}</Text>
+        <FlatList
+          ref={listRef}
+          data={SLIDES}
+          keyExtractor={(s) => s.key}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) =>
+            setPage(Math.round(e.nativeEvent.contentOffset.x / width))
+          }
+          renderItem={({ item }) => (
+            <View style={[styles.slide, { width }]}>
+              <View style={[styles.iconDisk, { backgroundColor: colors[item.tintSoft] }]}>
+                <Ionicons name={item.icon} size={72} color={colors[item.tint]} />
+              </View>
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.body}>{item.body}</Text>
+            </View>
+          )}
+        />
 
+        <View style={styles.footer}>
           <View style={styles.dots}>
             {SLIDES.map((s, i) => (
-              <View
-                key={s.title}
-                style={[styles.dot, i === page && styles.dotActive]}
-              />
+              <View key={s.key} style={[styles.dot, i === page && styles.dotActive]} />
             ))}
           </View>
-          <Button
-            title={isLast ? 'Got it — let’s go' : 'Next'}
-            variant={isLast ? 'coral' : 'primary'}
-            onPress={() => (isLast ? close() : setPage(page + 1))}
-            style={styles.next}
-          />
-          {page > 0 && (
-            <Pressable onPress={() => setPage(page - 1)} hitSlop={8} style={styles.back}>
-              <Text style={styles.backText}>Back</Text>
-            </Pressable>
-          )}
+          <Pressable
+            style={({ pressed }) => [
+              styles.nextBtn,
+              isLast && styles.nextBtnLast,
+              pressed && { opacity: 0.88 },
+            ]}
+            onPress={next}
+          >
+            <Text style={styles.nextBtnText}>
+              {isLast ? 'Got it — let’s go' : 'Next'}
+            </Text>
+          </Pressable>
         </View>
       </View>
     </Modal>
@@ -121,80 +177,85 @@ export function FeatureTour({
 }
 
 const makeStyles = (colors: Palette) => StyleSheet.create({
-  backdrop: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(15, 18, 28, 0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
-  card: {
-    alignSelf: 'stretch',
     backgroundColor: colors.background,
-    borderRadius: radii.lg,
-    padding: spacing.xl,
-    alignItems: 'center',
   },
   skip: {
     position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
-    padding: 4,
+    top: 58,
+    right: spacing.lg,
+    zIndex: 2,
+    padding: 6,
   },
   skipText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 14,
+    fontSize: 15,
     color: colors.muted,
   },
-  iconDisk: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+  slide: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl,
+  },
+  iconDisk: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
   },
   title: {
     fontFamily: fonts.displayBold,
-    fontSize: 21,
+    fontSize: 26,
     color: colors.deepBlue,
     textAlign: 'center',
   },
   body: {
     fontFamily: fonts.body,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.muted,
     textAlign: 'center',
-    lineHeight: 21,
-    marginTop: spacing.sm,
-    minHeight: 84,
+    lineHeight: 24,
+    marginTop: spacing.md,
+    minHeight: 120,
+  },
+  footer: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxl,
+    alignItems: 'center',
+    gap: spacing.lg,
   },
   dots: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: spacing.md,
   },
   dot: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 4,
     backgroundColor: colors.divider,
   },
   dotActive: {
     backgroundColor: colors.primary,
-    width: 20,
+    width: 22,
   },
-  next: {
+  nextBtn: {
     alignSelf: 'stretch',
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    paddingVertical: 15,
+    alignItems: 'center',
   },
-  back: {
-    marginTop: spacing.sm,
-    padding: 4,
+  nextBtnLast: {
+    backgroundColor: colors.coral,
   },
-  backText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    color: colors.muted,
+  nextBtnText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 16,
+    color: '#FFFFFF',
   },
 });
