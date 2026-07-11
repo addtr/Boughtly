@@ -33,6 +33,7 @@ import {
   formatFireAt,
   UpcomingReminder,
 } from '../utils/upcomingReminders';
+import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 
 /** Items whose nearest active deadline is this close (days) are "act now". */
 const URGENT_DAYS = 7;
@@ -551,6 +552,7 @@ export function DashboardScreen() {
               )}
               {activeItems.length >= 4 && (
                 <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
                   value={query}
                   onChangeText={setQuery}
                   placeholder="Search your items"

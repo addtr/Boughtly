@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
+import { DONE_ACCESSORY_ID } from './KeyboardDoneBar';
 
 /* ---------- Buttons ---------- */
 
@@ -63,6 +64,7 @@ export function Field({ label, style, ...inputProps }: FieldProps) {
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
         placeholderTextColor={colors.muted}
         style={[styles.input, style]}
         {...inputProps}

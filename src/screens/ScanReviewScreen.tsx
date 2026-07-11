@@ -29,6 +29,7 @@ import { RETURN_PRESETS } from '../types/item';
 import { formatDate, formatPrice } from '../utils/dates';
 import { findDuplicateItem } from '../utils/duplicates';
 import { successFeedback, tapFeedback } from '../utils/haptics';
+import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ScanReview'>;
 
@@ -154,6 +155,7 @@ export function ScanReviewScreen({ navigation, route }: Props) {
         <Card style={styles.card}>
           <Text style={styles.label}>Purchase name</Text>
           <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
             value={purchaseName}
             onChangeText={setPurchaseName}
             placeholder="CVS Pharmacy purchase"
@@ -162,6 +164,7 @@ export function ScanReviewScreen({ navigation, route }: Props) {
           />
           <Text style={styles.label}>Store</Text>
           <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
             value={storeName}
             onChangeText={setStoreName}
             placeholder="Where from?"
@@ -170,6 +173,7 @@ export function ScanReviewScreen({ navigation, route }: Props) {
           />
           <Text style={styles.label}>Purchase date (YYYY-MM-DD)</Text>
           <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
             value={purchaseDate}
             onChangeText={setPurchaseDate}
             placeholder="2026-07-05"
@@ -181,6 +185,7 @@ export function ScanReviewScreen({ navigation, route }: Props) {
           <View style={styles.totalRow}>
             <Text style={styles.currency}>$</Text>
             <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
               value={totalText}
               onChangeText={setTotalText}
               placeholder="0.00"
@@ -209,6 +214,7 @@ export function ScanReviewScreen({ navigation, route }: Props) {
           />
           {returnCustom && (
             <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
               value={String(returnDays || '')}
               onChangeText={(t) => setReturnDays(Number(t.replace(/[^0-9]/g, '')) || 0)}
               keyboardType="number-pad"
@@ -240,6 +246,7 @@ export function ScanReviewScreen({ navigation, route }: Props) {
           {rows.map((r, idx) => (
             <View key={idx} style={styles.itemRow}>
               <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
                 value={r.name}
                 onChangeText={(t) => setRowName(idx, t)}
                 placeholder="Item name"
@@ -249,6 +256,7 @@ export function ScanReviewScreen({ navigation, route }: Props) {
               <View style={styles.itemPriceBox}>
                 <Text style={styles.currencySmall}>$</Text>
                 <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
                   value={r.priceText}
                   onChangeText={(t) => setRowPrice(idx, t)}
                   placeholder="0.00"

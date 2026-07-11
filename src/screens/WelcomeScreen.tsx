@@ -18,6 +18,7 @@ import { useAppState } from '../store/AppStateContext';
 import { Palette, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { successFeedback } from '../utils/haptics';
+import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 
@@ -106,6 +107,7 @@ export function WelcomeScreen({ navigation }: Props) {
 
         {mode === 'create' && (
           <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
             value={name}
             onChangeText={setName}
             placeholder="Your name"
@@ -116,6 +118,7 @@ export function WelcomeScreen({ navigation }: Props) {
           />
         )}
         <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
           value={email}
           onChangeText={setEmail}
           placeholder="you@example.com"

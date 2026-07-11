@@ -23,6 +23,7 @@ import { formatDate, formatPrice, toISODate } from '../utils/dates';
 import { analyzeDeal, DealVerdict } from '../utils/deals';
 import { successFeedback, tapFeedback, warningFeedback } from '../utils/haptics';
 import { openPriceScan } from '../utils/priceScan';
+import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WatchDetail'>;
 
@@ -190,6 +191,7 @@ export function WatchDetailScreen({ navigation, route }: Props) {
         <View style={styles.logRow}>
           <Text style={styles.currency}>$</Text>
           <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
             value={priceText}
             onChangeText={setPriceText}
             placeholder="299.99"
@@ -211,6 +213,7 @@ export function WatchDetailScreen({ navigation, route }: Props) {
           <View style={styles.logRow}>
             <Text style={styles.currency}>was $</Text>
             <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
               value={claimedText}
               onChangeText={setClaimedText}
               placeholder="449.99 (the “original” price they claim)"

@@ -45,6 +45,7 @@ import {
 } from '../utils/dates';
 import { tapFeedback, warningFeedback } from '../utils/haptics';
 import { openPriceScan } from '../utils/priceScan';
+import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
@@ -844,6 +845,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
 
             <Text style={styles.reminderLabel}>What should it say?</Text>
             <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
               value={remNote}
               onChangeText={setRemNote}
               placeholder={`Check on ${item.itemName}`}
@@ -854,6 +856,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             <Text style={styles.reminderLabel}>When?</Text>
             {Platform.OS === 'web' ? (
               <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
                 value={toISODate(remDate)}
                 onChangeText={(t) => {
                   if (/^\d{4}-\d{2}-\d{2}$/.test(t)) setRemDate(parseISODate(t));

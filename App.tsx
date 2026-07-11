@@ -16,6 +16,7 @@ import { useFonts } from 'expo-font';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardDoneBar } from './src/components/KeyboardDoneBar';
 import { LockScreen } from './src/components/LockScreen';
 import { Tabs } from './src/navigation/Tabs';
 import { RootStackParamList } from './src/navigation/types';
@@ -162,6 +163,8 @@ function Root() {
       onReady={flushPendingNotificationNav}
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      {/* One shared "Done" bar above the keyboard (iOS) for every input */}
+      <KeyboardDoneBar />
       <Stack.Navigator
         initialRouteName={
           !settings.accountEmail

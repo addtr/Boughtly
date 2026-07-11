@@ -16,6 +16,7 @@ import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
 import { Palette, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
+import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PasteReceipt'>;
 
@@ -78,6 +79,7 @@ export function PasteReceiptScreen({ navigation }: Props) {
         </View>
 
         <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
           value={text}
           onChangeText={setText}
           placeholder={

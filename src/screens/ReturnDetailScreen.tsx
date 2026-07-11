@@ -24,6 +24,7 @@ import { RETURN_STEPS } from '../types/tracking';
 import { trackingLink } from '../utils/carrierTracking';
 import { formatDate, formatPrice } from '../utils/dates';
 import { successFeedback, tapFeedback, warningFeedback } from '../utils/haptics';
+import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReturnDetail'>;
 
@@ -168,6 +169,7 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
         <Text style={styles.returnPageTitle}>Return it at the store</Text>
         <Text style={styles.fieldLabel}>Where did you buy it?</Text>
         <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
           value={storeInput}
           onChangeText={setStoreInput}
           onSubmitEditing={openReturnPage}
@@ -299,6 +301,7 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
           <>
             <Text style={styles.fieldLabel}>Tracking number (optional)</Text>
             <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
               defaultValue={ret.trackingNumber}
               onEndEditing={(e) =>
                 updateReturn(ret.id, { trackingNumber: e.nativeEvent.text.trim() })
@@ -330,6 +333,7 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
         )}
         <Text style={styles.fieldLabel}>Notes (optional)</Text>
         <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
           defaultValue={ret.notes}
           onEndEditing={(e) => updateReturn(ret.id, { notes: e.nativeEvent.text.trim() })}
           placeholder="Return code, who you spoke to…"

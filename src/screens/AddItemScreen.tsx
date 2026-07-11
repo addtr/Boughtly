@@ -52,6 +52,7 @@ import {
 import { formatDate, formatPrice, parseISODate, toISODate } from '../utils/dates';
 import { findDuplicateItem } from '../utils/duplicates';
 import { successFeedback } from '../utils/haptics';
+import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddItem'>;
 
@@ -718,6 +719,7 @@ export function AddItemScreen({ navigation, route }: Props) {
           <View style={styles.priceRow}>
             <Text style={styles.priceCurrency}>$</Text>
             <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
               value={priceText}
               onChangeText={setPriceText}
               placeholder="129.99"
@@ -1022,6 +1024,7 @@ export function AddItemScreen({ navigation, route }: Props) {
           </View>
         )}
         <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
           value={tagDraft}
           onChangeText={setTagDraft}
           onSubmitEditing={addTag}

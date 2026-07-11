@@ -13,6 +13,7 @@ import { formatPrice } from '../utils/dates';
 import { trendVsTypical } from '../utils/deals';
 import { tapFeedback } from '../utils/haptics';
 import { openPriceScan } from '../utils/priceScan';
+import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 
 export function WatchListScreen() {
   const { colors } = useTheme();
@@ -42,6 +43,7 @@ export function WatchListScreen() {
               <Text style={styles.scanCardTitle}>Scan stores right now</Text>
               <View style={styles.scanRow}>
                 <TextInput
+          inputAccessoryViewID={DONE_ACCESSORY_ID}
                   value={quickQuery}
                   onChangeText={setQuickQuery}
                   placeholder="What are you looking for?"
