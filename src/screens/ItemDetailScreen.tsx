@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { CountdownRing } from '../components/CountdownRing';
 import { Button, Card } from '../components/ui';
+import { useToast } from '../components/Toast';
 import { RootStackParamList } from '../navigation/types';
 import { lookupWarrantyByCategory } from '../services/policyLookup';
 import {
@@ -62,6 +63,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
     dismissRecallAlert,
     checkItemRecallsNow,
   } = useAppState();
+  const toast = useToast();
   const [checkingRecalls, setCheckingRecalls] = useState(false);
   const [viewerUri, setViewerUri] = useState<string | null>(null);
   const [returnPickerOpen, setReturnPickerOpen] = useState(false);
@@ -167,15 +169,9 @@ export function ItemDetailScreen({ navigation, route }: Props) {
       const matches = await checkItemRecallsNow(item!);
       const active = matches.filter((a) => !a.dismissed);
       if (active.length === 0) {
-        Alert.alert(
-          'No recalls found',
-          `The CPSC has nothing on file matching “${item!.itemName}” since you bought it. Boughtly re-checks automatically every few days.`
-        );
+        toast('No recalls found — you’re all clear', 'info');
       } else {
-        Alert.alert(
-          'Possible recall found',
-          'See the notice at the top of this screen and check the official CPSC page.'
-        );
+        toast('Possible recall — see the notice above', 'error');
       }
     } catch {
       Alert.alert('Couldn’t check', 'The recall database didn’t respond — try again later.');
@@ -216,7 +212,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
     }`;
     const res = await addDeadlineToCalendar(title, iso, notes);
     if (res === 'created') {
-      Alert.alert('Added to your calendar', `“${title}” is on ${formatDate(iso)}.`);
+      toast('Added to your calendar');
     } else if (res === 'denied') {
       Alert.alert(
         'Calendar access needed',

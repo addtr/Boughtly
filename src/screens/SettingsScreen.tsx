@@ -23,6 +23,7 @@ import { RootStackParamList } from '../navigation/types';
 import { ensureNotificationSetup, sendTestReminder } from '../notifications/notifications';
 import { backupFileName, buildBackup, parseBackup } from '../services/backup';
 import { exportInventoryReport } from '../services/inventoryReport';
+import { useToast } from '../components/Toast';
 import { csvFileName, itemsToCsv } from '../utils/csv';
 import { useAppState } from '../store/AppStateContext';
 import { Palette, fonts, spacing } from '../theme/theme';
@@ -56,6 +57,7 @@ export function SettingsScreen() {
 
   const hasData = items.length > 0 || watches.length > 0 || returns.length > 0;
   const [exportingPdf, setExportingPdf] = useState(false);
+  const toast = useToast();
 
   function confirmDelete(id: string, name: string) {
     warningFeedback();
@@ -176,14 +178,12 @@ export function SettingsScreen() {
             style: 'destructive',
             onPress: async () => {
               const counts = await restoreBackup(b);
-              successFeedback();
-              Alert.alert(
-                'Backup restored',
-                `Loaded ${counts.items} item${counts.items === 1 ? '' : 's'}, ${
+              toast(
+                `Restored ${counts.items} item${counts.items === 1 ? '' : 's'}, ${
                   counts.returns
-                } return${counts.returns === 1 ? '' : 's'}, and ${counts.watches} watch${
+                } return${counts.returns === 1 ? '' : 's'}, ${counts.watches} watch${
                   counts.watches === 1 ? '' : 'es'
-                }.`
+                }`
               );
             },
           },
@@ -227,7 +227,7 @@ export function SettingsScreen() {
   async function testReminder() {
     const ok = await sendTestReminder();
     if (ok) {
-      Alert.alert('Test reminder sent', 'Watch for it in about 5 seconds.');
+      toast('Test reminder sent — watch for it in ~5s');
     } else {
       Alert.alert(
         'Reminders are off',

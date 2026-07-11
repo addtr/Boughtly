@@ -123,7 +123,13 @@ export function WatchDetailScreen({ navigation, route }: Props) {
   const vStyle = verdict ? VERDICT_STYLE[verdict.level] : null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      automaticallyAdjustKeyboardInsets
+    >
       <Text style={styles.name}>{watch.name}</Text>
       <View style={styles.subRow}>
         <Text style={styles.store}>{watch.store}</Text>

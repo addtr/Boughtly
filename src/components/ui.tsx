@@ -57,21 +57,25 @@ interface FieldProps extends TextInputProps {
   label: string;
 }
 
-export function Field({ label, style, ...inputProps }: FieldProps) {
+export const Field = React.forwardRef<TextInput, FieldProps>(function Field(
+  { label, style, ...inputProps },
+  ref
+) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
-          inputAccessoryViewID={DONE_ACCESSORY_ID}
+        ref={ref}
+        inputAccessoryViewID={DONE_ACCESSORY_ID}
         placeholderTextColor={colors.muted}
         style={[styles.input, style]}
         {...inputProps}
       />
     </View>
   );
-}
+});
 
 /* ---------- Preset chips (warranty / return window pickers) ---------- */
 

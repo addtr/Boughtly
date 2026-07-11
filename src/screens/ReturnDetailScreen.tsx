@@ -149,7 +149,13 @@ export function ReturnDetailScreen({ navigation, route }: Props) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      automaticallyAdjustKeyboardInsets
+    >
       <Text style={styles.name}>{ret.itemName}</Text>
       <Text style={styles.subtitle}>
         {ret.storeName} · {formatPrice(ret.refundAmount)} coming back

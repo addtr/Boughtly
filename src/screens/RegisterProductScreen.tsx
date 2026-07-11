@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { Button } from '../components/ui';
+import { useToast } from '../components/Toast';
 import { RootStackParamList } from '../navigation/types';
 import {
   buildAutofillScript,
@@ -43,6 +44,7 @@ export function RegisterProductScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { items, settings, patchItem } = useAppState();
+  const toast = useToast();
   const item = items.find((i) => i.id === route.params.itemId);
 
   const webRef = useRef<any>(null);
@@ -123,8 +125,8 @@ export function RegisterProductScreen({ navigation, route }: Props) {
   }
 
   async function markRegistered() {
-    successFeedback();
     await patchItem(item!.id, { productRegistered: true });
+    toast('Marked as registered');
     navigation.goBack();
   }
 

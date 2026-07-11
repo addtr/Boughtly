@@ -22,6 +22,7 @@ import {
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { OcrWebView } from '../components/OcrWebView';
 import { Button, Card, ChipRow, Field } from '../components/ui';
+import { useToast } from '../components/Toast';
 import { RootStackParamList } from '../navigation/types';
 import { consumePendingBarcodeItemName } from '../services/barcode';
 import {
@@ -78,6 +79,7 @@ function isValidISODate(raw: string): boolean {
 export function AddItemScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const toast = useToast();
   const { items, settings, addItem, updateItem } = useAppState();
   const editingId = route.params?.itemId;
   const editing = useMemo(
@@ -141,6 +143,9 @@ export function AddItemScreen({ navigation, route }: Props) {
   // Once the user picks a window themselves, auto-fill keeps its hands off
   const returnTouched = useRef(!!editing);
   const warrantyTouched = useRef(!!editing);
+  // Return-key chaining: name → store → price
+  const storeRef = useRef<TextInput>(null);
+  const priceRef = useRef<TextInput>(null);
   const lastLookupRef = useRef('');
   // Raw store text a scan produced, so we can learn a correction if the user edits it.
   const extractedStoreRaw = useRef<string | null>(null);
@@ -598,11 +603,11 @@ export function AddItemScreen({ navigation, route }: Props) {
 
       if (editing) {
         await updateItem(editing.id, input);
-        successFeedback();
+        toast('Changes saved');
         navigation.goBack();
       } else {
         await addItem(input);
-        successFeedback();
+        toast(`${input.itemName} is now protected`);
         navigation.popToTop();
       }
     } finally {
@@ -616,6 +621,8 @@ export function AddItemScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         style={styles.container}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -696,6 +703,9 @@ export function AddItemScreen({ navigation, route }: Props) {
           onChangeText={setItemName}
           onBlur={() => void applyPolicySuggestions(itemName, storeName)}
           placeholder="Noise-cancelling headphones"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => storeRef.current?.focus()}
         />
         {!editing && Platform.OS !== 'web' && (
           <Pressable
@@ -708,18 +718,23 @@ export function AddItemScreen({ navigation, route }: Props) {
           </Pressable>
         )}
         <Field
+          ref={storeRef}
           label="Where from?"
           value={storeName}
           onChangeText={setStoreName}
           onBlur={() => void applyPolicySuggestions(itemName, storeName)}
           placeholder="Best Buy"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => priceRef.current?.focus()}
         />
         <View style={styles.priceWrap}>
           <Text style={styles.priceLabel}>What did it cost?</Text>
           <View style={styles.priceRow}>
             <Text style={styles.priceCurrency}>$</Text>
             <TextInput
-          inputAccessoryViewID={DONE_ACCESSORY_ID}
+              ref={priceRef}
+              inputAccessoryViewID={DONE_ACCESSORY_ID}
               value={priceText}
               onChangeText={setPriceText}
               placeholder="129.99"

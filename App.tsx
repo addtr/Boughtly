@@ -18,6 +18,7 @@ import { ActivityIndicator, AppState, Platform, StyleSheet, View } from 'react-n
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardDoneBar } from './src/components/KeyboardDoneBar';
 import { LockScreen } from './src/components/LockScreen';
+import { ToastProvider } from './src/components/Toast';
 import { Tabs } from './src/navigation/Tabs';
 import { RootStackParamList } from './src/navigation/types';
 import { AddChooserScreen } from './src/screens/AddChooserScreen';
@@ -280,7 +281,9 @@ export default function App() {
     <GestureHandlerRootView style={styles.flex}>
       <AppStateProvider>
         <ThemeProvider>
-          <Root />
+          <ToastProvider>
+            <Root />
+          </ToastProvider>
         </ThemeProvider>
       </AppStateProvider>
     </GestureHandlerRootView>

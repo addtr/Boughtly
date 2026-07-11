@@ -138,6 +138,8 @@ export function ScanReviewScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         style={styles.container}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
