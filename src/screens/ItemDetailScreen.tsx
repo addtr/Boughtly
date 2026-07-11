@@ -590,12 +590,10 @@ export function ItemDetailScreen({ navigation, route }: Props) {
               </>
             )}
           </View>
-          {showRegister && (
-            <Text style={styles.registerDisclaimer}>
-              Registering is optional — the US doesn’t require it for warranty coverage; your
-              receipt is the proof, and Boughtly keeps it safe.
-            </Text>
-          )}
+          <Text style={styles.registerDisclaimer}>
+            Registering is optional — the US doesn’t require it for warranty coverage; your
+            receipt is the proof, and Boughtly keeps it safe.
+          </Text>
           {item.productRegistered && (
             <Text style={styles.registeredNote}>✓ Registered with the manufacturer</Text>
           )}
