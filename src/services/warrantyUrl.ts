@@ -41,11 +41,11 @@ const BRAND_WARRANTIES: BrandWarranty[] = [
   { match: ['garmin'], label: 'Garmin', domain: 'garmin.com', warrantyUrl: 'https://support.garmin.com/en-US/warranty/' },
   { match: ['fitbit'], label: 'Fitbit', domain: 'fitbit.com', warrantyUrl: 'https://support.google.com/product-documentation/answer/14815834' },
   { match: ['nintendo', 'switch'], label: 'Nintendo', domain: 'nintendo.com', warrantyUrl: 'https://en-americas-support.nintendo.com/app/answers/detail/a_id/50404/~/warranty-and-service-information' },
-  { match: ['xbox', 'microsoft', 'surface'], label: 'Microsoft', domain: 'microsoft.com' },
+  { match: ['xbox', 'microsoft', 'surface'], label: 'Microsoft', domain: 'microsoft.com', warrantyUrl: 'https://support.microsoft.com/en-us/surface/hardware-warranty/' },
   { match: ['dell', 'alienware'], label: 'Dell', domain: 'dell.com' },
   { match: ['hp', 'hewlett'], label: 'HP', domain: 'hp.com', warrantyUrl: 'https://support.hp.com/us-en/warranty' },
-  { match: ['lenovo', 'thinkpad'], label: 'Lenovo', domain: 'lenovo.com' },
-  { match: ['asus'], label: 'ASUS', domain: 'asus.com' },
+  { match: ['lenovo', 'thinkpad'], label: 'Lenovo', domain: 'lenovo.com', warrantyUrl: 'https://pcsupport.lenovo.com/us/en/warrantylookup' },
+  { match: ['asus'], label: 'ASUS', domain: 'asus.com', warrantyUrl: 'https://www.asus.com/us/support/warranty-status-inquiry/' },
   { match: ['acer'], label: 'Acer', domain: 'acer.com' },
   { match: ['razer'], label: 'Razer', domain: 'razer.com', warrantyUrl: 'https://www.razer.com/warranty' },
   { match: ['kitchenaid'], label: 'KitchenAid', domain: 'kitchenaid.com' },
@@ -58,8 +58,8 @@ const BRAND_WARRANTIES: BrandWarranty[] = [
   { match: ['breville'], label: 'Breville', domain: 'breville.com', warrantyUrl: 'https://www.breville.com/us/en/support/warranty.html' },
   { match: ['irobot', 'roomba'], label: 'iRobot', domain: 'irobot.com', warrantyUrl: 'https://homesupport.irobot.com/s/article/3096' },
   { match: ['shark'], label: 'Shark', domain: 'sharkclean.com', warrantyUrl: 'https://support.sharkninja.com/article/Shark-5-Year-Limited-Warranty' },
-  { match: ['bissell'], label: 'Bissell', domain: 'bissell.com' },
-  { match: ['philips'], label: 'Philips', domain: 'philips.com' },
+  { match: ['bissell'], label: 'Bissell', domain: 'bissell.com', warrantyUrl: 'https://www.bissell.com/en-us/warranty-information/' },
+  { match: ['philips'], label: 'Philips', domain: 'philips.com', warrantyUrl: 'https://www.usa.philips.com/c-s/support/warranty' },
   { match: ['braun'], label: 'Braun', domain: 'braun.com' },
   { match: ['dewalt'], label: 'DeWalt', domain: 'dewalt.com', warrantyUrl: 'https://www.dewalt.com/en-us/support/warranty' },
   { match: ['milwaukee'], label: 'Milwaukee', domain: 'milwaukeetool.com', warrantyUrl: 'https://www.milwaukeetool.com/support/registration-and-warranty' },
@@ -67,7 +67,7 @@ const BRAND_WARRANTIES: BrandWarranty[] = [
   { match: ['ryobi'], label: 'Ryobi', domain: 'ryobitools.com' },
   { match: ['bosch'], label: 'Bosch', domain: 'boschtools.com' },
   { match: ['black+decker', 'black & decker', 'black and decker'], label: 'Black+Decker', domain: 'blackanddecker.com' },
-  { match: ['craftsman'], label: 'Craftsman', domain: 'craftsman.com' },
+  { match: ['craftsman'], label: 'Craftsman', domain: 'craftsman.com', warrantyUrl: 'https://www.craftsman.com/en-us/support/customer-support/warranty' },
   { match: ['weber'], label: 'Weber', domain: 'weber.com', warrantyUrl: 'https://www.weber.com/US/en/warranties.html' },
   { match: ['traeger'], label: 'Traeger', domain: 'traeger.com', warrantyUrl: 'https://www.traeger.com/service-warranty' },
   { match: ['ring'], label: 'Ring', domain: 'ring.com', warrantyUrl: 'https://ring.com/warranty' },
@@ -76,6 +76,14 @@ const BRAND_WARRANTIES: BrandWarranty[] = [
   { match: ['ge appliances', 'ge appliance'], label: 'GE Appliances', domain: 'geappliances.com' },
   { match: ['samsonite'], label: 'Samsonite', domain: 'samsonite.com' },
   { match: ['yeti'], label: 'YETI', domain: 'yeti.com' },
+
+  // ── Verified direct pages — batch 8 (2026-07-11) ──
+  { match: ['hisense'], label: 'Hisense', domain: 'hisense-usa.com', warrantyUrl: 'https://www.hisense-usa.com/support/warranty' },
+  { match: ['nikon'], label: 'Nikon', domain: 'nikonusa.com', warrantyUrl: 'https://www.nikonusa.com/learn-and-explore/warranty' },
+  { match: ['seiko'], label: 'Seiko', domain: 'seikousa.com', warrantyUrl: 'https://seikousa.com/pages/warranty' },
+  { match: ['herschel'], label: 'Herschel', domain: 'herschel.com', warrantyUrl: 'https://herschel.com/pages/warranty' },
+  { match: ['patagonia'], label: 'Patagonia', domain: 'patagonia.com', warrantyUrl: 'https://www.patagonia.com/ironclad-guarantee.html' },
+
 ];
 
 function containsWord(haystack: string, fragment: string): boolean {
