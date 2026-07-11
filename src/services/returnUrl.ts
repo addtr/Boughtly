@@ -54,7 +54,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ["bloomingdale's", 'bloomingdales'], label: "Bloomingdale's", domain: 'bloomingdales.com' },
   { match: ['saks off', 'saks fifth', 'saks'], label: 'Saks', domain: 'saksfifthavenue.com' },
   { match: ['neiman marcus'], label: 'Neiman Marcus', domain: 'neimanmarcus.com' },
-  { match: ['nordstrom rack'], label: 'Nordstrom Rack', domain: 'nordstromrack.com' },
+  { match: ['nordstrom rack'], label: 'Nordstrom Rack', domain: 'nordstromrack.com', url: 'https://www.nordstromrack.com/customer-service/ship-return-policy' },
   { match: ['nordstrom'], label: 'Nordstrom', domain: 'nordstrom.com', url: 'https://www.nordstrom.com/browse/services/return-policy' },
   { match: ["macy's", 'macys', 'macy'], label: "Macy's", domain: 'macys.com' },
   { match: ["kohl's", 'kohls'], label: "Kohl's", domain: 'kohls.com' },
@@ -124,7 +124,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['value city'], label: 'Value City Furniture', domain: 'valuecityfurniture.com' },
   { match: ['container store'], label: 'The Container Store', domain: 'containerstore.com' },
   { match: ['at home'], label: 'At Home', domain: 'athome.com' },
-  { match: ['bed bath & beyond', 'bed bath and beyond', 'bed bath'], label: 'Bed Bath & Beyond', domain: 'bedbathandbeyond.com' },
+  { match: ['bed bath & beyond', 'bed bath and beyond', 'bed bath'], label: 'Bed Bath & Beyond', domain: 'bedbathandbeyond.com', url: 'https://help.bedbathandbeyond.com/help/s/article/Standard-Return-Policy' },
   { match: ['overstock'], label: 'Overstock', domain: 'overstock.com' },
   { match: ["kirkland's", 'kirklands'], label: "Kirkland's", domain: 'kirklands.com' },
   { match: ['world market'], label: 'World Market', domain: 'worldmarket.com' },
@@ -237,7 +237,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['office depot', 'officemax'], label: 'Office Depot', domain: 'officedepot.com' },
   { match: ['barnes & noble', 'barnes and noble', 'barnesandnoble'], label: 'Barnes & Noble', domain: 'barnesandnoble.com' },
   { match: ['books-a-million', 'books a million'], label: 'Books-A-Million', domain: 'booksamillion.com' },
-  { match: ['guitar center'], label: 'Guitar Center', domain: 'guitarcenter.com' },
+  { match: ['guitar center'], label: 'Guitar Center', domain: 'guitarcenter.com', url: 'https://www.guitarcenter.com/pages/return-policy' },
   { match: ['sweetwater'], label: 'Sweetwater', domain: 'sweetwater.com' },
 
   // ── Craft, toys & hobby ────────────────────────────────────────────────
