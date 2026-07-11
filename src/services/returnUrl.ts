@@ -203,8 +203,8 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['journeys'], label: 'Journeys', domain: 'journeys.com' },
   { match: ['famous footwear'], label: 'Famous Footwear', domain: 'famousfootwear.com' },
   { match: ['shoe carnival'], label: 'Shoe Carnival', domain: 'shoecarnival.com' },
-  { match: ['foot locker', 'footlocker'], label: 'Foot Locker', domain: 'footlocker.com' },
-  { match: ['dsw'], label: 'DSW', domain: 'dsw.com' },
+  { match: ['foot locker', 'footlocker'], label: 'Foot Locker', domain: 'footlocker.com', url: 'https://help.footlocker.com/hc/en-us/articles/360034123454-What-s-the-policy-for-returns' },
+  { match: ['dsw'], label: 'DSW', domain: 'dsw.com', url: 'https://www.dsw.com/content/return-and-exchange-policy' },
   { match: ['zappos'], label: 'Zappos', domain: 'zappos.com', url: 'https://www.zappos.com/c/shipping-and-returns' },
 
   // ── Beauty & health ────────────────────────────────────────────────────
