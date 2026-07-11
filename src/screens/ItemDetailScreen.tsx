@@ -51,8 +51,11 @@ import { DONE_ACCESSORY_ID } from '../components/KeyboardDoneBar';
 type Props = NativeStackScreenProps<RootStackParamList, 'ItemDetail'>;
 
 export function ItemDetailScreen({ navigation, route }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  // Amber "protection" accent — distinct from the page's blues/coral/green
+  const warrantyAccent = isDark ? '#E0A43B' : '#B26C0B';
+  const warrantySoft = isDark ? '#332815' : '#FBF1DD';
   const {
     items,
     returns,
@@ -552,60 +555,46 @@ export function ItemDetailScreen({ navigation, route }: Props) {
 
       {/* Warranty claim assistant — active warranties are actionable */}
       {warrantyDaysLeft >= 0 && (
-        <View style={styles.warrantyCard}>
+        <View style={[styles.warrantyCard, { backgroundColor: warrantySoft }]}>
           <View style={styles.warrantyHeader}>
-            <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+            <Ionicons name="shield-checkmark" size={16} color={warrantyAccent} />
             <Text style={styles.warrantyTitle}>Warranty help</Text>
+            <View style={styles.flex1} />
+            <Pressable
+              onPress={fileWarrantyClaim}
+              style={[styles.warrantyFileBtn, { backgroundColor: warrantyAccent }]}
+              hitSlop={6}
+            >
+              <Text style={styles.warrantyFileBtnText}>File a claim</Text>
+            </Pressable>
           </View>
-          <Text style={styles.warrantyBody}>
-            Something wrong with it?{' '}
-            {warrantyPage.known
-              ? `File a claim with ${warrantyPage.label}`
-              : 'Find the maker’s claim page'}
-            {item.serialNumber ? ' — your serial number is ready to go.' : '.'}
-          </Text>
-          <Button title="File a warranty claim" onPress={fileWarrantyClaim} />
-          <Pressable onPress={shareWarrantyClaim} style={styles.warrantyShare} hitSlop={6}>
-            <Ionicons name="share-outline" size={15} color={colors.primary} />
-            <Text style={styles.warrantyShareText}>Share claim details</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => void checkRecalls()}
-            style={styles.warrantyShare}
-            hitSlop={6}
-            disabled={checkingRecalls}
-          >
-            <Ionicons name="shield-checkmark-outline" size={15} color={colors.primary} />
-            <Text style={styles.warrantyShareText}>
-              {checkingRecalls ? 'Checking the CPSC recall database…' : 'Check for recalls'}
-            </Text>
-          </Pressable>
-
-          {showRegister && (
-            <View style={styles.registerBox}>
-              <View style={styles.registerRow}>
+          <View style={styles.warrantyLinks}>
+            <Pressable onPress={shareWarrantyClaim} hitSlop={6}>
+              <Text style={[styles.warrantyLink, { color: warrantyAccent }]}>Share details</Text>
+            </Pressable>
+            <Text style={styles.warrantyDot}>·</Text>
+            <Pressable onPress={() => void checkRecalls()} hitSlop={6} disabled={checkingRecalls}>
+              <Text style={[styles.warrantyLink, { color: warrantyAccent }]}>
+                {checkingRecalls ? 'Checking…' : 'Check recalls'}
+              </Text>
+            </Pressable>
+            {showRegister && (
+              <>
+                <Text style={styles.warrantyDot}>·</Text>
                 <Pressable
-                  style={styles.registerLinkBtn}
                   onPress={() => navigation.navigate('RegisterProduct', { itemId: item!.id })}
                   hitSlop={6}
                 >
-                  <Ionicons name="ribbon-outline" size={14} color={colors.primary} />
-                  <Text style={styles.registerLink}>
-                    Register with {warrantyPage.known ? warrantyPage.label : 'the maker'}
-                  </Text>
+                  <Text style={[styles.warrantyLink, { color: warrantyAccent }]}>Register</Text>
                 </Pressable>
-                <Pressable
-                  onPress={() => void patchItem(item!.id, { productRegistered: true })}
-                  hitSlop={6}
-                >
-                  <Text style={styles.registerDoneText}>Did it ✓</Text>
-                </Pressable>
-              </View>
-              <Text style={styles.registerDisclaimer}>
-                Optional — the US doesn’t require registration for warranty coverage.
-                Your receipt is the proof, and Boughtly keeps it safe.
-              </Text>
-            </View>
+              </>
+            )}
+          </View>
+          {showRegister && (
+            <Text style={styles.registerDisclaimer}>
+              Registering is optional — the US doesn’t require it for warranty coverage; your
+              receipt is the proof, and Boughtly keeps it safe.
+            </Text>
           )}
           {item.productRegistered && (
             <Text style={styles.registeredNote}>✓ Registered with the manufacturer</Text>
@@ -1258,20 +1247,21 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     marginTop: 8,
   },
   warrantyCard: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radii.lg,
-    padding: spacing.md,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     marginTop: spacing.md,
-    gap: spacing.sm,
+    gap: 6,
   },
   warrantyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
+  flex1: { flex: 1 },
   warrantyTitle: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.deepBlue,
   },
   warrantyBody: {
@@ -1279,6 +1269,31 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     fontSize: 13,
     color: colors.deepBlue,
     lineHeight: 19,
+  },
+  warrantyFileBtn: {
+    borderRadius: radii.sm,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  warrantyFileBtnText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: '#FFFFFF',
+  },
+  warrantyLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  warrantyLink: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+  },
+  warrantyDot: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.muted,
   },
   registerBox: {
     marginTop: spacing.sm,
