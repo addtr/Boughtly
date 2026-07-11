@@ -3,6 +3,11 @@
  * one tap away. Warranties are honored by the maker, so we match a brand in
  * the item name first; if we don't recognize a brand, we fall back to a web
  * search for that item's warranty — so it always leads somewhere useful.
+ *
+ * Direct `warrantyUrl` is set ONLY when live-verified (HTTP 200 at that
+ * address — last pass 2026-07-11); everything else opens a site-pinned search
+ * whose top result is the brand's current warranty page and can never 404.
+ * Same verify-before-promote rule as returnUrl.ts.
  */
 
 interface BrandWarranty {
@@ -11,6 +16,8 @@ interface BrandWarranty {
   label: string;
   /** Official domain — the claim search is pinned to this site (never 404s) */
   domain: string;
+  /** Direct warranty/support page — ONLY set when live-verified (see header). */
+  warrantyUrl?: string;
 }
 
 function siteSearch(domain: string): string {
@@ -20,23 +27,23 @@ function siteSearch(domain: string): string {
 // Order: multi-word/more-specific brands before shorter ones they contain.
 const BRAND_WARRANTIES: BrandWarranty[] = [
   { match: ['apple', 'macbook', 'iphone', 'ipad', 'airpods', 'imac'], label: 'Apple', domain: 'support.apple.com' },
-  { match: ['samsung', 'galaxy'], label: 'Samsung', domain: 'samsung.com' },
+  { match: ['samsung', 'galaxy'], label: 'Samsung', domain: 'samsung.com', warrantyUrl: 'https://www.samsung.com/us/support/warranty/' },
   { match: ['sony', 'playstation', 'ps5', 'ps4'], label: 'Sony', domain: 'sony.com' },
-  { match: ['lg'], label: 'LG', domain: 'lg.com' },
-  { match: ['dyson'], label: 'Dyson', domain: 'dyson.com' },
-  { match: ['bose'], label: 'Bose', domain: 'bose.com' },
+  { match: ['lg'], label: 'LG', domain: 'lg.com', warrantyUrl: 'https://www.lg.com/us/support' },
+  { match: ['dyson'], label: 'Dyson', domain: 'dyson.com', warrantyUrl: 'https://www.dyson.com/inside-dyson/terms/the-dyson-limited-warranty' },
+  { match: ['bose'], label: 'Bose', domain: 'bose.com', warrantyUrl: 'https://www.bose.com/legal/product-warranty' },
   { match: ['sonos'], label: 'Sonos', domain: 'sonos.com' },
   { match: ['jbl'], label: 'JBL', domain: 'jbl.com' },
   { match: ['beats'], label: 'Beats', domain: 'beatsbydre.com' },
-  { match: ['anker', 'soundcore', 'eufy'], label: 'Anker', domain: 'anker.com' },
+  { match: ['anker', 'soundcore', 'eufy'], label: 'Anker', domain: 'anker.com', warrantyUrl: 'https://service.anker.com/article-description/Anker-Warranty-Policy' },
   { match: ['logitech'], label: 'Logitech', domain: 'logitech.com' },
   { match: ['gopro'], label: 'GoPro', domain: 'gopro.com' },
-  { match: ['garmin'], label: 'Garmin', domain: 'garmin.com' },
-  { match: ['fitbit'], label: 'Fitbit', domain: 'fitbit.com' },
-  { match: ['nintendo', 'switch'], label: 'Nintendo', domain: 'nintendo.com' },
+  { match: ['garmin'], label: 'Garmin', domain: 'garmin.com', warrantyUrl: 'https://support.garmin.com/en-US/warranty/' },
+  { match: ['fitbit'], label: 'Fitbit', domain: 'fitbit.com', warrantyUrl: 'https://support.google.com/product-documentation/answer/14815834' },
+  { match: ['nintendo', 'switch'], label: 'Nintendo', domain: 'nintendo.com', warrantyUrl: 'https://en-americas-support.nintendo.com/app/answers/detail/a_id/50404/~/warranty-and-service-information' },
   { match: ['xbox', 'microsoft', 'surface'], label: 'Microsoft', domain: 'microsoft.com' },
   { match: ['dell', 'alienware'], label: 'Dell', domain: 'dell.com' },
-  { match: ['hp', 'hewlett'], label: 'HP', domain: 'hp.com' },
+  { match: ['hp', 'hewlett'], label: 'HP', domain: 'hp.com', warrantyUrl: 'https://support.hp.com/us-en/warranty' },
   { match: ['lenovo', 'thinkpad'], label: 'Lenovo', domain: 'lenovo.com' },
   { match: ['asus'], label: 'ASUS', domain: 'asus.com' },
   { match: ['acer'], label: 'Acer', domain: 'acer.com' },
@@ -99,7 +106,7 @@ export function resolveWarrantyPage(itemName: string): ResolvedWarrantyPage {
   if (s.length >= 2) {
     for (const b of BRAND_WARRANTIES) {
       if (b.match.some((m) => containsWord(s, m))) {
-        return { url: siteSearch(b.domain), known: true, label: b.label };
+        return { url: b.warrantyUrl ?? siteSearch(b.domain), known: true, label: b.label };
       }
     }
   }

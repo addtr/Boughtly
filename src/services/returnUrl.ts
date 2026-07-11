@@ -48,7 +48,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['meijer'], label: 'Meijer', domain: 'meijer.com' },
 
   // ── Department stores ──────────────────────────────────────────────────
-  { match: ['jcpenney', 'jc penney', 'penney'], label: 'JCPenney', domain: 'jcpenney.com' },
+  { match: ['jcpenney', 'jc penney', 'penney'], label: 'JCPenney', domain: 'jcpenney.com', url: 'https://www.jcpenney.com/m/customer-service/returns' },
   { match: ["dillard's", 'dillards'], label: "Dillard's", domain: 'dillards.com' },
   { match: ['belk'], label: 'Belk', domain: 'belk.com' },
   { match: ["bloomingdale's", 'bloomingdales'], label: "Bloomingdale's", domain: 'bloomingdales.com' },
@@ -158,7 +158,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['express'], label: 'Express', domain: 'express.com' },
   { match: ["levi's", 'levis', 'levi strauss'], label: "Levi's", domain: 'levi.com' },
   { match: ["victoria's secret", 'victorias secret'], label: "Victoria's Secret", domain: 'victoriassecret.com' },
-  { match: ['patagonia'], label: 'Patagonia', domain: 'patagonia.com' },
+  { match: ['patagonia'], label: 'Patagonia', domain: 'patagonia.com', url: 'https://www.patagonia.com/returns.html' },
   { match: ['columbia'], label: 'Columbia', domain: 'columbia.com' },
   { match: ['north face'], label: 'The North Face', domain: 'thenorthface.com' },
   { match: ['carhartt'], label: 'Carhartt', domain: 'carhartt.com' },
@@ -171,7 +171,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['bonobos'], label: 'Bonobos', domain: 'bonobos.com' },
   { match: ['pacsun', 'pac sun'], label: 'PacSun', domain: 'pacsun.com' },
   { match: ['hot topic'], label: 'Hot Topic', domain: 'hottopic.com' },
-  { match: ['zumiez'], label: 'Zumiez', domain: 'zumiez.com' },
+  { match: ['zumiez'], label: 'Zumiez', domain: 'zumiez.com', url: 'https://www.zumiez.com/return-policy' },
   { match: ['aeropostale'], label: 'Aeropostale', domain: 'aeropostale.com' },
   { match: ['torrid'], label: 'Torrid', domain: 'torrid.com' },
   { match: ['lane bryant'], label: 'Lane Bryant', domain: 'lanebryant.com' },
@@ -205,7 +205,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['shoe carnival'], label: 'Shoe Carnival', domain: 'shoecarnival.com' },
   { match: ['foot locker', 'footlocker'], label: 'Foot Locker', domain: 'footlocker.com' },
   { match: ['dsw'], label: 'DSW', domain: 'dsw.com' },
-  { match: ['zappos'], label: 'Zappos', domain: 'zappos.com' },
+  { match: ['zappos'], label: 'Zappos', domain: 'zappos.com', url: 'https://www.zappos.com/c/shipping-and-returns' },
 
   // ── Beauty & health ────────────────────────────────────────────────────
   { match: ['sephora'], label: 'Sephora', domain: 'sephora.com' },
@@ -263,7 +263,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   // ── Pets ───────────────────────────────────────────────────────────────
   { match: ['petco'], label: 'Petco', domain: 'petco.com' },
   { match: ['petsmart'], label: 'PetSmart', domain: 'petsmart.com' },
-  { match: ['chewy'], label: 'Chewy', domain: 'chewy.com' },
+  { match: ['chewy'], label: 'Chewy', domain: 'chewy.com', url: 'https://www.chewy.com/app/content/return-policy' },
 
   // ── Grocery & pharmacy ─────────────────────────────────────────────────
   { match: ['kroger'], label: 'Kroger', domain: 'kroger.com' },
@@ -282,7 +282,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['temu'], label: 'Temu', domain: 'temu.com' },
   { match: ['aliexpress'], label: 'AliExpress', domain: 'aliexpress.com' },
   { match: ['qvc'], label: 'QVC', domain: 'qvc.com' },
-  { match: ['hsn'], label: 'HSN', domain: 'hsn.com' },
+  { match: ['hsn'], label: 'HSN', domain: 'hsn.com', url: 'https://www.hsn.com/content/returns/lp-6023' },
   { match: ['poshmark'], label: 'Poshmark', domain: 'poshmark.com' },
   { match: ['mercari'], label: 'Mercari', domain: 'mercari.com' },
   { match: ['stockx'], label: 'StockX', domain: 'stockx.com' },
