@@ -316,6 +316,19 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['steve madden'], label: 'Steve Madden', domain: 'stevemadden.com', url: 'https://www.stevemadden.com/apps/returns-1' },
   { match: ['red wing'], label: 'Red Wing', domain: 'redwingshoes.com', url: 'https://www.redwingshoes.com/contact-us/returns.html' },
 
+  // ── Verified direct pages — batch 9 (2026-07-11) ──
+  { match: ['parachute'], label: 'Parachute', domain: 'parachutehome.com', url: 'https://parachutehome.com/pages/returns' },
+  { match: ['boll & branch'], label: 'Boll & Branch', domain: 'bollandbranch.com', url: 'https://www.bollandbranch.com/pages/returns/' },
+  { match: ['coyuchi'], label: 'Coyuchi', domain: 'coyuchi.com', url: 'https://www.coyuchi.com/pages/returns' },
+  { match: ['our place'], label: 'Our Place', domain: 'fromourplace.com', url: 'https://fromourplace.com/pages/returns' },
+  { match: ['made in'], label: 'Made In', domain: 'madeincookware.com', url: 'https://madeincookware.com/pages/made-in-cookware-returns-exchanges' },
+  { match: ['interior define'], label: 'Interior Define', domain: 'interiordefine.com', url: 'https://www.interiordefine.com/returns' },
+  { match: ['joybird'], label: 'Joybird', domain: 'joybird.com', url: 'https://joybird.com/returns/' },
+  { match: ['sabai'], label: 'Sabai', domain: 'sabai.design', url: 'https://sabai.design/pages/returns' },
+  { match: ['thuma'], label: 'Thuma', domain: 'thuma.co', url: 'https://www.thuma.co/pages/returns' },
+  { match: ['leesa'], label: 'Leesa', domain: 'leesa.com', url: 'https://www.leesa.com/pages/trial-and-returns' },
+  { match: ['cozy earth'], label: 'Cozy Earth', domain: 'cozyearth.com', url: 'https://cozyearth.com/pages/returns' },
+
 ];
 
 /**
