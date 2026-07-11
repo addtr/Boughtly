@@ -1041,7 +1041,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     backgroundColor: colors.successSoft,
     borderRadius: radii.md,
     padding: spacing.md,
-    marginBottom: spacing.md,
+    marginTop: spacing.md,
   },
   cardPerkHeader: {
     flexDirection: 'row',
