@@ -74,7 +74,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['microsoft store', 'microsoft'], label: 'Microsoft', domain: 'microsoft.com' },
   { match: ['micro center', 'microcenter'], label: 'Micro Center', domain: 'microcenter.com' },
   { match: ['b&h photo', 'b & h', 'bhphoto'], label: 'B&H Photo', domain: 'bhphotovideo.com' },
-  { match: ['newegg'], label: 'Newegg', domain: 'newegg.com' },
+  { match: ['newegg'], label: 'Newegg', domain: 'newegg.com', url: 'https://kb.newegg.com/knowledge-base/returning-an-item' },
   { match: ['gamestop'], label: 'GameStop', domain: 'gamestop.com' },
   { match: ['samsung'], label: 'Samsung', domain: 'samsung.com' },
   { match: ['dell'], label: 'Dell', domain: 'dell.com' },
@@ -233,8 +233,8 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['orvis'], label: 'Orvis', domain: 'orvis.com' },
 
   // ── Office, books & music ──────────────────────────────────────────────
-  { match: ['staples'], label: 'Staples', domain: 'staples.com' },
-  { match: ['office depot', 'officemax'], label: 'Office Depot', domain: 'officedepot.com' },
+  { match: ['staples'], label: 'Staples', domain: 'staples.com', url: 'https://www.staples.com/stores/help/orders/returns' },
+  { match: ['office depot', 'officemax'], label: 'Office Depot', domain: 'officedepot.com', url: 'https://help.officedepot.com/app/answers/detail/a_id/6847/~/return-policy' },
   { match: ['barnes & noble', 'barnes and noble', 'barnesandnoble'], label: 'Barnes & Noble', domain: 'barnesandnoble.com' },
   { match: ['books-a-million', 'books a million'], label: 'Books-A-Million', domain: 'booksamillion.com' },
   { match: ['guitar center'], label: 'Guitar Center', domain: 'guitarcenter.com', url: 'https://www.guitarcenter.com/pages/return-policy' },
