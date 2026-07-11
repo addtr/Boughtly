@@ -583,26 +583,28 @@ export function ItemDetailScreen({ navigation, route }: Props) {
 
           {showRegister && (
             <View style={styles.registerBox}>
-              <Text style={styles.registerText}>
-                New purchase? Registering it with{' '}
-                {warrantyPage.known ? warrantyPage.label : 'the maker'} locks in the
-                full warranty — Boughtly can fill in the form for you.
-              </Text>
-              <View style={styles.registerActions}>
+              <View style={styles.registerRow}>
                 <Pressable
-                  style={styles.registerBtn}
+                  style={styles.registerLinkBtn}
                   onPress={() => navigation.navigate('RegisterProduct', { itemId: item!.id })}
+                  hitSlop={6}
                 >
-                  <Text style={styles.registerBtnText}>Register now</Text>
+                  <Ionicons name="ribbon-outline" size={14} color={colors.primary} />
+                  <Text style={styles.registerLink}>
+                    Register with {warrantyPage.known ? warrantyPage.label : 'the maker'}
+                  </Text>
                 </Pressable>
                 <Pressable
-                  style={styles.registerDone}
                   onPress={() => void patchItem(item!.id, { productRegistered: true })}
                   hitSlop={6}
                 >
-                  <Text style={styles.registerDoneText}>Already did ✓</Text>
+                  <Text style={styles.registerDoneText}>Did it ✓</Text>
                 </Pressable>
               </View>
+              <Text style={styles.registerDisclaimer}>
+                Optional — the US doesn’t require registration for warranty coverage.
+                Your receipt is the proof, and Boughtly keeps it safe.
+              </Text>
             </View>
           )}
           {item.productRegistered && (
@@ -1279,40 +1281,34 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     lineHeight: 19,
   },
   registerBox: {
-    backgroundColor: colors.card,
-    borderRadius: radii.md,
-    padding: spacing.sm,
-    gap: spacing.sm,
+    marginTop: spacing.sm,
+    gap: 4,
   },
-  registerText: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.text,
-    lineHeight: 18,
-  },
-  registerActions: {
+  registerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    justifyContent: 'space-between',
   },
-  registerBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radii.sm,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+  registerLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
-  registerBtnText: {
+  registerLink: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
-    color: '#FFFFFF',
-  },
-  registerDone: {
-    paddingVertical: 8,
+    color: colors.primary,
   },
   registerDoneText: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.muted,
+  },
+  registerDisclaimer: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.muted,
+    lineHeight: 15,
   },
   registeredNote: {
     fontFamily: fonts.bodyMedium,
