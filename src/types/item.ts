@@ -97,7 +97,18 @@ export interface AppSettings {
   priceDropCadenceDays: number;
   /** Only start nudging when this many days are left in the window (0 = whole window) */
   priceDropLeadDays: number;
+  /** Days before a subscription renews to remind the user to cancel */
+  subscriptionReminderDays: number;
 }
+
+/** How many days before a subscription renews to send the "cancel by" reminder. */
+export const SUBSCRIPTION_REMINDER_OPTIONS: { days: number; label: string }[] = [
+  { days: 1, label: '1 day' },
+  { days: 2, label: '2 days' },
+  { days: 3, label: '3 days' },
+  { days: 5, label: '5 days' },
+  { days: 7, label: '7 days' },
+];
 
 /** Cadence choices for the return-window price-drop nudge. */
 export const PRICE_DROP_CADENCE_OPTIONS: { days: number; label: string }[] = [
@@ -186,6 +197,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   priceDropRemindersEnabled: true,
   priceDropCadenceDays: 3,
   priceDropLeadDays: 0,
+  subscriptionReminderDays: 2,
 };
 
 /** Reminder time-of-day presets shown in Settings. */

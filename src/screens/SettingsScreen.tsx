@@ -34,6 +34,7 @@ import {
   PRICE_DROP_CADENCE_OPTIONS,
   PRICE_DROP_LEAD_OPTIONS,
   REMINDER_TIME_OPTIONS,
+  SUBSCRIPTION_REMINDER_OPTIONS,
   THEME_MODE_OPTIONS,
 } from '../types/item';
 import { formatPrice, nearestDeadline } from '../utils/dates';
@@ -345,6 +346,29 @@ export function SettingsScreen() {
             );
           })}
         </View>
+
+        <Text style={styles.optionLabel}>Before a subscription renews</Text>
+        <View style={[styles.optionRow, styles.optionRowWrap]}>
+          {SUBSCRIPTION_REMINDER_OPTIONS.map((o) => {
+            const active = (settings.subscriptionReminderDays ?? 2) === o.days;
+            return (
+              <Pressable
+                key={o.days}
+                onPress={() => updateSettings({ subscriptionReminderDays: o.days })}
+                style={[styles.option, active && styles.optionActive]}
+                disabled={!settings.notificationsEnabled}
+              >
+                <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                  {o.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.optionHint}>
+          A “cancel by” nudge before each renewal, so you never get charged for
+          something you meant to drop.
+        </Text>
 
         <Text style={styles.optionLabel}>What time of day?</Text>
         <View style={[styles.optionRow, styles.optionRowWrap]}>

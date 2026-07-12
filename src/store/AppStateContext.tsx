@@ -707,10 +707,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }
       await persistItems(rescheduled);
 
-      // Subscriptions share the reminder hour / notifications toggle.
+      // Subscriptions share the reminder hour / notifications toggle, plus
+      // their own "cancel by" lead time.
       if (
         next.notificationsEnabled !== prev.notificationsEnabled ||
-        next.reminderHour !== prev.reminderHour
+        next.reminderHour !== prev.reminderHour ||
+        next.subscriptionReminderDays !== prev.subscriptionReminderDays
       ) {
         const resubbed: Subscription[] = [];
         for (const sub of subscriptionsRef.current) {

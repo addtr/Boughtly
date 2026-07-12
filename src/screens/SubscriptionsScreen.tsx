@@ -20,7 +20,7 @@ import { useAppState } from '../store/AppStateContext';
 import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { BILLING_CYCLE_OPTIONS, monthlyCost, Subscription } from '../types/tracking';
-import { daysUntil, formatDate, formatPrice } from '../utils/dates';
+import { addDays, daysUntil, formatDate, formatPrice } from '../utils/dates';
 import { tapFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Subscriptions'>;
@@ -32,8 +32,9 @@ function cycleLabel(sub: Subscription): string {
 export function SubscriptionsScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { subscriptions } = useAppState();
+  const { subscriptions, settings } = useAppState();
   const toast = useToast();
+  const leadDays = settings.subscriptionReminderDays ?? 2;
 
   const sorted = [...subscriptions].sort((a, b) =>
     a.nextRenewalDate.localeCompare(b.nextRenewalDate)
@@ -110,6 +111,9 @@ export function SubscriptionsScreen({ navigation }: Props) {
           {sorted.map((sub) => {
             const dLeft = daysUntil(sub.nextRenewalDate);
             const soon = dLeft >= 0 && dLeft <= 3;
+            const cancelBy = addDays(sub.nextRenewalDate, -leadDays);
+            const reminderActive =
+              settings.notificationsEnabled && dLeft >= 0 && daysUntil(cancelBy) >= 0;
             return (
               <View key={sub.id} style={styles.subCard}>
                 <Pressable
@@ -134,6 +138,18 @@ export function SubscriptionsScreen({ navigation }: Props) {
                             sub.nextRenewalDate
                           )}`}
                     </Text>
+                    {reminderActive && (
+                      <View style={styles.reminderRow}>
+                        <Ionicons
+                          name="notifications-outline"
+                          size={12}
+                          color={colors.primary}
+                        />
+                        <Text style={styles.reminderText}>
+                          Cancel-by reminder {formatDate(cancelBy)}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={colors.muted} />
                 </Pressable>
@@ -245,6 +261,17 @@ const makeStyles = (colors: Palette) =>
       marginTop: 4,
     },
     subRenewSoon: { color: colors.coral },
+    reminderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 4,
+    },
+    reminderText: {
+      fontFamily: fonts.body,
+      fontSize: 11,
+      color: colors.primary,
+    },
     cancelBtn: {
       flexDirection: 'row',
       alignItems: 'center',

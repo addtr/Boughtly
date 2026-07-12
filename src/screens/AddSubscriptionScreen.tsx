@@ -17,8 +17,9 @@ import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
 import { Palette, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
 import { BILLING_CYCLE_OPTIONS, BillingCycle } from '../types/tracking';
-import { addDays, formatDate, toISODate } from '../utils/dates';
+import { addDays, daysUntil, formatDate, toISODate } from '../utils/dates';
 import { warningFeedback } from '../utils/haptics';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddSubscription'>;
@@ -33,7 +34,7 @@ function parseCost(raw: string): number | null {
 export function AddSubscriptionScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { subscriptions, addSubscription, updateSubscription, deleteSubscription } =
+  const { subscriptions, settings, addSubscription, updateSubscription, deleteSubscription } =
     useAppState();
   const toast = useToast();
   const editing = route.params?.subscriptionId
@@ -165,6 +166,36 @@ export function AddSubscriptionScreen({ navigation, route }: Props) {
           </>
         )}
 
+        {(() => {
+          const leadDays = settings.subscriptionReminderDays ?? 2;
+          const cancelBy = addDays(renewal, -leadDays);
+          const tooSoon = daysUntil(cancelBy) < 0;
+          if (!settings.notificationsEnabled) {
+            return (
+              <View style={styles.reminderNote}>
+                <Ionicons name="notifications-off-outline" size={16} color={colors.muted} />
+                <Text style={styles.reminderText}>
+                  Turn on reminders in Settings to get a “cancel by” nudge before this renews.
+                </Text>
+              </View>
+            );
+          }
+          return (
+            <View style={[styles.reminderNote, styles.reminderNoteOn]}>
+              <Ionicons name="notifications-outline" size={16} color={colors.primary} />
+              <Text style={styles.reminderText}>
+                {tooSoon
+                  ? `This renews too soon for a cancel-by reminder (${leadDays} day${
+                      leadDays === 1 ? '' : 's'
+                    } ahead). Pick a later date to be reminded.`
+                  : `We’ll remind you to cancel by ${formatDate(cancelBy)} — ${leadDays} day${
+                      leadDays === 1 ? '' : 's'
+                    } before it renews. Adjust in Settings.`}
+              </Text>
+            </View>
+          );
+        })()}
+
         <Field
           label="Category (optional)"
           value={category}
@@ -229,6 +260,25 @@ const makeStyles = (colors: Palette) =>
     dateBtnText: {
       fontFamily: fonts.bodyMedium,
       fontSize: 16,
+      color: colors.text,
+    },
+    reminderNote: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      backgroundColor: colors.card,
+      borderRadius: radii.md,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+    },
+    reminderNoteOn: {
+      backgroundColor: colors.primarySoft,
+    },
+    reminderText: {
+      flex: 1,
+      fontFamily: fonts.body,
+      fontSize: 13,
+      lineHeight: 19,
       color: colors.text,
     },
     save: { marginTop: spacing.md },

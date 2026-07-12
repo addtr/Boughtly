@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import { lookupWarrantyByCategory } from '../services/policyLookup';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { AppSettings, PRICE_CHECK_OPTIONS, TrackedItem } from '../types/item';
-import { addDays, formatPrice, parseISODate } from '../utils/dates';
+import { addDays, formatDate, formatPrice, parseISODate } from '../utils/dates';
 import { buildDigestBody, nextDigestDate } from '../utils/digest';
 
 const PRICE_CHECK_NOTIF_KEY = 'boughtly.priceCheckNotif.v1';
@@ -390,28 +390,36 @@ export async function syncWeeklyDigest(
 }
 
 /**
- * Reminder before a subscription renews, so it can be cancelled in time.
- * Fires `leadDays` before the next charge (default 2). Returns the id(s).
+ * "Cancel by" reminder before a subscription renews, so an unwanted charge can
+ * be cancelled in time. Fires `subscriptionReminderDays` before the next charge
+ * (default 2). Tapping it opens the Subscriptions list (via `subscriptionId`),
+ * not an item — so it carries its own data key. Returns the id(s).
  */
 export async function scheduleSubscriptionReminder(
   sub: { id: string; name: string; cost: number; nextRenewalDate: string },
   settings: AppSettings,
-  leadDays = 2
+  leadDays = settings.subscriptionReminderDays ?? 2
 ): Promise<string[]> {
-  if (!settings.notificationsEnabled) return [];
+  if (!settings.notificationsEnabled || Platform.OS === 'web') return [];
   const granted = await ensureNotificationSetup();
   if (!granted) return [];
   const hour = settings.reminderHour ?? DEFAULT_REMINDER_HOUR;
-  const ids: string[] = [];
   const when = reminderDate(sub.nextRenewalDate, leadDays, hour);
-  const id = await scheduleAt(
-    '🔁 Subscription renews soon',
-    `${sub.name} renews in ${leadDays} day${leadDays === 1 ? '' : 's'} for ${formatPrice(
-      sub.cost
-    )}. Not using it? Cancel before you're charged.`,
-    when,
-    sub.id
-  );
-  if (id) ids.push(id);
-  return ids;
+  if (when.getTime() <= Date.now()) return []; // renewal already too close/past
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '🔁 Cancel by soon?',
+      body: `${sub.name} renews ${formatDate(sub.nextRenewalDate)} for ${formatPrice(
+        sub.cost
+      )} — ${leadDays} day${leadDays === 1 ? '' : 's'} from now. Not using it? Tap to cancel before you're charged.`,
+      sound: true,
+      data: { subscriptionId: sub.id },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: when,
+      channelId: 'deadlines',
+    },
+  });
+  return [id];
 }

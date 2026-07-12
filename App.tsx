@@ -56,6 +56,8 @@ function openItemFromNotification(response: Notifications.NotificationResponse) 
   if (typeof data.returnId === 'string') {
     const returnId = data.returnId;
     go = () => navigationRef.navigate('ReturnDetail', { returnId });
+  } else if (typeof data.subscriptionId === 'string') {
+    go = () => navigationRef.navigate('Subscriptions');
   } else if (typeof data.itemId === 'string') {
     const itemId = data.itemId;
     go = () => navigationRef.navigate('ItemDetail', { itemId });
