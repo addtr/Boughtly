@@ -70,6 +70,14 @@ export function DashboardScreen() {
     () => subscriptions.reduce((sum, s) => sum + monthlyCost(s), 0),
     [subscriptions]
   );
+  // Soonest not-yet-renewed subscription, for the home card's "next up" line.
+  const nextSub = useMemo(
+    () =>
+      [...subscriptions]
+        .filter((s) => daysUntil(s.nextRenewalDate) >= 0)
+        .sort((a, b) => a.nextRenewalDate.localeCompare(b.nextRenewalDate))[0] ?? null,
+    [subscriptions]
+  );
 
   // First landing on the dashboard → one-time feature tour (replayable from
   // Settings, which flips tourSeen back to false).
@@ -534,6 +542,41 @@ export function DashboardScreen() {
                   </View>
                 </View>
               </Pressable>
+              {!query.trim() && (
+                <Pressable
+                  style={styles.subsCard}
+                  onPress={() => navigation.navigate('Subscriptions')}
+                >
+                  <View style={styles.subsIconWrap}>
+                    <Ionicons name="repeat" size={20} color={colors.primary} />
+                  </View>
+                  {subscriptions.length > 0 ? (
+                    <View style={styles.subsInfo}>
+                      <Text style={styles.subsTitle} numberOfLines={1}>
+                        {formatPrice(subsMonthly)}/mo · {subscriptions.length} subscription
+                        {subscriptions.length === 1 ? '' : 's'}
+                      </Text>
+                      <Text style={styles.subsMeta} numberOfLines={1}>
+                        {nextSub
+                          ? `Next: ${nextSub.name} · ${
+                              daysUntil(nextSub.nextRenewalDate) === 0
+                                ? 'renews today'
+                                : `${daysUntil(nextSub.nextRenewalDate)}d`
+                            }`
+                          : 'Tap to manage & cancel any of them'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.subsInfo}>
+                      <Text style={styles.subsTitle}>Track your subscriptions</Text>
+                      <Text style={styles.subsMeta} numberOfLines={1}>
+                        See every recurring charge — cancel in one tap.
+                      </Text>
+                    </View>
+                  )}
+                  <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                </Pressable>
+              )}
               {!query.trim() && upcoming.length > 0 && (
                 <View style={styles.remindersCard}>
                   <Pressable
@@ -642,7 +685,7 @@ export function DashboardScreen() {
                   )}
                 </View>
               )}
-              {(watchStats.count > 0 || underWarranty > 0 || subscriptions.length > 0) && (
+              {(watchStats.count > 0 || underWarranty > 0) && (
                 <View style={styles.quickRow}>
                   {watchStats.count > 0 && (
                     <Pressable
@@ -653,17 +696,6 @@ export function DashboardScreen() {
                       <Text style={styles.quickValue} numberOfLines={1}>
                         {watchStats.count} watched
                         {watchStats.atTarget > 0 ? ` · ${watchStats.atTarget} at target` : ''}
-                      </Text>
-                    </Pressable>
-                  )}
-                  {subscriptions.length > 0 && (
-                    <Pressable
-                      style={styles.quickTile}
-                      onPress={() => navigation.navigate('Subscriptions')}
-                    >
-                      <Ionicons name="repeat-outline" size={15} color={colors.primary} />
-                      <Text style={styles.quickValue} numberOfLines={1}>
-                        {formatPrice(subsMonthly)}/mo subs
                       </Text>
                     </Pressable>
                   )}
@@ -1073,6 +1105,41 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
     marginLeft: 2,
+  },
+  subsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    paddingVertical: 11,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    ...cardShadow,
+    shadowOpacity: 0.05,
+    elevation: 1,
+  },
+  subsIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subsInfo: {
+    flex: 1,
+  },
+  subsTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.deepBlue,
+  },
+  subsMeta: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 1,
   },
   remindersCard: {
     backgroundColor: colors.card,
