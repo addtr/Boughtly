@@ -55,7 +55,6 @@ export function DashboardScreen() {
   const {
     items,
     returns,
-    watches,
     subscriptions,
     recentlyDeleted,
     undoDelete,
@@ -254,21 +253,6 @@ export function DashboardScreen() {
       .filter((x): x is { item: (typeof activeItems)[number]; daysLeft: number } => x !== null)
       .sort((a, b) => a.daysLeft - b.daysLeft);
   }, [activeItems]);
-
-  // Watchlist snapshot: how many watched, how many at/under target.
-  const watchStats = useMemo(() => {
-    const atTarget = watches.filter((w) => {
-      const latest = w.priceLog[w.priceLog.length - 1];
-      return w.targetPrice !== undefined && latest && latest.price <= w.targetPrice;
-    }).length;
-    return { count: watches.length, atTarget };
-  }, [watches]);
-
-  // Items still under an active manufacturer warranty.
-  const underWarranty = useMemo(
-    () => activeItems.filter((i) => daysUntil(i.warrantyExpirationDate) >= 0).length,
-    [activeItems]
-  );
 
   // The next few scheduled reminders, shown right on the home screen.
   const [upcoming, setUpcoming] = useState<UpcomingReminder[]>([]);
@@ -682,34 +666,6 @@ export function DashboardScreen() {
                       </Text>
                       <Ionicons name="chevron-down" size={14} color={colors.muted} />
                     </Pressable>
-                  )}
-                </View>
-              )}
-              {(watchStats.count > 0 || underWarranty > 0) && (
-                <View style={styles.quickRow}>
-                  {watchStats.count > 0 && (
-                    <Pressable
-                      style={styles.quickTile}
-                      onPress={() => navigation.navigate('Tabs', { screen: 'WatchTab' })}
-                    >
-                      <Ionicons name="pricetags-outline" size={15} color={colors.primary} />
-                      <Text style={styles.quickValue} numberOfLines={1}>
-                        {watchStats.count} watched
-                        {watchStats.atTarget > 0 ? ` · ${watchStats.atTarget} at target` : ''}
-                      </Text>
-                    </Pressable>
-                  )}
-                  {underWarranty > 0 && (
-                    <View style={styles.quickTile}>
-                      <Ionicons
-                        name="shield-checkmark-outline"
-                        size={15}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.quickValue} numberOfLines={1}>
-                        {underWarranty} under warranty
-                      </Text>
-                    </View>
                   )}
                 </View>
               )}
@@ -1275,36 +1231,6 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
     color: colors.deepBlue,
-  },
-  quickRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  quickTile: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.card,
-    borderRadius: radii.md,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.sm,
-    ...cardShadow,
-    shadowOpacity: 0.05,
-    elevation: 1,
-  },
-  quickValue: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    color: colors.deepBlue,
-  },
-  quickLabel: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.muted,
-    marginTop: 1,
   },
   tagFilterRow: {
     gap: spacing.sm,
