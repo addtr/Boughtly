@@ -56,13 +56,25 @@ await maybeShowInterstitial();
 ## Before you ship ads (required)
 
 AdMob sends device/advertising identifiers to Google, so the current
-"nothing leaves your device" promise no longer holds. You must:
+"nothing leaves your device" promise no longer holds. Most of this is already
+staged and switches on with `ADS_ENABLED`:
 
-- **Update the Privacy Policy** (`src/content/legal.ts`) to disclose ad
-  partners and data collected, and re-host the public copy.
-- **Update App Store privacy labels** (Data Safety / Nutrition Label) to
-  declare the collected identifiers.
-- **Add App Tracking Transparency**: `npx expo install expo-tracking-transparency`,
-  request permission before requesting personalized ads, and set
-  `NSUserTrackingUsageDescription` in `app.json`. Use
-  `requestNonPersonalizedAdsOnly: true` if the user declines.
+- **Privacy Policy** — DONE. `src/content/legal.ts` has an "Advertising"
+  section gated behind `ADS_ENABLED`; it appears automatically when you flip
+  the flag. If you host a public copy, re-export it after enabling.
+- **App Tracking Transparency** — mostly staged:
+  - `NSUserTrackingUsageDescription` is already in `app.json`.
+  - Install the module: `npx expo install expo-tracking-transparency`.
+  - Uncomment the block in `requestTrackingPermission()` in `ads.ts`
+    (already called from `initAds()` before the SDK starts).
+  - When requesting ads, pass `requestNonPersonalizedAdsOnly: true` if the
+    user declined tracking (the BannerAdSlot request already does this).
+
+- **App Store privacy labels** — you fill these in App Store Connect at
+  submission (can't be done in code). With AdMob on, declare:
+  - Data type **Identifiers → Device ID** and **Usage Data → Advertising
+    Data / Product Interaction**.
+  - Purpose: **Third-Party Advertising** (and Analytics if you add it).
+  - **Used to Track You: Yes** (the advertising identifier links to Google).
+  - Everything else (receipts, items, profile) stays **not collected** —
+    it never leaves the device.

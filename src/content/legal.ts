@@ -15,6 +15,8 @@
  *      Google Play both require a link). The exact same text works.
  */
 
+import { ADS_ENABLED } from '../services/ads';
+
 export const CONTACT_EMAIL = 'addisonballer6@gmail.com';
 
 /** Shown as "Last updated" on both documents. */
@@ -43,13 +45,18 @@ export const PRIVACY_POLICY: LegalDoc = {
       heading: 'The short version',
       body: [
         'Everything you put into Boughtly — your receipts, prices, photos, warranties, subscriptions, and reminders — is stored only on your own device.',
-        'We do not run a server that collects it. We can’t see it, we don’t sell it, and it is never shared with anyone unless you choose to export or share it yourself.',
+        'We do not run a server that collects it. We can’t see it, we don’t sell it, and it is never shared with anyone unless you choose to export or share it yourself.' +
+          (ADS_ENABLED
+            ? ' The one exception is the ad service that helps keep Boughtly free — see “Advertising” below.'
+            : ''),
       ],
     },
     {
       heading: 'What we collect',
       body: [
-        'Nothing is sent to us. Boughtly has no user accounts on a server and no analytics that phone home. The name and email you may enter on the welcome screen are saved on your device only, to personalize the app — they are not transmitted anywhere.',
+        ADS_ENABLED
+          ? 'Boughtly has no user accounts on a server, and your receipts, items, and profile never leave your device. The name and email you may enter are saved on your device only. The one thing that does leave your device is advertising data collected by our ad partner — see “Advertising.”'
+          : 'Nothing is sent to us. Boughtly has no user accounts on a server and no analytics that phone home. The name and email you may enter on the welcome screen are saved on your device only, to personalize the app — they are not transmitted anywhere.',
         'Because your data lives on your device, deleting the app deletes your data. Be sure to use “Back up my data” in Settings first if you want to keep it.',
       ],
     },
@@ -95,6 +102,18 @@ export const PRIVACY_POLICY: LegalDoc = {
         'Recall checks query publicly available government recall data (such as the U.S. Consumer Product Safety Commission). Only the product details needed to run the check are used, and only when you ask for a check.',
       ],
     },
+    ...(ADS_ENABLED
+      ? [
+          {
+            heading: 'Advertising',
+            body: [
+              'To keep Boughtly free, we show ads through Google AdMob. To do this, AdMob may collect a device advertising identifier and limited technical data (device type, general location, and interaction with ads) to serve and measure ads. This does not include your receipts, items, prices, or profile — those never leave your device.',
+              'On iOS we ask, through Apple’s “Allow Tracking?” prompt, before any personalized advertising. If you decline, you’ll still see ads, but non-personalized ones. You can change this anytime in your device Settings under Privacy → Tracking.',
+              'Google’s use of advertising data is governed by its own policies at policies.google.com/technologies/partner-sites.',
+            ],
+          },
+        ]
+      : []),
     {
       heading: 'Children',
       body: [

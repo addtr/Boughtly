@@ -20,7 +20,8 @@
         "NSCameraUsageDescription": "Boughtly uses the camera to snap photos of your receipts.",
         "NSCalendarsUsageDescription": "Boughtly adds your return and warranty deadlines to your calendar.",
         "NSCalendarsFullAccessUsageDescription": "Boughtly adds your return and warranty deadlines to your calendar.",
-        "NSFaceIDUsageDescription": "Boughtly uses Face ID to unlock the app and keep your purchases private."
+        "NSFaceIDUsageDescription": "Boughtly uses Face ID to unlock the app and keep your purchases private.",
+        "NSUserTrackingUsageDescription": "Boughtly asks so it can show more relevant ads that help keep the app free. You can decline and still use everything."
       }
     },
     "android": {

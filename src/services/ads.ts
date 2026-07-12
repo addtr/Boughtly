@@ -50,11 +50,29 @@ export function adsActive(): boolean {
 }
 
 /**
+ * Ask for App Tracking Transparency permission (iOS) before any personalized
+ * ads. If the user declines, we fall back to non-personalized ads. No-op until
+ * expo-tracking-transparency is installed (see docs/ADS_SETUP.md).
+ * Returns true if personalized-ad tracking is allowed.
+ */
+export async function requestTrackingPermission(): Promise<boolean> {
+  if (!adsActive() || Platform.OS !== 'ios') return false;
+  // ── UNCOMMENT WHEN expo-tracking-transparency IS INSTALLED ────────────────
+  // const { requestTrackingPermissionsAsync } = require('expo-tracking-transparency');
+  // const { status } = await requestTrackingPermissionsAsync();
+  // return status === 'granted';
+  // ─────────────────────────────────────────────────────────────────────────
+  return false;
+}
+
+/**
  * Initialize the ad SDK once at startup. No-op until the SDK is wired.
  * Call from App.tsx — it's safe to call when ads are off.
  */
 export async function initAds(): Promise<void> {
   if (!adsActive()) return;
+  // Ask for tracking first so the SDK knows whether it may personalize.
+  await requestTrackingPermission();
   // ── UNCOMMENT WHEN THE SDK IS INSTALLED ──────────────────────────────────
   // const mobileAds = require('react-native-google-mobile-ads').default;
   // await mobileAds().initialize();
