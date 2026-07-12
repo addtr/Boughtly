@@ -111,6 +111,10 @@ export function SettingsScreen() {
 
   /** Write a spreadsheet (CSV) of the items and open the share sheet. */
   async function exportCsv() {
+    if (!settings.isPlus) {
+      navigation.navigate('Plus');
+      return;
+    }
     const csv = itemsToCsv(items);
     try {
       if (Platform.OS === 'web') {
@@ -137,6 +141,10 @@ export function SettingsScreen() {
 
   /** Build the insurance-ready home-inventory PDF and open the share sheet. */
   async function exportInventoryPdf() {
+    if (!settings.isPlus) {
+      navigation.navigate('Plus');
+      return;
+    }
     if (Platform.OS === 'web') {
       Alert.alert('iPhone only', 'PDF reports are generated on your phone — open Boughtly there.');
       return;
@@ -719,7 +727,8 @@ export function SettingsScreen() {
           </View>
           <View style={styles.itemInfo}>
             <Text style={[styles.rowLabel, items.length === 0 && styles.rowDisabled]}>
-              Export a spreadsheet (CSV)
+              Export a spreadsheet (CSV){' '}
+              {!settings.isPlus && <Text style={styles.plusTag}>PLUS</Text>}
             </Text>
             <Text style={styles.itemMeta}>
               Items, prices, and deadlines — opens in Excel, Numbers, or Sheets.
@@ -738,7 +747,8 @@ export function SettingsScreen() {
           </View>
           <View style={styles.itemInfo}>
             <Text style={[styles.rowLabel, items.length === 0 && styles.rowDisabled]}>
-              {exportingPdf ? 'Building your report…' : 'Home inventory report (PDF)'}
+              {exportingPdf ? 'Building your report…' : 'Home inventory report (PDF)'}{' '}
+              {!settings.isPlus && !exportingPdf && <Text style={styles.plusTag}>PLUS</Text>}
             </Text>
             <Text style={styles.itemMeta}>
               Every item with prices, serials, and receipt photos — ready for renters or
@@ -972,6 +982,11 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 16,
     color: colors.deepBlue,
+  },
+  plusTag: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    color: colors.primary,
   },
   signOutRow: {
     flexDirection: 'row',

@@ -36,6 +36,7 @@ import {
   persistReceiptImage,
 } from '../services/imageStore';
 import { getOwnerApiKey } from '../services/ownerKey';
+import { canAddFile, FREE_FILES_PER_ITEM } from '../services/plus';
 import { lookupPoliciesLive } from '../services/policyLive';
 import { PolicySuggestion, suggestPolicies } from '../services/policyLookup';
 import { ExtractedReceipt } from '../services/receiptOcr';
@@ -119,6 +120,9 @@ export function AddItemScreen({ navigation, route }: Props) {
   const [documents, setDocuments] = useState<{ name: string; uri: string }[]>(
     editing?.documents ?? []
   );
+  // Free tier is capped on extra attachments; show a PLUS hint once it's hit.
+  const extrasLocked =
+    !settings.isPlus && productPhotos.length + documents.length >= FREE_FILES_PER_ITEM;
 
   const [warrantyDays, setWarrantyDays] = useState<number>(
     editing?.warrantyLengthDays ?? 365
@@ -438,7 +442,16 @@ export function AddItemScreen({ navigation, route }: Props) {
     }
   }
 
+  // Free tier caps extra attachments (product photos + docs) per item; Plus is
+  // unlimited. Receipt pages stay free since they're core to the receipt.
+  function guardExtraFile(): boolean {
+    if (canAddFile(productPhotos.length + documents.length, settings.isPlus)) return true;
+    navigation.navigate('Plus');
+    return false;
+  }
+
   function addProductPhotoPrompt() {
+    if (!guardExtraFile()) return;
     if (Platform.OS === 'web') {
       void pickProductPhoto(false);
       return;
@@ -456,6 +469,7 @@ export function AddItemScreen({ navigation, route }: Props) {
 
   /** Attach a PDF/image document (warranty card, manual, receipt PDF). */
   async function pickDocument() {
+    if (!guardExtraFile()) return;
     try {
       const res = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*', 'text/plain'],
@@ -965,7 +979,10 @@ export function AddItemScreen({ navigation, route }: Props) {
           autoCorrect={false}
         />
 
-        <Text style={styles.photosLabel}>Product photos (optional)</Text>
+        <Text style={styles.photosLabel}>
+          Product photos (optional){' '}
+          {extrasLocked && <Text style={styles.plusTag}>PLUS</Text>}
+        </Text>
         <Text style={styles.photosHint}>
           Snap the serial plate, the box, or its condition — handy for a warranty claim.
         </Text>
@@ -994,7 +1011,10 @@ export function AddItemScreen({ navigation, route }: Props) {
           </Pressable>
         </ScrollView>
 
-        <Text style={styles.photosLabel}>Documents (optional)</Text>
+        <Text style={styles.photosLabel}>
+          Documents (optional){' '}
+          {extrasLocked && <Text style={styles.plusTag}>PLUS</Text>}
+        </Text>
         <Text style={styles.photosHint}>
           Attach the warranty card, manual, or a PDF receipt — everything for a claim
           in one place.
@@ -1228,6 +1248,11 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     fontSize: 13,
     color: colors.muted,
     marginBottom: 4,
+  },
+  plusTag: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    color: colors.primary,
   },
   photosHint: {
     fontFamily: fonts.body,
