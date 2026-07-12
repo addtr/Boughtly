@@ -69,6 +69,8 @@ export interface AppSettings {
   accountPhone: string;
   /** Local-only account password. Saved on-device; real cloud login needs a backend. */
   accountPassword: string;
+  /** True when the user has Boughtly Plus (removes ads + free-tier limits). */
+  isPlus: boolean;
   /** True once the user has finished the welcome screens */
   hasOnboarded: boolean;
   /** True once the one-time feature tour has been shown on the dashboard */
@@ -188,6 +190,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accountEmail: '',
   accountPhone: '',
   accountPassword: '',
+  isPlus: false,
   hasOnboarded: false,
   tourSeen: false,
   notificationsEnabled: true,

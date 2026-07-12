@@ -3,6 +3,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { RootStackParamList } from '../navigation/types';
+import { useAppState } from '../store/AppStateContext';
+import { canAddItem, FREE_ITEM_LIMIT } from '../services/plus';
 import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 
@@ -12,8 +14,21 @@ type Props = NativeStackScreenProps<RootStackParamList, 'AddChooser'>;
 export function AddChooserScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { items, settings } = useAppState();
+  // Free tier caps tracked items; adding another sends free users to Plus.
+  const atItemLimit = !canAddItem(items.length, settings.isPlus);
+
+  /** Run an item-add action, or route to Plus if the free limit is reached. */
+  function addItem(action: () => void) {
+    if (atItemLimit) {
+      navigation.replace('Plus');
+      return;
+    }
+    action();
+  }
+
   function choose(mode: 'scan' | 'manual' | 'barcode') {
-    navigation.replace('AddItem', { mode });
+    addItem(() => navigation.replace('AddItem', { mode }));
   }
 
   return (
@@ -28,6 +43,17 @@ export function AddChooserScreen({ navigation }: Props) {
       <Text style={styles.subtitle}>
         Boughtly will track its return window and warranty for you.
       </Text>
+
+      {atItemLimit && (
+        <Pressable style={styles.limitBanner} onPress={() => navigation.replace('Plus')}>
+          <Ionicons name="sparkles" size={16} color={colors.primary} />
+          <Text style={styles.limitText}>
+            You’ve reached the free {FREE_ITEM_LIMIT}-item limit. Upgrade to Plus for
+            unlimited items.
+          </Text>
+          <Ionicons name="chevron-forward" size={15} color={colors.primary} />
+        </Pressable>
+      )}
 
       <Pressable
         style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
@@ -79,7 +105,7 @@ export function AddChooserScreen({ navigation }: Props) {
 
       <Pressable
         style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
-        onPress={() => navigation.replace('PasteReceipt')}
+        onPress={() => addItem(() => navigation.replace('PasteReceipt'))}
       >
         <View style={[styles.optionIcon, { backgroundColor: colors.primarySoft }]}>
           <Ionicons name="clipboard" size={20} color={colors.primary} />
@@ -161,6 +187,23 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     color: colors.muted,
     marginTop: 4,
     marginBottom: spacing.md,
+    lineHeight: 18,
+  },
+  limitBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  limitText: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.deepBlue,
     lineHeight: 18,
   },
   option: {

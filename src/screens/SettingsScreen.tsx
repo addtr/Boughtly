@@ -302,6 +302,27 @@ export function SettingsScreen() {
         </>
       ) : null}
 
+      {/* Boughtly Plus */}
+      <Text style={styles.sectionTitle}>Boughtly Plus</Text>
+      <Pressable onPress={() => navigation.navigate('Plus')}>
+        <View style={styles.plusCard}>
+          <View style={styles.plusIcon}>
+            <Ionicons name="sparkles" size={22} color={colors.primary} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={styles.plusTitle}>
+              {settings.isPlus ? 'You’re on Plus 💜' : 'Upgrade to Plus'}
+            </Text>
+            <Text style={styles.itemMeta}>
+              {settings.isPlus
+                ? 'All perks unlocked — thanks for supporting Boughtly.'
+                : 'No ads, unlimited items, and the pro tools.'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+        </View>
+      </Pressable>
+
       {/* Notifications */}
       <Text style={styles.sectionTitle}>Reminders</Text>
       <Card>
@@ -930,6 +951,27 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     fontSize: 12,
     color: colors.primary,
     marginTop: 3,
+  },
+  plusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 16,
+    padding: spacing.md,
+  },
+  plusIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 16,
+    color: colors.deepBlue,
   },
   signOutRow: {
     flexDirection: 'row',

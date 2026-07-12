@@ -41,4 +41,5 @@ export type RootStackParamList = {
   ReturnDetail: { returnId: string };
   Legal: { doc: 'privacy' | 'terms' };
   Profile: undefined;
+  Plus: undefined;
 };

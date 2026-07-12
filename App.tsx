@@ -30,6 +30,7 @@ import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { LegalScreen } from './src/screens/LegalScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
+import { PlusScreen } from './src/screens/PlusScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { AddSubscriptionScreen } from './src/screens/AddSubscriptionScreen';
 import { RegisterProductScreen } from './src/screens/RegisterProductScreen';
@@ -298,6 +299,11 @@ function Root() {
           name="Profile"
           component={ProfileScreen}
           options={{ title: 'Edit profile' }}
+        />
+        <Stack.Screen
+          name="Plus"
+          component={PlusScreen}
+          options={{ title: 'Boughtly Plus', presentation: 'modal' }}
         />
         <Stack.Screen
           name="Legal"
