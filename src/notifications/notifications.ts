@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import { lookupWarrantyByCategory } from '../services/policyLookup';
 import { lookupPriceAdjustment } from '../services/priceAdjust';
 import { AppSettings, PRICE_CHECK_OPTIONS, TrackedItem } from '../types/item';
-import { addDays, parseISODate } from '../utils/dates';
+import { addDays, formatPrice, parseISODate } from '../utils/dates';
 import { buildDigestBody, nextDigestDate } from '../utils/digest';
 
 const PRICE_CHECK_NOTIF_KEY = 'boughtly.priceCheckNotif.v1';
@@ -387,4 +387,31 @@ export async function syncWeeklyDigest(
     },
   });
   await AsyncStorage.setItem(DIGEST_NOTIF_KEY, id);
+}
+
+/**
+ * Reminder before a subscription renews, so it can be cancelled in time.
+ * Fires `leadDays` before the next charge (default 2). Returns the id(s).
+ */
+export async function scheduleSubscriptionReminder(
+  sub: { id: string; name: string; cost: number; nextRenewalDate: string },
+  settings: AppSettings,
+  leadDays = 2
+): Promise<string[]> {
+  if (!settings.notificationsEnabled) return [];
+  const granted = await ensureNotificationSetup();
+  if (!granted) return [];
+  const hour = settings.reminderHour ?? DEFAULT_REMINDER_HOUR;
+  const ids: string[] = [];
+  const when = reminderDate(sub.nextRenewalDate, leadDays, hour);
+  const id = await scheduleAt(
+    '🔁 Subscription renews soon',
+    `${sub.name} renews in ${leadDays} day${leadDays === 1 ? '' : 's'} for ${formatPrice(
+      sub.cost
+    )}. Not using it? Cancel before you're charged.`,
+    when,
+    sub.id
+  );
+  if (id) ids.push(id);
+  return ids;
 }

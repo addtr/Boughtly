@@ -12,6 +12,7 @@ import {
   cancelItemReminders,
   scheduleItemReminders,
   scheduleRefundFollowUp,
+  scheduleSubscriptionReminder,
   sendRecallNotification,
   syncPriceCheckReminder,
   syncWeeklyDigest,
@@ -27,9 +28,12 @@ import {
   TrackedItem,
 } from '../types/item';
 import {
+  BILLING_CYCLE_OPTIONS,
+  BillingCycle,
   PricePoint,
   RETURN_STEPS,
   ReturnCase,
+  Subscription,
   WatchedProduct,
 } from '../types/tracking';
 import { Platform } from 'react-native';
@@ -40,6 +44,7 @@ const SETTINGS_KEY = 'boughtly.settings.v1';
 const WATCHES_KEY = 'boughtly.watches.v1';
 const RETURNS_KEY = 'boughtly.returns.v1';
 const RECALLS_KEY = 'boughtly.recalls.v1';
+const SUBS_KEY = 'boughtly.subscriptions.v1';
 
 /** Recall sweeps run at most this often (per device). */
 const RECALL_CHECK_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
@@ -73,6 +78,15 @@ export interface NewWatchInput {
   firstPrice: number;
 }
 
+export interface NewSubscriptionInput {
+  name: string;
+  cost: number;
+  cycle: BillingCycle;
+  nextRenewalDate: string;
+  category?: string;
+  notes?: string;
+}
+
 interface AppState {
   items: TrackedItem[];
   watches: WatchedProduct[];
@@ -99,6 +113,11 @@ interface AppState {
   dismissRecallAlert: (id: string) => Promise<void>;
   /** On-demand CPSC check for one item; returns every current match for it */
   checkItemRecallsNow: (item: TrackedItem) => Promise<RecallAlert[]>;
+  // Subscriptions
+  subscriptions: Subscription[];
+  addSubscription: (input: NewSubscriptionInput) => Promise<Subscription>;
+  updateSubscription: (id: string, input: NewSubscriptionInput) => Promise<void>;
+  deleteSubscription: (id: string) => Promise<void>;
   // Price watching
   addWatch: (input: NewWatchInput) => Promise<WatchedProduct>;
   logWatchPrice: (id: string, point: PricePoint) => Promise<void>;
@@ -126,6 +145,18 @@ function makeId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/** Advance a subscription's next-renewal date past today by whole billing cycles. */
+function rollRenewalForward(sub: Subscription, today = new Date()): Subscription {
+  const cycleDays = BILLING_CYCLE_OPTIONS.find((c) => c.key === sub.cycle)?.days ?? 30;
+  let next = sub.nextRenewalDate;
+  let guard = 0;
+  while (new Date(next).getTime() < today.getTime() && guard < 120) {
+    next = addDays(next, cycleDays);
+    guard += 1;
+  }
+  return next === sub.nextRenewalDate ? sub : { ...sub, nextRenewalDate: next };
+}
+
 function withCalculatedDates(input: NewItemInput) {
   return {
     ...input,
@@ -144,6 +175,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<TrackedItem[]>([]);
   const [watches, setWatches] = useState<WatchedProduct[]>([]);
   const [returns, setReturns] = useState<ReturnCase[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [recallAlerts, setRecallAlerts] = useState<RecallAlert[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -157,20 +189,25 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   watchesRef.current = watches;
   const returnsRef = useRef(returns);
   returnsRef.current = returns;
+  const subscriptionsRef = useRef(subscriptions);
+  subscriptionsRef.current = subscriptions;
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
   useEffect(() => {
     (async () => {
       try {
-        const [rawItems, rawSettings, rawWatches, rawReturns, rawRecalls] = await Promise.all([
-          AsyncStorage.getItem(ITEMS_KEY),
-          AsyncStorage.getItem(SETTINGS_KEY),
-          AsyncStorage.getItem(WATCHES_KEY),
-          AsyncStorage.getItem(RETURNS_KEY),
-          AsyncStorage.getItem(RECALLS_KEY),
-        ]);
+        const [rawItems, rawSettings, rawWatches, rawReturns, rawRecalls, rawSubs] =
+          await Promise.all([
+            AsyncStorage.getItem(ITEMS_KEY),
+            AsyncStorage.getItem(SETTINGS_KEY),
+            AsyncStorage.getItem(WATCHES_KEY),
+            AsyncStorage.getItem(RETURNS_KEY),
+            AsyncStorage.getItem(RECALLS_KEY),
+            AsyncStorage.getItem(SUBS_KEY),
+          ]);
         if (rawItems) setItems(JSON.parse(rawItems));
+        if (rawSubs) setSubscriptions(JSON.parse(rawSubs));
         if (rawRecalls) {
           const parsed = JSON.parse(rawRecalls);
           setRecallAlerts(parsed.alerts ?? []);
@@ -254,6 +291,27 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     })().catch(() => {});
   }, [isLoaded, persistRecalls]);
 
+  // Subscription resync: roll any past renewal dates forward to the next cycle
+  // and (re)schedule the renewal reminders once per launch.
+  const subSyncRef = useRef(false);
+  useEffect(() => {
+    if (!isLoaded || subSyncRef.current || Platform.OS === 'web') return;
+    subSyncRef.current = true;
+    const current = subscriptionsRef.current;
+    if (current.length === 0) return;
+    (async () => {
+      const updated: Subscription[] = [];
+      for (const sub of current) {
+        const rolled = rollRenewalForward(sub);
+        await cancelItemReminders(rolled.notificationIds);
+        const notificationIds = await scheduleSubscriptionReminder(rolled, settingsRef.current);
+        updated.push({ ...rolled, notificationIds });
+      }
+      await persistSubscriptions(updated);
+    })().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded]);
+
   const dismissRecallAlert = useCallback(
     async (id: string) => {
       await persistRecalls(
@@ -284,6 +342,49 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setReturns(next);
     await AsyncStorage.setItem(RETURNS_KEY, JSON.stringify(next));
   }, []);
+
+  const persistSubscriptions = useCallback(async (next: Subscription[]) => {
+    setSubscriptions(next);
+    await AsyncStorage.setItem(SUBS_KEY, JSON.stringify(next));
+  }, []);
+
+  const addSubscription = useCallback(
+    async (input: NewSubscriptionInput) => {
+      const sub: Subscription = {
+        ...input,
+        id: makeId(),
+        notificationIds: [],
+        createdAt: new Date().toISOString(),
+      };
+      sub.notificationIds = await scheduleSubscriptionReminder(sub, settingsRef.current);
+      await persistSubscriptions([sub, ...subscriptionsRef.current]);
+      return sub;
+    },
+    [persistSubscriptions]
+  );
+
+  const updateSubscription = useCallback(
+    async (id: string, input: NewSubscriptionInput) => {
+      const existing = subscriptionsRef.current.find((s) => s.id === id);
+      if (!existing) return;
+      await cancelItemReminders(existing.notificationIds);
+      const updated: Subscription = { ...existing, ...input };
+      updated.notificationIds = await scheduleSubscriptionReminder(updated, settingsRef.current);
+      await persistSubscriptions(
+        subscriptionsRef.current.map((s) => (s.id === id ? updated : s))
+      );
+    },
+    [persistSubscriptions]
+  );
+
+  const deleteSubscription = useCallback(
+    async (id: string) => {
+      const existing = subscriptionsRef.current.find((s) => s.id === id);
+      if (existing) await cancelItemReminders(existing.notificationIds);
+      await persistSubscriptions(subscriptionsRef.current.filter((s) => s.id !== id));
+    },
+    [persistSubscriptions]
+  );
 
   const addItem = useCallback(
     async (input: NewItemInput) => {
@@ -605,8 +706,22 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         rescheduled.push({ ...item, notificationIds });
       }
       await persistItems(rescheduled);
+
+      // Subscriptions share the reminder hour / notifications toggle.
+      if (
+        next.notificationsEnabled !== prev.notificationsEnabled ||
+        next.reminderHour !== prev.reminderHour
+      ) {
+        const resubbed: Subscription[] = [];
+        for (const sub of subscriptionsRef.current) {
+          await cancelItemReminders(sub.notificationIds);
+          const notificationIds = await scheduleSubscriptionReminder(sub, next);
+          resubbed.push({ ...sub, notificationIds });
+        }
+        await persistSubscriptions(resubbed);
+      }
     },
-    [persistItems]
+    [persistItems, persistSubscriptions]
   );
 
   const value = useMemo(
@@ -628,6 +743,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       recallAlerts,
       dismissRecallAlert,
       checkItemRecallsNow,
+      subscriptions,
+      addSubscription,
+      updateSubscription,
+      deleteSubscription,
       addWatch,
       logWatchPrice,
       updateWatch,
@@ -655,6 +774,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       recallAlerts,
       dismissRecallAlert,
       checkItemRecallsNow,
+      subscriptions,
+      addSubscription,
+      updateSubscription,
+      deleteSubscription,
       addWatch,
       logWatchPrice,
       updateWatch,

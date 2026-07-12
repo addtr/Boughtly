@@ -36,5 +36,7 @@ export type RootStackParamList = {
   StoreProfile: { storeName: string };
   AddWatch: { prefillName?: string } | undefined;
   WatchDetail: { watchId: string };
+  Subscriptions: undefined;
+  AddSubscription: { subscriptionId?: string } | undefined;
   ReturnDetail: { returnId: string };
 };

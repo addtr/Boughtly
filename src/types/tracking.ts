@@ -24,6 +24,46 @@ export interface WatchedProduct {
   createdAt: string;
 }
 
+export type BillingCycle = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
+export const BILLING_CYCLE_OPTIONS: { key: BillingCycle; label: string; days: number }[] = [
+  { key: 'weekly', label: 'Weekly', days: 7 },
+  { key: 'monthly', label: 'Monthly', days: 30 },
+  { key: 'quarterly', label: 'Every 3 months', days: 91 },
+  { key: 'yearly', label: 'Yearly', days: 365 },
+];
+
+/** A recurring subscription the user wants to keep an eye on / cancel. */
+export interface Subscription {
+  id: string;
+  name: string;
+  /** Amount charged each cycle */
+  cost: number;
+  cycle: BillingCycle;
+  /** ISO date of the next charge */
+  nextRenewalDate: string;
+  /** Optional label, e.g. "streaming", "gym" */
+  category?: string;
+  notes?: string;
+  /** Scheduled renewal-reminder ids, so they can be cancelled */
+  notificationIds: string[];
+  createdAt: string;
+}
+
+/** Normalize any cycle's cost to a monthly figure for totals. */
+export function monthlyCost(sub: Pick<Subscription, 'cost' | 'cycle'>): number {
+  switch (sub.cycle) {
+    case 'weekly':
+      return (sub.cost * 52) / 12;
+    case 'monthly':
+      return sub.cost;
+    case 'quarterly':
+      return sub.cost / 3;
+    case 'yearly':
+      return sub.cost / 12;
+  }
+}
+
 export type ReturnStatus = 'started' | 'sent' | 'refund_pending' | 'refunded';
 
 export const RETURN_STEPS: { key: ReturnStatus; label: string; help: string }[] = [

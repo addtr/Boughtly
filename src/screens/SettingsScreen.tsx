@@ -442,6 +442,19 @@ export function SettingsScreen() {
           </View>
           <Ionicons name="chevron-forward" size={17} color={colors.muted} />
         </Pressable>
+        <View style={styles.divider} />
+        <Pressable style={styles.row} onPress={() => navigation.navigate('Subscriptions')}>
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="repeat-outline" size={19} color={colors.primary} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={styles.rowLabel}>Your subscriptions</Text>
+            <Text style={styles.itemMeta}>
+              Every recurring charge in one place, with a one-tap cancel.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+        </Pressable>
       </Card>
 
       {/* Price-drop check-ins (return window) */}

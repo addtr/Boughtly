@@ -27,6 +27,7 @@ import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { addDays, daysUntil, formatDate, formatPrice, nearestDeadline } from '../utils/dates';
 import { computeInsights } from '../utils/insights';
+import { monthlyCost } from '../types/tracking';
 import { spendByStore } from '../utils/spending';
 import {
   fetchUpcomingReminders,
@@ -55,6 +56,7 @@ export function DashboardScreen() {
     items,
     returns,
     watches,
+    subscriptions,
     recentlyDeleted,
     undoDelete,
     deleteItem,
@@ -64,6 +66,10 @@ export function DashboardScreen() {
     updateSettings,
     recallAlerts,
   } = useAppState();
+  const subsMonthly = useMemo(
+    () => subscriptions.reduce((sum, s) => sum + monthlyCost(s), 0),
+    [subscriptions]
+  );
 
   // First landing on the dashboard → one-time feature tour (replayable from
   // Settings, which flips tourSeen back to false).
@@ -636,7 +642,7 @@ export function DashboardScreen() {
                   )}
                 </View>
               )}
-              {(watchStats.count > 0 || underWarranty > 0) && (
+              {(watchStats.count > 0 || underWarranty > 0 || subscriptions.length > 0) && (
                 <View style={styles.quickRow}>
                   {watchStats.count > 0 && (
                     <Pressable
@@ -647,6 +653,17 @@ export function DashboardScreen() {
                       <Text style={styles.quickValue} numberOfLines={1}>
                         {watchStats.count} watched
                         {watchStats.atTarget > 0 ? ` · ${watchStats.atTarget} at target` : ''}
+                      </Text>
+                    </Pressable>
+                  )}
+                  {subscriptions.length > 0 && (
+                    <Pressable
+                      style={styles.quickTile}
+                      onPress={() => navigation.navigate('Subscriptions')}
+                    >
+                      <Ionicons name="repeat-outline" size={15} color={colors.primary} />
+                      <Text style={styles.quickValue} numberOfLines={1}>
+                        {formatPrice(subsMonthly)}/mo subs
                       </Text>
                     </Pressable>
                   )}

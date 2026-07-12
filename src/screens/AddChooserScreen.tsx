@@ -109,6 +109,22 @@ export function AddChooserScreen({ navigation }: Props) {
         <Ionicons name="chevron-forward" size={16} color={colors.muted} />
       </Pressable>
 
+      <Pressable
+        style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+        onPress={() => navigation.replace('AddSubscription')}
+      >
+        <View style={[styles.optionIcon, { backgroundColor: colors.primarySoft }]}>
+          <Ionicons name="repeat" size={20} color={colors.primary} />
+        </View>
+        <View style={styles.optionText}>
+          <Text style={styles.optionTitle}>Track a subscription</Text>
+          <Text style={styles.optionBody}>
+            Keep every recurring charge in one place — with a one-tap cancel.
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+      </Pressable>
+
       <Pressable style={styles.cancel} onPress={() => navigation.goBack()} hitSlop={8}>
         <Text style={styles.cancelText}>Cancel</Text>
       </Pressable>

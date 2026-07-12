@@ -29,8 +29,10 @@ import { InsightsScreen } from './src/screens/InsightsScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
+import { AddSubscriptionScreen } from './src/screens/AddSubscriptionScreen';
 import { RegisterProductScreen } from './src/screens/RegisterProductScreen';
 import { RemindersScreen } from './src/screens/RemindersScreen';
+import { SubscriptionsScreen } from './src/screens/SubscriptionsScreen';
 import { ReturnDetailScreen } from './src/screens/ReturnDetailScreen';
 import { ScanReviewScreen } from './src/screens/ScanReviewScreen';
 import { StoreProfileScreen } from './src/screens/StoreProfileScreen';
@@ -270,6 +272,18 @@ function Root() {
           name="ReturnDetail"
           component={ReturnDetailScreen}
           options={{ title: 'Return' }}
+        />
+        <Stack.Screen
+          name="Subscriptions"
+          component={SubscriptionsScreen}
+          options={{ title: 'Subscriptions' }}
+        />
+        <Stack.Screen
+          name="AddSubscription"
+          component={AddSubscriptionScreen}
+          options={({ route }) => ({
+            title: route.params?.subscriptionId ? 'Edit subscription' : 'Add subscription',
+          })}
         />
       </Stack.Navigator>
     </NavigationContainer>
