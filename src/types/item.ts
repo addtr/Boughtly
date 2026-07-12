@@ -91,7 +91,30 @@ export interface AppSettings {
   themeMode: ThemeMode;
   /** Sunday-morning summary of the week's deadlines */
   weeklyDigestEnabled: boolean;
+  /** Auto price-check nudges while an item is still returnable */
+  priceDropRemindersEnabled: boolean;
+  /** How often to nudge during the return window (days between reminders) */
+  priceDropCadenceDays: number;
+  /** Only start nudging when this many days are left in the window (0 = whole window) */
+  priceDropLeadDays: number;
 }
+
+/** Cadence choices for the return-window price-drop nudge. */
+export const PRICE_DROP_CADENCE_OPTIONS: { days: number; label: string }[] = [
+  { days: 1, label: 'Every day' },
+  { days: 2, label: 'Every 2 days' },
+  { days: 3, label: 'Every 3 days' },
+  { days: 7, label: 'Weekly' },
+];
+
+/** When to start the price-drop nudge, relative to the return window closing. */
+export const PRICE_DROP_LEAD_OPTIONS: { days: number; label: string }[] = [
+  { days: 0, label: 'Whole window' },
+  { days: 15, label: 'Last 15 days' },
+  { days: 10, label: 'Last 10 days' },
+  { days: 5, label: 'Last 5 days' },
+  { days: 3, label: 'Last 3 days' },
+];
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -160,6 +183,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   priceCheckCadence: 'weekly',
   themeMode: 'system',
   weeklyDigestEnabled: true,
+  priceDropRemindersEnabled: true,
+  priceDropCadenceDays: 3,
+  priceDropLeadDays: 0,
 };
 
 /** Reminder time-of-day presets shown in Settings. */

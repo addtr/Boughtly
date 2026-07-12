@@ -592,7 +592,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         next.notificationsEnabled !== prev.notificationsEnabled ||
         next.returnReminderDays !== prev.returnReminderDays ||
         next.warrantyReminderDays !== prev.warrantyReminderDays ||
-        next.reminderHour !== prev.reminderHour;
+        next.reminderHour !== prev.reminderHour ||
+        next.priceDropRemindersEnabled !== prev.priceDropRemindersEnabled ||
+        next.priceDropCadenceDays !== prev.priceDropCadenceDays ||
+        next.priceDropLeadDays !== prev.priceDropLeadDays;
       if (!affectsReminders) return;
 
       const rescheduled: TrackedItem[] = [];

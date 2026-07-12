@@ -45,15 +45,54 @@ function reminderDate(deadlineISO: string, daysBefore: number, hour: number): Da
   return date;
 }
 
+/**
+ * The set of dates to nudge "check if it's cheaper now" during an item's
+ * return window. Starts either at purchase (whole window) or `leadDays` before
+ * the window closes, then repeats every `cadenceDays` up to (not including)
+ * the deadline. Only future dates, capped so we never spam. Pure + testable.
+ */
+export function priceDropReminderDates(
+  purchaseISO: string,
+  returnDeadlineISO: string,
+  cadenceDays: number,
+  leadDays: number,
+  hour: number,
+  now: Date = new Date(),
+  maxCount = 15
+): Date[] {
+  const deadline = parseISODate(returnDeadlineISO);
+  deadline.setHours(hour, 0, 0, 0);
+  if (deadline.getTime() <= now.getTime()) return []; // window already closed
+  const cadence = Math.max(1, cadenceDays);
+  // First nudge: leadDays before close, or one cadence after purchase for the
+  // whole-window setting (a same-day-as-purchase price check is pointless).
+  const start = new Date(deadline);
+  if (leadDays > 0) {
+    start.setDate(start.getDate() - leadDays);
+  } else {
+    start.setTime(parseISODate(purchaseISO).getTime());
+    start.setDate(start.getDate() + cadence);
+  }
+  start.setHours(hour, 0, 0, 0);
+  const dates: Date[] = [];
+  const d = new Date(start);
+  while (d.getTime() < deadline.getTime() && dates.length < maxCount) {
+    if (d.getTime() > now.getTime()) dates.push(new Date(d));
+    d.setDate(d.getDate() + cadence);
+  }
+  return dates;
+}
+
 async function scheduleAt(
   title: string,
   body: string,
   date: Date,
-  itemId: string
+  itemId: string,
+  priceCheck = false
 ): Promise<string | null> {
   if (date.getTime() <= Date.now()) return null; // never schedule in the past
   return Notifications.scheduleNotificationAsync({
-    content: { title, body, sound: true, data: { itemId } },
+    content: { title, body, sound: true, data: { itemId, priceCheck } },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date,
@@ -142,6 +181,36 @@ export async function scheduleItemReminders(
       item.id
     );
     if (adjustId) ids.push(adjustId);
+  }
+
+  // Recurring "check if it's cheaper" nudges during the return window, so the
+  // user never has to remember to look. Tapping opens the item's price scan.
+  if (settings.priceDropRemindersEnabled) {
+    const dates = priceDropReminderDates(
+      item.purchaseDate,
+      item.returnDeadlineDate,
+      settings.priceDropCadenceDays ?? 3,
+      settings.priceDropLeadDays ?? 0,
+      hour
+    );
+    for (const date of dates) {
+      const daysLeftToReturn = Math.max(
+        0,
+        Math.round(
+          (parseISODate(item.returnDeadlineDate).getTime() - date.getTime()) / 86400000
+        )
+      );
+      const id = await scheduleAt(
+        '💸 Still time to save',
+        `${item.itemName} is still returnable for ~${daysLeftToReturn} day${
+          daysLeftToReturn === 1 ? '' : 's'
+        }. If it’s cheaper now, rebuy at the lower price and return this one.`,
+        date,
+        item.id,
+        true
+      );
+      if (id) ids.push(id);
+    }
   }
 
   return ids;

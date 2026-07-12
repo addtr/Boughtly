@@ -408,9 +408,17 @@ export function ItemDetailScreen({ navigation, route }: Props) {
       >
         <Ionicons name="pricetag" size={19} color="#FFFFFF" />
         <View style={styles.scanText}>
-          <Text style={styles.scanTitle}>Scan for a better price</Text>
+          <Text style={styles.scanTitle}>
+            {returnDaysLeft >= 0 ? 'Check if it’s cheaper now' : 'Scan for a better price'}
+          </Text>
           <Text style={styles.scanSub} numberOfLines={2}>
-            Search retailers for “{primaryScan.name}” — you paid {formatPrice(primaryScan.price)}
+            {returnDaysLeft >= 0
+              ? `You paid ${formatPrice(primaryScan.price)} · ${
+                  returnDaysLeft === 0 ? 'last day to return' : `${returnDaysLeft}d left to return`
+                } — rebuy lower & return this one`
+              : `Search retailers for “${primaryScan.name}” — you paid ${formatPrice(
+                  primaryScan.price
+                )}`}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />

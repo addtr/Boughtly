@@ -31,6 +31,8 @@ import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import {
   CURRENCY_OPTIONS,
   PRICE_CHECK_OPTIONS,
+  PRICE_DROP_CADENCE_OPTIONS,
+  PRICE_DROP_LEAD_OPTIONS,
   REMINDER_TIME_OPTIONS,
   THEME_MODE_OPTIONS,
 } from '../types/item';
@@ -440,6 +442,73 @@ export function SettingsScreen() {
           </View>
           <Ionicons name="chevron-forward" size={17} color={colors.muted} />
         </Pressable>
+      </Card>
+
+      {/* Price-drop check-ins (return window) */}
+      <Text style={styles.sectionTitle}>Price-drop check-ins</Text>
+      <Card>
+        <View style={styles.row}>
+          <View style={styles.itemInfo}>
+            <Text style={styles.rowLabel}>Nudge me to check for a lower price</Text>
+            <Text style={styles.itemMeta}>
+              While an item is still returnable, Boughtly reminds you to check if it got
+              cheaper — so you can rebuy at the lower price and return the first one.
+            </Text>
+          </View>
+          <Switch
+            value={settings.priceDropRemindersEnabled}
+            onValueChange={(v) => void updateSettings({ priceDropRemindersEnabled: v })}
+            disabled={!settings.notificationsEnabled}
+            trackColor={{ true: colors.primary, false: colors.divider }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+
+        {settings.priceDropRemindersEnabled && (
+          <>
+            <View style={styles.divider} />
+            <Text style={styles.optionLabel}>How often</Text>
+            <View style={[styles.optionRow, styles.optionRowWrap]}>
+              {PRICE_DROP_CADENCE_OPTIONS.map((o) => {
+                const active = settings.priceDropCadenceDays === o.days;
+                return (
+                  <Pressable
+                    key={o.days}
+                    onPress={() => void updateSettings({ priceDropCadenceDays: o.days })}
+                    style={[styles.option, active && styles.optionActive]}
+                    disabled={!settings.notificationsEnabled}
+                  >
+                    <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                      {o.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={styles.optionLabel}>When to start</Text>
+            <View style={[styles.optionRow, styles.optionRowWrap]}>
+              {PRICE_DROP_LEAD_OPTIONS.map((o) => {
+                const active = settings.priceDropLeadDays === o.days;
+                return (
+                  <Pressable
+                    key={o.days}
+                    onPress={() => void updateSettings({ priceDropLeadDays: o.days })}
+                    style={[styles.option, active && styles.optionActive]}
+                    disabled={!settings.notificationsEnabled}
+                  >
+                    <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                      {o.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.optionHint}>
+              Tapping the reminder opens the item ready to scan for a cheaper price.
+            </Text>
+          </>
+        )}
       </Card>
 
       {/* Privacy */}
