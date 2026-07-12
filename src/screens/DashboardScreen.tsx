@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { BannerAdSlot } from '../components/BannerAdSlot';
 import { FeatureTour } from '../components/FeatureTour';
 import { ItemCard } from '../components/ItemCard';
 import { Button } from '../components/ui';
@@ -720,6 +721,8 @@ export function DashboardScreen() {
           )
         }
       />
+      {/* Anchored banner ad slot (renders nothing until ads are enabled). */}
+      <BannerAdSlot />
       <FeatureTour
         visible={tourVisible}
         onDone={() => void updateSettings({ tourSeen: true })}

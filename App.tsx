@@ -40,6 +40,7 @@ import { ScanReviewScreen } from './src/screens/ScanReviewScreen';
 import { StoreProfileScreen } from './src/screens/StoreProfileScreen';
 import { WatchDetailScreen } from './src/screens/WatchDetailScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
+import { initAds } from './src/services/ads';
 import { AppStateProvider, useAppState } from './src/store/AppStateContext';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { fonts } from './src/theme/theme';
@@ -93,6 +94,10 @@ function useNotificationTaps() {
 
 function Root() {
   useNotificationTaps();
+  // Initialize the ad SDK once (no-op while ads are disabled).
+  useEffect(() => {
+    void initAds();
+  }, []);
   const { isLoaded, settings } = useAppState();
   const { colors, isDark } = useTheme();
   // Rebuilt on theme change so navigator chrome (headers, backgrounds,
