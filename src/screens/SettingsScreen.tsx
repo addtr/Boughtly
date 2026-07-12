@@ -277,7 +277,7 @@ export function SettingsScreen() {
         <>
           <Text style={styles.sectionTitle}>Account</Text>
           <Card>
-            <View style={styles.row}>
+            <Pressable style={styles.row} onPress={() => navigation.navigate('Profile')}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
                   {(settings.accountName || settings.accountEmail)[0]?.toUpperCase()}
@@ -285,12 +285,19 @@ export function SettingsScreen() {
               </View>
               <View style={styles.itemInfo}>
                 <Text style={styles.rowLabel}>{settings.accountName || 'You'}</Text>
-                <Text style={styles.itemMeta}>{settings.accountEmail}</Text>
+                <Text style={styles.itemMeta}>
+                  {settings.accountEmail}
+                  {settings.accountPhone ? ` · ${settings.accountPhone}` : ''}
+                </Text>
+                <Text style={styles.editHint}>Edit profile ›</Text>
               </View>
-              <Pressable onPress={signOut} hitSlop={8}>
-                <Text style={styles.deleteText}>Sign out</Text>
-              </Pressable>
-            </View>
+              <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable style={styles.signOutRow} onPress={signOut} hitSlop={8}>
+              <Ionicons name="log-out-outline" size={18} color={colors.danger} />
+              <Text style={styles.deleteText}>Sign out</Text>
+            </Pressable>
           </Card>
         </>
       ) : null}
@@ -917,6 +924,18 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
     color: colors.danger,
+  },
+  editHint: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: 3,
+  },
+  signOutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: spacing.xs,
   },
   rowDisabled: {
     opacity: 0.4,

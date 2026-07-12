@@ -65,6 +65,10 @@ export interface AppSettings {
   /** Local profile (no server yet — ready to hook up to real auth later) */
   accountName: string;
   accountEmail: string;
+  /** Optional phone number on the local profile */
+  accountPhone: string;
+  /** Local-only account password. Saved on-device; real cloud login needs a backend. */
+  accountPassword: string;
   /** True once the user has finished the welcome screens */
   hasOnboarded: boolean;
   /** True once the one-time feature tour has been shown on the dashboard */
@@ -182,6 +186,8 @@ export const PRICE_CHECK_OPTIONS: { key: PriceCheckCadence; label: string; days:
 export const DEFAULT_SETTINGS: AppSettings = {
   accountName: '',
   accountEmail: '',
+  accountPhone: '',
+  accountPassword: '',
   hasOnboarded: false,
   tourSeen: false,
   notificationsEnabled: true,

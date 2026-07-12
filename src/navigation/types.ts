@@ -40,4 +40,5 @@ export type RootStackParamList = {
   AddSubscription: { subscriptionId?: string } | undefined;
   ReturnDetail: { returnId: string };
   Legal: { doc: 'privacy' | 'terms' };
+  Profile: undefined;
 };

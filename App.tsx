@@ -30,6 +30,7 @@ import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { LegalScreen } from './src/screens/LegalScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
+import { ProfileScreen } from './src/screens/ProfileScreen';
 import { AddSubscriptionScreen } from './src/screens/AddSubscriptionScreen';
 import { RegisterProductScreen } from './src/screens/RegisterProductScreen';
 import { RemindersScreen } from './src/screens/RemindersScreen';
@@ -287,6 +288,11 @@ function Root() {
           options={({ route }) => ({
             title: route.params?.subscriptionId ? 'Edit subscription' : 'Add subscription',
           })}
+        />
+        <Stack.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{ title: 'Edit profile' }}
         />
         <Stack.Screen
           name="Legal"
