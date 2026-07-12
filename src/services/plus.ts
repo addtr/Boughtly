@@ -24,6 +24,9 @@ export const FREE_ITEM_LIMIT = 15;
 /** Free-tier cap on photos + attached files per item. Plus removes it. */
 export const FREE_FILES_PER_ITEM = 1;
 
+/** Free-tier cap on watched prices (the Prices tab). Plus removes it. */
+export const FREE_WATCH_LIMIT = 4;
+
 /** Display prices (App Store is the source of truth once billing is wired). */
 export const PLUS_PRICE_MONTHLY = '$4.99';
 export const PLUS_PRICE_YEARLY = '$49.99';
@@ -47,6 +50,8 @@ export interface PlusPerk {
 export const PLUS_PERKS: PlusPerk[] = [
   { icon: 'ban-outline', title: 'No ads, ever', body: 'A clean, focused app with zero ads.', live: true },
   { icon: 'infinite-outline', title: 'Unlimited items', body: `Track more than the free ${FREE_ITEM_LIMIT}-item limit.`, live: true },
+  { icon: 'pricetags-outline', title: 'Unlimited price watches', body: `Watch more than ${FREE_WATCH_LIMIT} items in the Prices tab.`, live: true },
+  { icon: 'shield-checkmark-outline', title: 'Recall safety alerts', body: 'Boughtly checks your items against official recalls and warns you.', live: true },
   { icon: 'images-outline', title: 'Unlimited photos & files', body: 'Add every receipt page, product photo, and warranty doc.', live: true },
   { icon: 'document-text-outline', title: 'Insurance & CSV exports', body: 'Pro home-inventory PDF and spreadsheet exports.', live: true },
   { icon: 'sparkles-outline', title: 'Smart receipt scanning', body: 'AI reads messy receipts and fills in the details for you.' },
@@ -61,6 +66,11 @@ export function canAddItem(currentItemCount: number, isPlus: boolean): boolean {
 /** Whether a free user can add another photo/file to an item, or has hit the cap. */
 export function canAddFile(currentFileCount: number, isPlus: boolean): boolean {
   return isPlus || currentFileCount < FREE_FILES_PER_ITEM;
+}
+
+/** Whether a free user can watch another price, or has hit the cap. */
+export function canAddWatch(currentWatchCount: number, isPlus: boolean): boolean {
+  return isPlus || currentWatchCount < FREE_WATCH_LIMIT;
 }
 
 /**

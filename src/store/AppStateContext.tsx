@@ -277,6 +277,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const recallSweepRef = useRef(false);
   useEffect(() => {
     if (!isLoaded || recallSweepRef.current) return;
+    if (!settingsRef.current.isPlus) return; // recall alerts are a Plus feature
     const last = lastRecallCheckRef.current ? Date.parse(lastRecallCheckRef.current) : 0;
     if (Date.now() - last < RECALL_CHECK_INTERVAL_MS) return;
     if (itemsRef.current.length === 0) return;

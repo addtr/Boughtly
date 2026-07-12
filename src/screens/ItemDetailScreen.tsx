@@ -59,6 +59,7 @@ export function ItemDetailScreen({ navigation, route }: Props) {
   const {
     items,
     returns,
+    settings,
     deleteItem,
     startReturn,
     patchItem,
@@ -167,6 +168,10 @@ export function ItemDetailScreen({ navigation, route }: Props) {
   /** On-demand CPSC recall check; matches show as banners at the top. */
   async function checkRecalls() {
     tapFeedback();
+    if (!settings.isPlus) {
+      navigation.navigate('Plus'); // recall alerts are a Plus feature
+      return;
+    }
     setCheckingRecalls(true);
     try {
       const matches = await checkItemRecallsNow(item!);
@@ -583,7 +588,11 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             <Text style={styles.warrantyDot}>·</Text>
             <Pressable onPress={() => void checkRecalls()} hitSlop={6} disabled={checkingRecalls}>
               <Text style={[styles.warrantyLink, { color: warrantyAccent }]}>
-                {checkingRecalls ? 'Checking…' : 'Check recalls'}
+                {checkingRecalls
+                  ? 'Checking…'
+                  : settings.isPlus
+                  ? 'Check recalls'
+                  : 'Check recalls · PLUS'}
               </Text>
             </Pressable>
             {showRegister && (

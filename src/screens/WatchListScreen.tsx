@@ -6,6 +6,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { Sparkline } from '../components/Sparkline';
 import { Button } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { canAddWatch, FREE_WATCH_LIMIT } from '../services/plus';
 import { useAppState } from '../store/AppStateContext';
 import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
@@ -19,14 +20,25 @@ export function WatchListScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { watches } = useAppState();
+  const { watches, settings } = useAppState();
   const [quickQuery, setQuickQuery] = useState('');
+  // Free tier caps how many prices you can watch; more sends you to Plus.
+  const atWatchLimit = !canAddWatch(watches.length, settings.isPlus);
 
   function scanNow() {
     const q = quickQuery.trim();
     if (!q) return;
     tapFeedback();
     void openPriceScan(q);
+  }
+
+  /** Go add a watch, or to the paywall if the free limit is reached. */
+  function goAddWatch(params?: { prefillName: string }) {
+    if (atWatchLimit) {
+      navigation.navigate('Plus');
+      return;
+    }
+    navigation.navigate('AddWatch', params);
   }
 
   return (
@@ -71,9 +83,7 @@ export function WatchListScreen() {
               </Text>
               {quickQuery.trim().length > 1 && (
                 <Pressable
-                  onPress={() =>
-                    navigation.navigate('AddWatch', { prefillName: quickQuery.trim() })
-                  }
+                  onPress={() => goAddWatch({ prefillName: quickQuery.trim() })}
                   style={styles.watchItLink}
                   hitSlop={6}
                 >
@@ -159,7 +169,7 @@ export function WatchListScreen() {
             </Text>
             <Button
               title="Watch your first price"
-              onPress={() => navigation.navigate('AddWatch')}
+              onPress={() => goAddWatch()}
               style={styles.emptyCta}
             />
           </View>
@@ -167,11 +177,19 @@ export function WatchListScreen() {
       />
       {watches.length > 0 && (
         <Pressable
-          onPress={() => navigation.navigate('AddWatch')}
+          onPress={() => goAddWatch()}
           style={({ pressed }) => [styles.addRow, pressed && { opacity: 0.85 }]}
         >
-          <Ionicons name="add-circle" size={20} color={colors.primary} />
-          <Text style={styles.addRowText}>Watch another price</Text>
+          <Ionicons
+            name={atWatchLimit ? 'sparkles' : 'add-circle'}
+            size={20}
+            color={colors.primary}
+          />
+          <Text style={styles.addRowText}>
+            {atWatchLimit
+              ? `Watching ${FREE_WATCH_LIMIT}/${FREE_WATCH_LIMIT} — get Plus for unlimited`
+              : 'Watch another price'}
+          </Text>
         </Pressable>
       )}
     </View>

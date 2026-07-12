@@ -4,7 +4,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { RootStackParamList } from '../navigation/types';
 import { useAppState } from '../store/AppStateContext';
-import { canAddItem, FREE_ITEM_LIMIT } from '../services/plus';
+import { canAddItem, canAddWatch, FREE_ITEM_LIMIT } from '../services/plus';
 import { Palette, cardShadow, fonts, radii, spacing } from '../theme/theme';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 
@@ -14,9 +14,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'AddChooser'>;
 export function AddChooserScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { items, settings } = useAppState();
+  const { items, watches, settings } = useAppState();
   // Free tier caps tracked items; adding another sends free users to Plus.
   const atItemLimit = !canAddItem(items.length, settings.isPlus);
+  const atWatchLimit = !canAddWatch(watches.length, settings.isPlus);
 
   /** Run an item-add action, or route to Plus if the free limit is reached. */
   function addItem(action: () => void) {
@@ -121,7 +122,9 @@ export function AddChooserScreen({ navigation }: Props) {
 
       <Pressable
         style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
-        onPress={() => navigation.replace('AddWatch')}
+        onPress={() =>
+          atWatchLimit ? navigation.replace('Plus') : navigation.replace('AddWatch')
+        }
       >
         <View style={[styles.optionIcon, { backgroundColor: colors.successSoft }]}>
           <Ionicons name="pricetags" size={20} color={colors.success} />

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Button, Field } from '../components/ui';
 import { RootStackParamList } from '../navigation/types';
+import { canAddWatch } from '../services/plus';
 import { useAppState } from '../store/AppStateContext';
 import { Palette, fonts, spacing } from '../theme/theme';
 import { useThemedStyles } from '../theme/ThemeContext';
@@ -26,7 +27,7 @@ function parsePrice(raw: string): number | null {
 
 export function AddWatchScreen({ navigation, route }: Props) {
   const styles = useThemedStyles(makeStyles);
-  const { addWatch } = useAppState();
+  const { addWatch, watches, settings } = useAppState();
   const [name, setName] = useState(route.params?.prefillName ?? '');
   const [store, setStore] = useState('');
   const [url, setUrl] = useState('');
@@ -35,6 +36,11 @@ export function AddWatchScreen({ navigation, route }: Props) {
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
+    // Safety net: the free watch limit is normally enforced before we get here.
+    if (!canAddWatch(watches.length, settings.isPlus)) {
+      navigation.replace('Plus');
+      return;
+    }
     const firstPrice = parsePrice(priceText);
     if (!name.trim() || firstPrice === null) {
       Alert.alert('Almost there', 'Give it a name and the price you saw today.');
