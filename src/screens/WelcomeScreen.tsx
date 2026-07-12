@@ -146,6 +146,24 @@ export function WelcomeScreen({ navigation }: Props) {
           Your account and everything you track stay on this device — nothing is
           uploaded. Back up anytime from Settings.
         </Text>
+
+        <Text style={styles.legal}>
+          By continuing, you agree to our{' '}
+          <Text
+            style={styles.legalLink}
+            onPress={() => navigation.navigate('Legal', { doc: 'terms' })}
+          >
+            Terms
+          </Text>{' '}
+          and{' '}
+          <Text
+            style={styles.legalLink}
+            onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}
+          >
+            Privacy Policy
+          </Text>
+          .
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -224,5 +242,17 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
     marginTop: spacing.lg,
+  },
+  legal: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.muted,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: spacing.sm,
+  },
+  legalLink: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.primary,
   },
 });

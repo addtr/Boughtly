@@ -27,6 +27,7 @@ import { AddWatchScreen } from './src/screens/AddWatchScreen';
 import { BarcodeScanScreen } from './src/screens/BarcodeScanScreen';
 import { InsightsScreen } from './src/screens/InsightsScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
+import { LegalScreen } from './src/screens/LegalScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { PasteReceiptScreen } from './src/screens/PasteReceiptScreen';
 import { AddSubscriptionScreen } from './src/screens/AddSubscriptionScreen';
@@ -283,6 +284,13 @@ function Root() {
           component={AddSubscriptionScreen}
           options={({ route }) => ({
             title: route.params?.subscriptionId ? 'Edit subscription' : 'Add subscription',
+          })}
+        />
+        <Stack.Screen
+          name="Legal"
+          component={LegalScreen}
+          options={({ route }) => ({
+            title: route.params?.doc === 'privacy' ? 'Privacy Policy' : 'Terms & Disclaimer',
           })}
         />
       </Stack.Navigator>

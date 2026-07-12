@@ -724,6 +724,42 @@ export function SettingsScreen() {
         </Pressable>
       </Card>
 
+      {/* Legal */}
+      <Text style={styles.sectionTitle}>Legal</Text>
+      <Card>
+        <Pressable
+          style={styles.row}
+          onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="shield-checkmark-outline" size={19} color={colors.primary} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={styles.rowLabel}>Privacy Policy</Text>
+            <Text style={styles.itemMeta}>
+              What we collect (nothing) and how your data stays on your device.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+        </Pressable>
+        <View style={styles.divider} />
+        <Pressable
+          style={styles.row}
+          onPress={() => navigation.navigate('Legal', { doc: 'terms' })}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="document-text-outline" size={19} color={colors.primary} />
+          </View>
+          <View style={styles.itemInfo}>
+            <Text style={styles.rowLabel}>Terms & Disclaimer</Text>
+            <Text style={styles.itemMeta}>
+              Boughtly is a helper, not official advice — confirm deadlines yourself.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+        </Pressable>
+      </Card>
+
       {/* About */}
       <Text style={styles.sectionTitle}>About</Text>
       <Card>
