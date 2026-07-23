@@ -13,7 +13,7 @@ export function BannerAdSlot() {
   const { settings } = useAppState();
   if (!adsActive() || settings.isPlus) return null;
 
-  // ── UNCOMMENT WHEN THE SDK IS INSTALLED (see docs/ADS_SETUP.md) ───────────
+  // ── UNCOMMENT WHEN THE SDK IS INSTALLED (see dev-notes/ADS_SETUP.md) ───────────
   // const { BannerAd, BannerAdSize } = require('react-native-google-mobile-ads');
   // return (
   //   <View style={{ alignItems: 'center' }}>

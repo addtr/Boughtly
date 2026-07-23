@@ -10,7 +10,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  *
  * To wire real billing later (in a dev/production build), see
- * docs/PLUS_SETUP.md.
+ * dev-notes/PLUS_SETUP.md.
  */
 
 import { Platform } from 'react-native';
@@ -80,7 +80,7 @@ export function canAddWatch(currentWatchCount: number, isPlus: boolean): boolean
  */
 export async function purchasePlus(_plan: PlusPlan): Promise<boolean> {
   if (!PLUS_IAP_ENABLED || Platform.OS === 'web') return false;
-  // ── UNCOMMENT WHEN AN IAP LIBRARY IS INSTALLED (see docs/PLUS_SETUP.md) ───
+  // ── UNCOMMENT WHEN AN IAP LIBRARY IS INSTALLED (see dev-notes/PLUS_SETUP.md) ───
   // const { requestSubscription } = require('react-native-iap');
   // const productId = PLUS_PRODUCT_IDS[_plan];
   // const purchase = await requestSubscription({ sku: productId });

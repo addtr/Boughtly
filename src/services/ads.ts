@@ -8,7 +8,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  *
  * To turn ads on later (in a dev/production build, NOT Expo Go), see
- * docs/ADS_SETUP.md. In short:
+ * dev-notes/ADS_SETUP.md. In short:
  *   1. `npx expo install react-native-google-mobile-ads`
  *   2. Add the config plugin + your AdMob app IDs to app.json.
  *   3. Fill in REAL_* ad unit IDs below from your AdMob console.
@@ -52,7 +52,7 @@ export function adsActive(): boolean {
 /**
  * Ask for App Tracking Transparency permission (iOS) before any personalized
  * ads. If the user declines, we fall back to non-personalized ads. No-op until
- * expo-tracking-transparency is installed (see docs/ADS_SETUP.md).
+ * expo-tracking-transparency is installed (see dev-notes/ADS_SETUP.md).
  * Returns true if personalized-ad tracking is allowed.
  */
 export async function requestTrackingPermission(): Promise<boolean> {
