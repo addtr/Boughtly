@@ -184,6 +184,13 @@ export const TERMS_OF_USE: LegalDoc = {
       ],
     },
     {
+      heading: 'Boughtly Plus subscriptions',
+      body: [
+        'Boughtly offers an optional premium subscription, Boughtly Plus, with monthly and yearly plans; current pricing is shown in the app and on the App Store. Payment is charged to your Apple ID at purchase.',
+        'Subscriptions renew automatically unless auto-renew is turned off at least 24 hours before the end of the current period, and your account is charged for renewal within that window. Manage or cancel anytime in your device Settings under your name → Subscriptions — deleting the app does not cancel a subscription. The free version of Boughtly stays available; Plus adds features and removes limits.',
+      ],
+    },
+    {
       heading: 'Provided “as is”',
       body: [
         'Boughtly is provided “as is,” without warranties of any kind, express or implied, including fitness for a particular purpose. We don’t warrant that it will be uninterrupted, error-free, or that any information in it is accurate or complete.',
