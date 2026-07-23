@@ -17,7 +17,7 @@
 
 import { ADS_ENABLED } from '../services/ads';
 
-export const CONTACT_EMAIL = 'addisonballer6@gmail.com';
+export const CONTACT_EMAIL = 'wants.and.needs.shop6@gmail.com';
 
 /** Shown as "Last updated" on both documents. */
 export const LEGAL_EFFECTIVE_DATE = 'July 12, 2026';
