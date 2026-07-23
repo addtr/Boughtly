@@ -267,7 +267,13 @@ export function ScanReviewScreen({ navigation, route }: Props) {
                   style={styles.itemPrice}
                 />
               </View>
-              <Pressable onPress={() => removeRow(idx)} hitSlop={8} style={styles.removeBtn}>
+              <Pressable
+                onPress={() => removeRow(idx)}
+                hitSlop={8}
+                style={styles.removeBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Remove this item from the receipt"
+              >
                 <Ionicons name="close-circle" size={22} color={colors.muted} />
               </Pressable>
             </View>

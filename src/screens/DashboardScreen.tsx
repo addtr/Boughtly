@@ -294,6 +294,8 @@ export function DashboardScreen() {
           <Pressable
             style={[styles.swipeAction, { backgroundColor: colors.coral }]}
             onPress={() => void swipeReturn(item)}
+            accessibilityRole="button"
+            accessibilityLabel={`Start a return for ${item.itemName}`}
           >
             <Ionicons name="arrow-undo" size={20} color="#FFFFFF" />
             <Text style={styles.swipeActionText}>Return</Text>
@@ -302,6 +304,8 @@ export function DashboardScreen() {
         <Pressable
           style={[styles.swipeAction, { backgroundColor: colors.danger }]}
           onPress={() => swipeDelete(item)}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${item.itemName}`}
         >
           <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
           <Text style={styles.swipeActionText}>Delete</Text>

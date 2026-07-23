@@ -1025,7 +1025,12 @@ export function AddItemScreen({ navigation, route }: Props) {
             <Text style={styles.docName} numberOfLines={1}>
               {d.name}
             </Text>
-            <Pressable onPress={() => removeDocument(idx)} hitSlop={8}>
+            <Pressable
+              onPress={() => removeDocument(idx)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove document ${d.name}`}
+            >
               <Ionicons name="close-circle" size={20} color={colors.muted} />
             </Pressable>
           </View>
@@ -1051,7 +1056,13 @@ export function AddItemScreen({ navigation, route }: Props) {
         {tags.length > 0 && (
           <View style={styles.tagWrap}>
             {tags.map((t) => (
-              <Pressable key={t} style={styles.tagChip} onPress={() => removeTag(t)}>
+              <Pressable
+                key={t}
+                style={styles.tagChip}
+                onPress={() => removeTag(t)}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove tag ${t}`}
+              >
                 <Text style={styles.tagChipText}>{t}</Text>
                 <Ionicons name="close" size={13} color={colors.primary} />
               </Pressable>

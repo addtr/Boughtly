@@ -662,6 +662,8 @@ export function ItemDetailScreen({ navigation, route }: Props) {
               <Pressable
                 key={i}
                 onPress={() => scanForCheaper(li.name, li.price)}
+                accessibilityRole="button"
+                accessibilityLabel={`Search for a lower price on ${li.name}`}
                 style={({ pressed }) => [
                   styles.lineItemRow,
                   i > 0 && styles.lineItemDivider,
@@ -695,7 +697,11 @@ export function ItemDetailScreen({ navigation, route }: Props) {
         if (pages.length === 1) {
           return (
             <Card style={styles.receiptCard}>
-              <Pressable onPress={() => setViewerUri(pages[0])}>
+              <Pressable
+                onPress={() => setViewerUri(pages[0])}
+                accessibilityRole="imagebutton"
+                accessibilityLabel="View receipt full screen"
+              >
                 <Image source={{ uri: pages[0] }} style={styles.receiptImage} />
                 <Text style={styles.receiptHint}>Tap to view full screen</Text>
               </Pressable>
@@ -710,7 +716,12 @@ export function ItemDetailScreen({ navigation, route }: Props) {
               contentContainerStyle={styles.receiptPagesRow}
             >
               {pages.map((uri, i) => (
-                <Pressable key={`${uri}-${i}`} onPress={() => setViewerUri(uri)}>
+                <Pressable
+                  key={`${uri}-${i}`}
+                  onPress={() => setViewerUri(uri)}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={`View receipt page ${i + 1} full screen`}
+                >
                   <Image source={{ uri }} style={styles.receiptPageThumb} />
                   <Text style={styles.receiptPageNum}>Page {i + 1}</Text>
                 </Pressable>
@@ -776,7 +787,12 @@ export function ItemDetailScreen({ navigation, route }: Props) {
             contentContainerStyle={styles.photoGallery}
           >
             {item.productPhotos.map((uri, i) => (
-              <Pressable key={`${uri}-${i}`} onPress={() => setViewerUri(uri)}>
+              <Pressable
+                key={`${uri}-${i}`}
+                onPress={() => setViewerUri(uri)}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={`View product photo ${i + 1} full screen`}
+              >
                 <Image source={{ uri }} style={styles.galleryImage} />
               </Pressable>
             ))}
