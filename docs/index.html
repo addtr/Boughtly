@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Boughtly — track returns, warranties & subscriptions</title>
-  <meta name="description" content="Boughtly keeps every receipt, return window, warranty, subscription, and price watch in one place — with all your data stored privately on your device." />
+  <title>AddDesigns — the app studio</title>
+  <meta name="description" content="AddDesigns builds simple, private apps for everyday life. Meet our apps and download them on the App Store." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="site-header">
     <div class="wrap">
-      <a class="brand" href="index.html"><span class="dot"></span> Boughtly</a>
+      <a class="brand" href="index.html"><span class="logo-mark">A</span> AddDesigns</a>
       <nav class="nav">
+        <a href="#apps">Apps</a>
         <a href="privacy.html">Privacy</a>
-        <a href="terms.html">Terms</a>
       </nav>
     </div>
   </header>
@@ -21,56 +21,45 @@
   <main>
     <section class="hero">
       <div class="wrap">
-        <span class="badge">Coming soon to the App Store</span>
-        <h1>The right price before.<br />The right protection after.</h1>
-        <p>Boughtly quietly tracks your receipts, return windows, warranties, subscriptions, and price watches — so you never miss a refund, a deadline, or a charge you meant to cancel.</p>
+        <span class="eyebrow">An independent app studio</span>
+        <h1>Simple apps that<br /><span class="grad">look after the details.</span></h1>
+        <p>We build small, private, genuinely useful apps for everyday life — starting with the things you buy.</p>
       </div>
     </section>
 
-    <section>
+    <section class="apps" id="apps">
       <div class="wrap">
-        <h2>Everything you buy, looked after</h2>
-        <p class="section-sub">One simple app for the money side of your stuff.</p>
-        <div class="grid">
-          <div class="feature">
-            <span class="ico">🧾</span>
-            <h3>Receipts &amp; returns</h3>
-            <p>Snap a receipt and Boughtly tracks the return window, warranty, and deadlines for you.</p>
-          </div>
-          <div class="feature">
-            <span class="ico">🛡️</span>
-            <h3>Warranties</h3>
-            <p>Know exactly how long you're covered, with reminders before protection ends.</p>
-          </div>
-          <div class="feature">
-            <span class="ico">🔁</span>
-            <h3>Subscriptions</h3>
-            <p>See every recurring charge in one place — with a one-tap link to cancel.</p>
-          </div>
-          <div class="feature">
-            <span class="ico">🏷️</span>
-            <h3>Price watch</h3>
-            <p>Track prices over time and catch the real deals, not the fake "sales."</p>
-          </div>
-          <div class="feature">
-            <span class="ico">⚠️</span>
-            <h3>Recall alerts</h3>
-            <p>Boughtly checks your items against official recalls so you never miss a free fix.</p>
-          </div>
-          <div class="feature">
-            <span class="ico">🔔</span>
-            <h3>Smart reminders</h3>
-            <p>Gentle nudges before a window closes, a warranty ends, or a subscription renews.</p>
-          </div>
-        </div>
-      </div>
-    </section>
+        <div class="apps-grid">
 
-    <section>
-      <div class="wrap">
-        <div class="privacy-band">
-          <h2>Private by design</h2>
-          <p>Your receipts, photos, and everything you track are stored only on your device. Boughtly has no server collecting your data — we can't see it, and we don't sell it. <a href="privacy.html">Read our Privacy Policy →</a></p>
+          <!-- App 1: Boughtly -->
+          <div class="app-card">
+            <div class="app-icon boughtly">🧾</div>
+            <h3>Boughtly</h3>
+            <p class="desc">Track return windows, warranties, subscriptions, and prices — with reminders before every deadline. All your data stays private on your device.</p>
+            <!-- When Boughtly is live, paste its real App Store URL into href below. -->
+            <a class="appstore" href="#" aria-label="Download Boughtly on the App Store">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.417 2.2-1.114 2.99-.746.85-1.966 1.5-3.155 1.41-.14-1.13.44-2.31 1.1-3.05.74-.83 2.03-1.46 3.169-1.35zM20.5 17.02c-.58 1.34-.86 1.94-1.6 3.13-1.04 1.66-2.5 3.72-4.31 3.74-1.61.02-2.02-1.05-4.2-1.04-2.18.01-2.63 1.06-4.24 1.05-1.81-.02-3.2-1.89-4.24-3.55-2.9-4.63-3.2-10.06-1.41-12.95 1.27-2.05 3.27-3.26 5.15-3.26 1.92 0 3.12 1.05 4.71 1.05 1.54 0 2.48-1.05 4.7-1.05 1.68 0 3.46.92 4.72 2.5-4.15 2.28-3.47 8.21.47 10.33z"/></svg>
+              <span><span class="l1">Coming soon on the</span><span class="l2">App Store</span></span>
+            </a>
+            <p class="pill-note">Launching soon — link goes live at release.</p>
+          </div>
+
+          <!-- App 2: placeholder -->
+          <div class="app-card">
+            <div class="app-icon soon">✦</div>
+            <h3>App two</h3>
+            <p class="desc">Our next app is in the works. Same idea — small, private, and focused on making one everyday thing easier.</p>
+            <span class="soon-tag">In development</span>
+          </div>
+
+          <!-- App 3: placeholder -->
+          <div class="app-card">
+            <div class="app-icon soon">✦</div>
+            <h3>App three</h3>
+            <p class="desc">Something new is on the roadmap. Check back soon to see what we're building next.</p>
+            <span class="soon-tag">In development</span>
+          </div>
+
         </div>
       </div>
     </section>
@@ -78,12 +67,13 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <span>© 2026 Boughtly</span>
-      <span>
-        <a href="privacy.html">Privacy Policy</a> ·
-        <a href="terms.html">Terms &amp; Disclaimer</a> ·
+      <span class="foot-brand"><span class="logo-mark">A</span> AddDesigns</span>
+      <span class="foot-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms &amp; Disclaimer</a>
         <a href="mailto:wants.and.needs.shop6@gmail.com">Contact</a>
       </span>
+      <span class="copyright">© 2026 AddDesigns. All rights reserved.</span>
     </div>
   </footer>
 </body>
