@@ -36,7 +36,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['walmart'], label: 'Walmart', domain: 'walmart.com', url: 'https://www.walmart.com/returns' },
   { match: ['target'], label: 'Target', domain: 'target.com', url: 'https://www.target.com/returns' },
   { match: ['best buy', 'bestbuy'], label: 'Best Buy', domain: 'bestbuy.com' },
-  { match: ['costco'], label: 'Costco', domain: 'costco.com', url: 'https://customerservice.costco.com/app/answers/answer_view/a_id/1191' },
+  { match: ['costco'], label: 'Costco', domain: 'costco.com' },
   { match: ["sam's club", 'sams club', 'samsclub'], label: "Sam's Club", domain: 'samsclub.com' },
   { match: ["bj's", 'bjs wholesale', 'bjs'], label: "BJ's", domain: 'bjs.com' },
   { match: ['dollar general'], label: 'Dollar General', domain: 'dollargeneral.com' },
@@ -158,7 +158,7 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['express'], label: 'Express', domain: 'express.com' },
   { match: ["levi's", 'levis', 'levi strauss'], label: "Levi's", domain: 'levi.com' },
   { match: ["victoria's secret", 'victorias secret'], label: "Victoria's Secret", domain: 'victoriassecret.com' },
-  { match: ['patagonia'], label: 'Patagonia', domain: 'patagonia.com', url: 'https://www.patagonia.com/returns.html' },
+  { match: ['patagonia'], label: 'Patagonia', domain: 'patagonia.com' },
   { match: ['columbia'], label: 'Columbia', domain: 'columbia.com' },
   { match: ['north face'], label: 'The North Face', domain: 'thenorthface.com' },
   { match: ['carhartt'], label: 'Carhartt', domain: 'carhartt.com' },
@@ -328,6 +328,35 @@ const STORE_RETURN_SITES: StoreReturnSite[] = [
   { match: ['thuma'], label: 'Thuma', domain: 'thuma.co', url: 'https://www.thuma.co/pages/returns' },
   { match: ['leesa'], label: 'Leesa', domain: 'leesa.com', url: 'https://www.leesa.com/pages/trial-and-returns' },
   { match: ['cozy earth'], label: 'Cozy Earth', domain: 'cozyearth.com', url: 'https://cozyearth.com/pages/returns' },
+
+  // ── Verified direct pages — batch 10 (2026-07-23) ──
+  { match: ['article'], label: 'Article', domain: 'article.com', url: 'https://www.article.com/returns' },
+  { match: ['avocado'], label: 'Avocado', domain: 'avocadogreenmattress.com', url: 'https://www.avocadogreenmattress.com/pages/returns' },
+  { match: ['peloton'], label: 'Peloton', domain: 'onepeloton.com', url: 'https://www.onepeloton.com/returns' },
+
+  // ── Added brands — site-pinned returns search (never 404s) — 2026-07-23 ──
+  { match: ['warby parker', 'warby'], label: 'Warby Parker', domain: 'warbyparker.com' },
+  { match: ['ruggable'], label: 'Ruggable', domain: 'ruggable.com' },
+  { match: ['vuori'], label: 'Vuori', domain: 'vuoriclothing.com' },
+  { match: ['gymshark'], label: 'Gymshark', domain: 'gymshark.com' },
+  { match: ['alo yoga', 'alo'], label: 'Alo Yoga', domain: 'aloyoga.com' },
+  { match: ['bombas'], label: 'Bombas', domain: 'bombas.com' },
+  { match: ['ridge wallet', 'ridge'], label: 'Ridge', domain: 'ridge.com' },
+  { match: ['stanley'], label: 'Stanley', domain: 'stanley1913.com' },
+  { match: ['hydro flask', 'hydroflask'], label: 'Hydro Flask', domain: 'hydroflask.com' },
+  { match: ['dyson'], label: 'Dyson', domain: 'dyson.com' },
+  { match: ['caraway'], label: 'Caraway', domain: 'carawayhome.com' },
+  { match: ['hexclad', 'hex clad'], label: 'HexClad', domain: 'hexclad.com' },
+  { match: ['saatva'], label: 'Saatva', domain: 'saatva.com' },
+  { match: ['helix sleep', 'helix'], label: 'Helix Sleep', domain: 'helixsleep.com' },
+  { match: ['nectar sleep', 'nectar'], label: 'Nectar Sleep', domain: 'nectarsleep.com' },
+  { match: ['lovesac'], label: 'Lovesac', domain: 'lovesac.com' },
+  { match: ['burrow'], label: 'Burrow', domain: 'burrow.com' },
+  { match: ['chubbies'], label: 'Chubbies', domain: 'chubbiesshorts.com' },
+  { match: ['untuckit'], label: 'UNTUCKit', domain: 'untuckit.com' },
+  { match: ['tommy john'], label: 'Tommy John', domain: 'tommyjohn.com' },
+  { match: ['meundies', 'me undies'], label: 'MeUndies', domain: 'meundies.com' },
+  { match: ['vineyard vines'], label: 'Vineyard Vines', domain: 'vineyardvines.com' },
 
 ];
 
