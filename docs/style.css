@@ -114,6 +114,9 @@ a:hover { text-decoration: underline; }
   font-weight: 600; font-size: 14px;
 }
 .pill-note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+.card-legal { font-size: 13px; margin: 14px 0 0; color: var(--muted); }
+.card-legal a { color: var(--muted); font-weight: 600; }
+.card-legal a:hover { color: var(--ink); }
 
 /* Footer */
 .site-footer { border-top: 1px solid var(--border); margin-top: 64px; padding: 40px 0 60px; }
@@ -122,6 +125,14 @@ a:hover { text-decoration: underline; }
 .foot-links a:first-child { margin-left: 0; }
 .foot-links a:hover { color: var(--ink); }
 .copyright { width: 100%; color: var(--muted); font-size: 13px; margin-top: 8px; }
+
+/* Grouped footer (per-app legal sections) */
+.foot-top { width: 100%; display: flex; flex-wrap: wrap; gap: 28px 48px; align-items: flex-start; justify-content: space-between; }
+.foot-groups { display: flex; flex-wrap: wrap; gap: 24px 44px; }
+.foot-group { display: flex; flex-direction: column; gap: 8px; }
+.foot-group-title { font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+.foot-group a { color: var(--muted); font-weight: 500; font-size: 14px; }
+.foot-group a:hover { color: var(--ink); }
 
 /* Legal pages */
 .legal { padding: 40px 0 10px; max-width: 780px; }
