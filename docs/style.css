@@ -91,6 +91,7 @@ a:hover { text-decoration: underline; }
   font-size: 34px; margin-bottom: 18px; box-shadow: var(--shadow);
 }
 .app-icon.boughtly { background: linear-gradient(135deg, #3fa9ef, #2b8fe0); }
+.app-icon.connect4 { background: linear-gradient(135deg, #e23b3b, #f2c40d); }
 .app-icon.soon { background: linear-gradient(135deg, var(--bg-2), var(--border)); }
 .app-card h3 { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.01em; }
 .app-card .desc { margin: 0 0 22px; color: var(--muted); font-size: 15px; flex: 1; }
@@ -106,6 +107,16 @@ a:hover { text-decoration: underline; }
 .appstore .l1 { display: block; font-size: 10px; line-height: 1.1; opacity: 0.85; }
 .appstore .l2 { display: block; font-size: 17px; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
 @media (prefers-color-scheme: dark) { .appstore { background: #fff; color: #000; } .appstore svg { fill: #000; } }
+
+/* Play-in-browser button (game cards) */
+.playbtn {
+  display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
+  background: linear-gradient(120deg, var(--primary), var(--primary-2)); color: #fff;
+  border-radius: 13px; padding: 11px 20px; font-weight: 700; font-size: 15px;
+  margin-bottom: 12px; transition: opacity 0.15s ease, transform 0.1s ease;
+}
+.playbtn:hover { text-decoration: none; opacity: 0.92; }
+.playbtn:active { transform: scale(0.97); }
 
 .soon-tag {
   align-self: flex-start; background: var(--bg-2); color: var(--muted);

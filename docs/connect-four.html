@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Connect Four — addtr.labs</title>
+  <meta name="description" content="Play Connect Four in your browser — vs a bot (easy, medium, hard) or pass-and-play with a friend. A free web demo from addtr.labs." />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ---- Connect Four game styles ---- */
+    .game-wrap { max-width: 620px; margin: 0 auto; padding: 28px 22px 10px; }
+    .game-head { text-align: center; margin-bottom: 18px; }
+    .game-head h1 { font-size: clamp(28px, 5vw, 40px); letter-spacing: -0.02em; margin: 0 0 6px; }
+    .game-head p { color: var(--muted); margin: 0; }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 18px 0 8px; }
+    .seg { display: inline-flex; background: var(--bg-2); border: 1px solid var(--border); border-radius: 100px; padding: 4px; }
+    .seg button {
+      border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 700;
+      font-size: 14px; padding: 8px 16px; border-radius: 100px; cursor: pointer; transition: all .15s ease;
+    }
+    .seg button.active { background: var(--primary); color: #fff; }
+    #difficultySeg { display: none; }
+    #difficultySeg.show { display: inline-flex; }
+
+    .status { text-align: center; margin: 16px 0 14px; min-height: 30px; }
+    .turn-pill {
+      display: inline-flex; align-items: center; gap: 9px; border: 2px solid var(--border);
+      border-radius: 100px; padding: 7px 16px; font-weight: 700; font-size: 16px; color: var(--ink);
+    }
+    .turn-dot { width: 14px; height: 14px; border-radius: 50%; animation: breathe 1.4s ease-in-out infinite; }
+    @keyframes breathe { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+
+    /* Board */
+    .board {
+      --cols: 7; --rows: 6;
+      display: flex; gap: 6px; padding: 10px; border-radius: 18px;
+      background: linear-gradient(135deg, #1e5bd6, #164bb0);
+      box-shadow: var(--shadow-lg); width: max-content; margin: 0 auto;
+    }
+    .col { display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+    .col.disabled { cursor: default; }
+    .cell {
+      width: var(--cell, 46px); height: var(--cell, 46px); border-radius: 50%;
+      background: var(--bg); position: relative; display: grid; place-items: center;
+    }
+    .disc {
+      width: 100%; height: 100%; border-radius: 50%; transform: translateY(0);
+    }
+    .disc.p1 { background: radial-gradient(circle at 35% 30%, #ff6b6b, #e23b3b); }
+    .disc.p2 { background: radial-gradient(circle at 35% 30%, #ffe066, #f2c40d); }
+    .disc.drop { animation: drop var(--fall, .38s) cubic-bezier(.34,1.3,.64,1) ; }
+    @keyframes drop { from { transform: translateY(var(--from, -300px)); } to { transform: translateY(0); } }
+    .cell.win .disc { box-shadow: 0 0 0 3px #fff, 0 0 16px 4px rgba(255,255,255,.8); animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px #fff, 0 0 10px 2px rgba(255,255,255,.55); } 50% { box-shadow: 0 0 0 3px #fff, 0 0 22px 7px rgba(255,255,255,.95); } }
+    .col:not(.disabled):hover .ghost { opacity: .55; }
+    .ghost {
+      position: absolute; inset: 0; border-radius: 50%; border: 3px solid currentColor;
+      opacity: 0; transition: opacity .12s ease; pointer-events: none;
+    }
+
+    .actions { text-align: center; margin: 20px 0 8px; }
+    .btn {
+      border: 0; border-radius: 13px; padding: 13px 26px; font: inherit; font-weight: 700; font-size: 16px;
+      background: var(--primary); color: #fff; cursor: pointer; transition: opacity .15s ease, transform .1s ease;
+    }
+    .btn:hover { opacity: .9; }
+    .btn:active { transform: scale(.97); }
+    .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); margin-left: 8px; }
+
+    .back-home { display: block; text-align: center; margin: 6px 0 30px; font-weight: 600; color: var(--muted); }
+    .back-home:hover { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand wordmark" href="index.html">addtr<span class="labs">.labs</span></a>
+      <nav class="nav">
+        <a href="index.html#apps">Apps</a>
+        <a href="privacy.html">Privacy</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="game-wrap">
+      <div class="game-head">
+        <h1>Connect Four</h1>
+        <p>Drop four in a row to win — diagonally, across, or down.</p>
+      </div>
+
+      <div class="controls">
+        <div class="seg" id="modeSeg">
+          <button data-mode="BOT" class="active">Vs Bot</button>
+          <button data-mode="PVP">Pass &amp; Play</button>
+        </div>
+        <div class="seg show" id="difficultySeg">
+          <button data-diff="EASY">Easy</button>
+          <button data-diff="MEDIUM" class="active">Medium</button>
+          <button data-diff="HARD">Hard</button>
+        </div>
+      </div>
+
+      <div class="status"><span class="turn-pill" id="statusPill">
+        <span class="turn-dot" id="turnDot"></span><span id="statusText">Your turn</span>
+      </span></div>
+
+      <div class="board" id="board"></div>
+
+      <div class="actions">
+        <button class="btn" id="newGameBtn">New Game</button>
+      </div>
+      <a class="back-home" href="index.html">← Back to addtr.labs</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span class="brand wordmark">addtr<span class="labs">.labs</span></span>
+      <span class="foot-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms &amp; Disclaimer</a>
+        <a href="mailto:addtr.labs@gmail.com">Contact</a>
+      </span>
+      <span class="copyright">© 2026 addtr.labs · Building apps. Solving problems.</span>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    // ---------------- Game logic (vanilla port of the app's modules) ----------------
+    const ROWS = 6, COLS = 7, EMPTY = 0, P1 = 1, P2 = 2;
+    const DIRS = [[0,1],[1,0],[1,1],[1,-1]];
+    const opp = p => (p === P1 ? P2 : P1);
+
+    const DIFFICULTY = {
+      EASY:   { key: 'EASY',   depth: 2, randomChance: 0.45 },
+      MEDIUM: { key: 'MEDIUM', depth: 4, randomChance: 0.12 },
+      HARD:   { key: 'HARD',   depth: 6, randomChance: 0 },
+    };
+
+    const newBoard = () => Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+    const clone = b => b.map(r => r.slice());
+    const validCols = b => { const c = []; for (let i = 0; i < COLS; i++) if (b[0][i] === EMPTY) c.push(i); return c; };
+    const dropRow = (b, col) => { for (let r = ROWS - 1; r >= 0; r--) if (b[r][col] === EMPTY) return r; return -1; };
+    const isFull = b => b[0].every(c => c !== EMPTY);
+    const inB = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
+
+    function winFrom(b, row, col) {
+      const p = b[row][col]; if (p === EMPTY) return null;
+      for (const [dr, dc] of DIRS) {
+        const cells = [[row, col]];
+        for (let k = 1; k < 4; k++) { const nr = row+dr*k, nc = col+dc*k; if (inB(nr,nc)&&b[nr][nc]===p) cells.push([nr,nc]); else break; }
+        for (let k = 1; k < 4; k++) { const nr = row-dr*k, nc = col-dc*k; if (inB(nr,nc)&&b[nr][nc]===p) cells.unshift([nr,nc]); else break; }
+        if (cells.length >= 4) return cells.slice(0, 4);
+      }
+      return null;
+    }
+
+    function evalWindow(w, ai) {
+      const o = opp(ai); let a = 0, e = 0, x = 0;
+      for (const v of w) { if (v === ai) a++; else if (v === o) x++; else e++; }
+      if (a > 0 && x > 0) return 0;
+      let s = 0;
+      if (a === 4) s += 100; else if (a === 3 && e === 1) s += 8; else if (a === 2 && e === 2) s += 3;
+      if (x === 3 && e === 1) s -= 10; else if (x === 2 && e === 2) s -= 3;
+      return s;
+    }
+    function score(b, ai) {
+      let s = 0;
+      for (let r = 0; r < ROWS; r++) if (b[r][3] === ai) s += 6;
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c <= COLS-4; c++) s += evalWindow([b[r][c],b[r][c+1],b[r][c+2],b[r][c+3]], ai);
+      for (let c = 0; c < COLS; c++) for (let r = 0; r <= ROWS-4; r++) s += evalWindow([b[r][c],b[r+1][c],b[r+2][c],b[r+3][c]], ai);
+      for (let r = 0; r <= ROWS-4; r++) for (let c = 0; c <= COLS-4; c++) s += evalWindow([b[r][c],b[r+1][c+1],b[r+2][c+2],b[r+3][c+3]], ai);
+      for (let r = 3; r < ROWS; r++) for (let c = 0; c <= COLS-4; c++) s += evalWindow([b[r][c],b[r-1][c+1],b[r-2][c+2],b[r-3][c+3]], ai);
+      return s;
+    }
+    const ordered = b => { const center = (COLS-1)/2; return validCols(b).sort((a,c)=>Math.abs(a-center)-Math.abs(c-center)); };
+
+    function minimax(b, depth, alpha, beta, maxing, ai, last, dfr) {
+      if (last) { const w = winFrom(b, last.r, last.c); if (w) { const mag = 1e6 - dfr; return { col: last.c, score: (b[last.r][last.c] === ai) ? mag : -mag }; } }
+      if (isFull(b)) return { col: null, score: 0 };
+      if (depth === 0) return { col: null, score: score(b, ai) };
+      const cols = ordered(b), player = maxing ? ai : opp(ai);
+      let best = cols[0];
+      if (maxing) {
+        let v = -Infinity;
+        for (const c of cols) { const r = dropRow(b,c); const nb = clone(b); nb[r][c] = player; const nx = minimax(nb, depth-1, alpha, beta, false, ai, {r,c}, dfr+1); if (nx.score > v) { v = nx.score; best = c; } alpha = Math.max(alpha, v); if (alpha >= beta) break; }
+        return { col: best, score: v };
+      } else {
+        let v = Infinity;
+        for (const c of cols) { const r = dropRow(b,c); const nb = clone(b); nb[r][c] = player; const nx = minimax(nb, depth-1, alpha, beta, true, ai, {r,c}, dfr+1); if (nx.score < v) { v = nx.score; best = c; } beta = Math.min(beta, v); if (alpha >= beta) break; }
+        return { col: best, score: v };
+      }
+    }
+    const rand = a => a[Math.floor(Math.random()*a.length)];
+    function immediateWin(b, p) { for (const c of validCols(b)) { const r = dropRow(b,c); const nb = clone(b); nb[r][c] = p; if (winFrom(nb, r, c)) return c; } return null; }
+    function chooseBotMove(b, ai, diff) {
+      const valid = validCols(b); if (!valid.length) return null;
+      if (diff.key === 'EASY') { if (Math.random() < diff.randomChance) return rand(valid); const w = immediateWin(b, ai); if (w !== null) return w; return minimax(b, diff.depth, -Infinity, Infinity, true, ai, null, 0).col ?? rand(valid); }
+      const w = immediateWin(b, ai); if (w !== null) return w;
+      const blk = immediateWin(b, opp(ai)); if (blk !== null) return blk;
+      if (diff.randomChance > 0 && Math.random() < diff.randomChance) return rand(valid);
+      return minimax(b, diff.depth, -Infinity, Infinity, true, ai, null, 0).col ?? rand(valid);
+    }
+
+    // ---------------- UI ----------------
+    const BOT = P2; // bot plays yellow in Vs Bot mode
+    const boardEl = document.getElementById('board');
+    const statusText = document.getElementById('statusText');
+    const turnDot = document.getElementById('turnDot');
+    const statusPill = document.getElementById('statusPill');
+    const modeSeg = document.getElementById('modeSeg');
+    const diffSeg = document.getElementById('difficultySeg');
+    const COLORS = { [P1]: '#e23b3b', [P2]: '#f2c40d' };
+
+    let board, current, over, winning, mode = 'BOT', diff = DIFFICULTY.MEDIUM, busy = false;
+    const cellEls = []; // cellEls[r][c]
+
+    function buildBoard() {
+      boardEl.innerHTML = ''; cellEls.length = 0;
+      // responsive cell size
+      const maxBoard = Math.min(window.innerWidth - 44, 430);
+      const cell = Math.floor((maxBoard - 20 - 6 * (COLS - 1)) / COLS);
+      boardEl.style.setProperty('--cell', cell + 'px');
+      for (let r = 0; r < ROWS; r++) cellEls[r] = [];
+      for (let c = 0; c < COLS; c++) {
+        const col = document.createElement('div');
+        col.className = 'col'; col.dataset.col = c;
+        col.addEventListener('click', () => onColumn(c));
+        for (let r = 0; r < ROWS; r++) {
+          const cellDiv = document.createElement('div');
+          cellDiv.className = 'cell';
+          const ghost = document.createElement('div');
+          ghost.className = 'ghost'; cellDiv.appendChild(ghost);
+          col.appendChild(cellDiv);
+          cellEls[r][c] = cellDiv;
+        }
+        boardEl.appendChild(col);
+      }
+    }
+
+    function reset() {
+      board = newBoard(); current = P1; over = false; winning = null; busy = false;
+      buildBoard(); render();
+      maybeBotMove();
+    }
+
+    function render() {
+      const cellPx = parseInt(boardEl.style.getPropertyValue('--cell')) || 46;
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        const cellDiv = cellEls[r][c];
+        const v = board[r][c];
+        let disc = cellDiv.querySelector('.disc');
+        cellDiv.classList.remove('win');
+        if (v === EMPTY) { if (disc) disc.remove(); }
+        else if (!disc) {
+          disc = document.createElement('div');
+          disc.className = 'disc ' + (v === P1 ? 'p1' : 'p2');
+          cellDiv.insertBefore(disc, cellDiv.querySelector('.ghost'));
+        }
+        // ghost color for the current player
+        const ghost = cellDiv.querySelector('.ghost');
+        if (ghost) ghost.style.color = COLORS[current];
+      }
+      // disable columns while over / bot thinking
+      document.querySelectorAll('.col').forEach(col => {
+        const c = +col.dataset.col;
+        const playable = !over && !busy && board[0][c] === EMPTY;
+        col.classList.toggle('disabled', !playable);
+      });
+      // winning highlight
+      if (winning) winning.forEach(([r, c]) => cellEls[r][c].classList.add('win'));
+      updateStatus();
+    }
+
+    function updateStatus() {
+      let text, color;
+      if (over) {
+        if (winning) {
+          const winner = board[winning[0][0]][winning[0][1]];
+          if (mode === 'BOT') text = winner === P1 ? 'You win! 🎉' : 'Bot wins';
+          else text = nameOf(winner) + ' wins! 🎉';
+          color = COLORS[winner];
+        } else { text = "It's a draw"; color = 'var(--muted)'; }
+      } else if (busy) { text = 'Bot is thinking…'; color = COLORS[BOT]; }
+      else { text = mode === 'BOT' ? (current === P1 ? 'Your turn' : 'Bot') : nameOf(current) + "'s turn"; color = COLORS[current]; }
+      statusText.textContent = text;
+      turnDot.style.background = color;
+      statusPill.style.borderColor = over ? 'var(--border)' : color;
+      turnDot.style.animationPlayState = over || busy ? 'paused' : 'running';
+    }
+    function nameOf(p) { if (mode === 'BOT') return p === P1 ? 'You' : 'Bot'; return p === P1 ? 'Red' : 'Yellow'; }
+
+    function place(col) {
+      const r = dropRow(board, col);
+      if (r < 0) return false;
+      board[r][col] = current;
+      // render with drop animation on the new disc
+      render();
+      const disc = cellEls[r][col].querySelector('.disc');
+      if (disc) {
+        const cellPx = parseInt(boardEl.style.getPropertyValue('--cell')) || 46;
+        disc.style.setProperty('--from', -((r + 1) * (cellPx + 6)) + 'px');
+        disc.style.setProperty('--fall', Math.min(.22 + r * 0.05, .5) + 's');
+        disc.classList.add('drop');
+      }
+      const w = winFrom(board, r, col);
+      if (w) { winning = w; over = true; }
+      else if (isFull(board)) { over = true; }
+      else { current = opp(current); }
+      render();
+      return true;
+    }
+
+    function onColumn(c) {
+      if (over || busy) return;
+      if (mode === 'BOT' && current === BOT) return;
+      if (board[0][c] !== EMPTY) return;
+      place(c);
+      maybeBotMove();
+    }
+
+    function maybeBotMove() {
+      if (mode !== 'BOT' || over || current !== BOT) return;
+      busy = true; render();
+      const start = performance.now();
+      // let the UI paint the "thinking" state first
+      setTimeout(() => {
+        const col = chooseBotMove(board, BOT, diff);
+        const wait = Math.max(0, 450 - (performance.now() - start));
+        setTimeout(() => { busy = false; if (col !== null && col !== undefined) place(col); render(); }, wait);
+      }, 30);
+    }
+
+    // Controls
+    modeSeg.addEventListener('click', e => {
+      const btn = e.target.closest('button'); if (!btn) return;
+      mode = btn.dataset.mode;
+      modeSeg.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+      diffSeg.classList.toggle('show', mode === 'BOT');
+      reset();
+    });
+    diffSeg.addEventListener('click', e => {
+      const btn = e.target.closest('button'); if (!btn) return;
+      diff = DIFFICULTY[btn.dataset.diff];
+      diffSeg.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+      reset();
+    });
+    document.getElementById('newGameBtn').addEventListener('click', reset);
+    let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { buildBoard(); render(); }, 150); });
+
+    reset();
+  })();
+  </script>
+</body>
+</html>
